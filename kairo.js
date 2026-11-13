@@ -71,21 +71,27 @@ const CSS = `
 #rc-root .banner button{flex:none}
 #rc-root .adminTag{font-family:var(--font-mono);font-size:.63rem;font-weight:700;color:var(--accent);background:rgba(88,101,242,.15);border:1px solid var(--accent);border-radius:5px;padding:0 5px;margin-left:6px}
 #rc-root .view{flex:1;min-height:0;display:flex;flex-direction:column}
-#rc-root .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:25px;text-align:center}
-#rc-root .emblemRing{width:158px;height:158px;border-radius:50%;background:radial-gradient(circle,rgba(88,101,242,.22),rgba(88,101,242,.07) 70%);display:grid;place-items:center;cursor:pointer;transition:transform .2s ease,background .2s ease;border:0;padding:0}
+#rc-root .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center;overflow:auto}
+#rc-root .emblemRing{width:158px;height:158px;flex:none;border-radius:50%;background:radial-gradient(circle,rgba(88,101,242,.22),rgba(88,101,242,.07) 70%);display:grid;place-items:center;cursor:pointer;transition:transform .2s ease,background .2s ease;border:0;padding:0}
 #rc-root .emblemRing:hover{transform:translateY(-3px);background:radial-gradient(circle,rgba(88,101,242,.3),rgba(88,101,242,.1) 70%)}
 #rc-root .emblemCore{width:106px;height:106px;border-radius:50%;background:linear-gradient(145deg,#7289da,var(--accent));color:#fff;display:grid;place-items:center;font-size:40px;box-shadow:0 14px 34px rgba(88,101,242,.38)}
-#rc-root .stageTitle{font-family:var(--font-brand);font-weight:800;font-size:1.5rem;margin:4px 0 0;color:var(--text)}
-#rc-root .stageSub{color:var(--muted);font-size:.86rem;max-width:400px;margin:0}
-#rc-root .pillRow{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;justify-content:center}
-#rc-root .pillBtn{border:0;border-radius:999px;padding:10px 20px;background:var(--accent);color:#fff;font-weight:700;font-size:.85rem;box-shadow:0 6px 16px rgba(88,101,242,.28)}
-#rc-root .pillBtn:hover{background:var(--accent2)}
+#rc-root .stageTitle{font-family:var(--font-brand);font-weight:800;font-size:1.75rem;letter-spacing:-.02em;margin:4px 0 0;color:var(--text)}
+#rc-root .stageSub{color:var(--muted);font-size:.9rem;max-width:440px;margin:0}
+#rc-root .pillRow{display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;justify-content:center}
+#rc-root .pillBtn{font-family:var(--font-brand);border:0;border-radius:999px;padding:12px 24px;background:var(--accent);color:#fff;font-weight:700;font-size:.82rem;box-shadow:0 8px 20px rgba(88,101,242,.32);transition:transform .15s ease,background .15s ease}
+#rc-root .pillBtn:hover{background:var(--accent2);transform:translateY(-1px)}
 #rc-root .pillBtn.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:none}
-#rc-root .statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:min(520px,100%);margin-top:14px}
-#rc-root .statCard{background:var(--side);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;text-align:left}
-#rc-root .statLabel{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-#rc-root .statValue{font-family:var(--font-mono);font-size:.88rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
-#rc-root .statValue .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+#rc-root .statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:min(760px,100%);margin-top:22px}
+#rc-root .statCard{position:relative;overflow:hidden;background:linear-gradient(160deg,var(--side),var(--panel));border:1px solid var(--border);border-radius:20px;padding:22px 20px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;text-align:left;box-shadow:0 14px 34px rgba(0,0,0,.22);transition:transform .2s ease,border-color .2s ease}
+#rc-root .statCard:hover{transform:translateY(-4px);border-color:var(--accent)}
+#rc-root .statTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#rc-root .statLabel{font-family:var(--font-brand);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+#rc-root .statValue{font-family:var(--font-brand);font-size:1.28rem;font-weight:800;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px;line-height:1.2}
+#rc-root .statSub{font-size:.75rem;color:var(--muted);font-weight:500}
+#rc-root .pulseDot{position:relative;width:12px;height:12px;flex:none;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);animation:kairoBlink 1.6s infinite ease-in-out}
+#rc-root .pulseDot::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--green);opacity:0;animation:kairoRing 1.6s infinite ease-out}
+@keyframes kairoBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.88)}}
+@keyframes kairoRing{0%{transform:scale(.6);opacity:.85}100%{transform:scale(1.9);opacity:0}}
 #rc-root .log{flex:1;min-height:0;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:9px;background:var(--chat)}
 #rc-root .message{display:flex;gap:10px;max-width:78%}
 #rc-root .message.mine{align-self:flex-end;flex-direction:row-reverse}
@@ -100,7 +106,7 @@ const CSS = `
 #rc-root .composer button{width:46px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:18px}
 #rc-root .modalLayer{position:absolute;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:18px;z-index:5}
 #rc-root .modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--side);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 25px 80px rgba(0,0,0,.5)}
-#rc-root .modal h2{margin:0 0 6px}
+#rc-root .modal h2{font-family:var(--font-brand);margin:0 0 6px}
 #rc-root .modal h3{margin:14px 0 6px}
 #rc-root .modal p,#rc-root .modal li{color:var(--muted)}
 #rc-root .modal input{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);padding:10px;outline:0}
@@ -110,7 +116,7 @@ const CSS = `
 #rc-root .toast{position:absolute;left:50%;bottom:22px;z-index:9;transform:translate(-50%,15px);background:#09090a;color:white;padding:9px 13px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw)}
 #rc-root .toast.show{opacity:1;transform:translate(-50%,0)}
 #rc-root [hidden]{display:none!important}
-@media(max-width:900px){#rc-root .app{grid-template-columns:72px 1fr 200px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .self{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
+@media(max-width:960px){#rc-root .app{grid-template-columns:72px 1fr 210px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .self{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
 `;
 const MARKUP = `
 <div class="app">
@@ -449,19 +455,26 @@ function renderWelcome() {
 
   const stats = el("div", { className: "statsGrid" },
     el("div", { className: "statCard" },
-      el("div", { className: "statLabel", textContent: "Encryption" }),
-      el("div", { className: "statValue", textContent: "AES-GCM · 256" })
+      el("div", { className: "statTop" },
+        el("div", { className: "statLabel", textContent: "Encryption" })
+      ),
+      el("div", { className: "statValue", textContent: "AES-256" }),
+      el("div", { className: "statSub", textContent: "PBKDF2 · Zero-Knowledge" })
     ),
     el("div", { className: "statCard" },
-      el("div", { className: "statLabel", textContent: "Active Chats" }),
-      el("div", { className: "statValue", textContent: unlockedChats + " / " + allChats.length + " unlocked" })
+      el("div", { className: "statTop" },
+        el("div", { className: "statLabel", textContent: "Active Chats" })
+      ),
+      el("div", { className: "statValue", textContent: unlockedChats + " / " + allChats.length }),
+      el("div", { className: "statSub", textContent: "Up to " + MAX_CHATS + " channels" })
     ),
     el("div", { className: "statCard" },
-      el("div", { className: "statLabel", textContent: "Relay Status" }),
-      el("div", { className: "statValue" },
-        el("span", { className: "dot" }),
-        document.createTextNode("ntfy · SSE")
-      )
+      el("div", { className: "statTop" },
+        el("div", { className: "statLabel", textContent: "Live Updates" }),
+        el("span", { className: "pulseDot", title: "Active live updates" })
+      ),
+      el("div", { className: "statValue", textContent: "ONLINE" }),
+      el("div", { className: "statSub", textContent: "ntfy · SSE Stream" })
     )
   );
 
