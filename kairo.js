@@ -21,9 +21,11 @@ const CSS = `
 #rc-root *{box-sizing:border-box}
 #rc-root button,#rc-root input{font:inherit}
 #rc-root button{cursor:pointer}
-#rc-root .app{height:100%;display:grid;grid-template-columns:280px 1fr}
+#rc-root .app{height:100%;display:grid;grid-template-columns:230px 1fr 270px}
 #rc-root .sidebar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--border)}
+#rc-root .rightbar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-left:1px solid var(--border)}
 #rc-root .brand{height:64px;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid var(--border)}
+#rc-root .rightTop{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--border);font-family:var(--font-brand);font-size:.82rem;font-weight:700;color:var(--text)}
 #rc-root .logo{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#7289da,var(--accent));color:white;font-family:var(--font-brand);font-weight:800;font-size:15px;box-shadow:0 8px 20px rgba(88,101,242,.3)}
 #rc-root .brandText{min-width:0;flex:1}
 #rc-root .brandTitle{font-family:var(--font-brand);font-weight:700;font-size:.98rem;letter-spacing:-.01em;display:flex;align-items:center;gap:7px}
@@ -34,9 +36,9 @@ const CSS = `
 #rc-root .iconBtn{flex:none;border:0;background:transparent;color:var(--muted);font-size:15px;border-radius:8px;width:28px;height:28px}
 #rc-root .iconBtn:hover{background:var(--panel);color:var(--text)}
 #rc-root .iconBtn.close:hover{background:var(--red);color:white}
-#rc-root .sideActions{display:flex;flex-direction:column;gap:3px;padding:12px 9px 10px}
-#rc-root .quickHeading{padding:8px 9px 4px;color:var(--muted);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
-#rc-root .quickAction{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:9px;padding:9px 11px;background:transparent;color:var(--muted);text-align:left;font-weight:600;font-size:.82rem}
+#rc-root .sideActions{display:flex;flex-direction:column;gap:4px;padding:12px 9px 10px;flex:1}
+#rc-root .quickHeading{padding:12px 14px 4px;color:var(--muted);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+#rc-root .quickAction{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:9px;padding:10px 11px;background:transparent;color:var(--muted);text-align:left;font-weight:600;font-size:.84rem}
 #rc-root .quickAction:hover{background:var(--panel);color:var(--text)}
 #rc-root .quickIcon{width:17px;flex:none;text-align:center;color:var(--accent);font-size:.95rem}
 #rc-root .btn{border:0;border-radius:9px;padding:9px 11px;background:var(--accent);color:white;font-weight:750}
@@ -45,7 +47,7 @@ const CSS = `
 #rc-root .btn.secondary{background:var(--panel);color:var(--text);border:1px solid var(--border)}
 #rc-root .btn.danger{background:var(--red)}
 #rc-root .btn.small{padding:6px 10px;font-size:.8rem}
-#rc-root .sectionTitle{padding:5px 14px;color:var(--muted);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+#rc-root .sectionTitle{padding:12px 14px 5px;color:var(--muted);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 #rc-root .list{overflow:auto;flex:1;padding:0 7px 12px}
 #rc-root .item{width:100%;display:flex;align-items:center;gap:9px;border:0;border-radius:9px;padding:8px;background:transparent;color:var(--muted);text-align:left;margin:2px 0}
 #rc-root .item:hover,#rc-root .item.active{background:var(--panel);color:var(--text)}
@@ -57,7 +59,7 @@ const CSS = `
 #rc-root .itemName{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .itemSub{font-size:.7rem;color:var(--muted)}
 #rc-root .badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:white;display:grid;place-items:center;font-size:.68rem;font-weight:850}
-#rc-root .self{padding:10px 12px;background:var(--side);border-top:1px solid var(--border);color:var(--muted);font-size:.76rem}
+#rc-root .self{padding:12px;background:var(--side);border-top:1px solid var(--border);color:var(--muted);font-size:.76rem}
 #rc-root .main{min-width:0;display:flex;flex-direction:column;background:var(--chat)}
 #rc-root .top{height:64px;display:flex;align-items:center;gap:10px;padding:0 18px;background:var(--side);border-bottom:1px solid var(--border)}
 #rc-root .topText{flex:1;min-width:0}
@@ -79,6 +81,11 @@ const CSS = `
 #rc-root .pillBtn{border:0;border-radius:999px;padding:10px 20px;background:var(--accent);color:#fff;font-weight:700;font-size:.85rem;box-shadow:0 6px 16px rgba(88,101,242,.28)}
 #rc-root .pillBtn:hover{background:var(--accent2)}
 #rc-root .pillBtn.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:none}
+#rc-root .statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:min(520px,100%);margin-top:14px}
+#rc-root .statCard{background:var(--side);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;text-align:left}
+#rc-root .statLabel{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+#rc-root .statValue{font-family:var(--font-mono);font-size:.88rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+#rc-root .statValue .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
 #rc-root .log{flex:1;min-height:0;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:9px;background:var(--chat)}
 #rc-root .message{display:flex;gap:10px;max-width:78%}
 #rc-root .message.mine{align-self:flex-end;flex-direction:row-reverse}
@@ -103,7 +110,7 @@ const CSS = `
 #rc-root .toast{position:absolute;left:50%;bottom:22px;z-index:9;transform:translate(-50%,15px);background:#09090a;color:white;padding:9px 13px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw)}
 #rc-root .toast.show{opacity:1;transform:translate(-50%,0)}
 #rc-root [hidden]{display:none!important}
-@media(max-width:760px){#rc-root .app{grid-template-columns:110px 1fr}#rc-root .brand{height:auto;min-height:64px;flex-wrap:wrap;justify-content:center;padding:8px 4px;gap:2px}#rc-root .brandText,#rc-root .itemText,#rc-root .sectionTitle,#rc-root .self{display:none}#rc-root .sideActions{gap:2px;padding:8px 5px}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .quickLabel{display:none}#rc-root .quickHeading{display:none}#rc-root .item{justify-content:center}#rc-root .badge{position:absolute;margin:0 0 28px 28px}#rc-root .message{max-width:92%}#rc-root .top{padding:0 10px}}
+@media(max-width:900px){#rc-root .app{grid-template-columns:72px 1fr 200px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .self{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
 `;
 const MARKUP = `
 <div class="app">
@@ -111,19 +118,17 @@ const MARKUP = `
     <div class="brand">
       <div class="logo">K</div>
       <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.5</span></div><div id="brandSub" class="brandSub">not connected</div></div>
-           <button id="exit" class="iconBtn close" title="Close">×</button>
+      <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
     </div>
     <div class="quickHeading">Navigation</div>
     <div class="sideActions">
       <button id="overviewBtn" class="quickAction"><span class="quickIcon">⌂</span><span class="quickLabel">Overview</span></button>
       <button id="profileBtn" class="quickAction"><span class="quickIcon">◉</span><span class="quickLabel">Profile</span></button>
-      <button id="addBtn" class="quickAction"><span class="quickIcon">＋</span><span class="quickLabel">Direct Message</span></button>
-      <button id="groupBtn" class="quickAction"><span class="quickIcon">＃</span><span class="quickLabel">Join / New Group</span></button>
+      <button id="addBtn" class="quickAction"><span class="quickIcon">＋</span><span class="quickLabel">New Chat (DM)</span></button>
+      <button id="groupBtn" class="quickAction"><span class="quickIcon">＃</span><span class="quickLabel">New Group</span></button>
       <button id="themeBtn" class="quickAction"><span class="quickIcon">◐</span><span id="themeLabel" class="quickLabel">Dark Mode</span></button>
       <button id="helpBtn" class="quickAction"><span class="quickIcon">?</span><span class="quickLabel">Guide</span></button>
     </div>
-    <div class="sectionTitle">Direct messages</div><div id="contacts" class="list"></div>
-    <div class="sectionTitle">Groups</div><div id="groups" class="list"></div>
     <div id="self" class="self"></div>
   </aside>
   <main class="main">
@@ -136,6 +141,14 @@ const MARKUP = `
     <div id="diag" class="diag" hidden></div>
     <section id="view" class="view"></section>
   </main>
+  <aside class="rightbar">
+    <div class="rightTop">
+      <span>Channels</span>
+      <button id="exit" class="iconBtn close" title="Close Kairo">×</button>
+    </div>
+    <div class="sectionTitle">Direct messages</div><div id="contacts" class="list"></div>
+    <div class="sectionTitle">Groups</div><div id="groups" class="list"></div>
+  </aside>
 </div>
 <div id="modalHost"></div>
 <div id="toast" class="toast"></div>
@@ -150,7 +163,6 @@ root.innerHTML = MARKUP;
 (document.body || document.documentElement).appendChild(root);
 const $ = (id) => root.querySelector("#" + id);
 
-// Public relay that carries the (already encrypted) messages. Plain HTTPS, like a normal website.
 const SERVER = "https://ntfy.sh";
 const MAX_TEXT = 800;
 const MAX_CHATS = 20;
@@ -212,19 +224,19 @@ function setDiag(text) {
   d.hidden = !text;
 }
 
-// ---------- admin feed and update notices (ADMIN_PASSWORD based) ----------
+// ---------- admin feed and update notices ----------
 async function getAdminKey() {
   return deriveKey("admin|" + ADMIN_TOPIC, ADMIN_PASSWORD);
 }
 async function verifyAdminPacket(raw) {
   try {
-    if (!raw) return null;
+    if (!raw || !ADMIN_PASSWORD) return null;
     const key = await getAdminKey();
     return await unseal(key, typeof raw === "string" ? raw : JSON.stringify(raw));
   } catch { return null; }
 }
 async function publishAdminCommand(payload) {
-  if (!isAdmin) throw new Error("Log in as admin first.");
+  if (!isAdmin || !ADMIN_PASSWORD) throw new Error("Log in as admin first.");
   const key = await getAdminKey();
   const body = await seal(key, payload);
   const resp = await fetch(SERVER + "/" + ADMIN_TOPIC, { method: "POST", body });
@@ -241,6 +253,7 @@ function handleAdminCommand(payload) {
   }
 }
 async function checkForUpdate() {
+  if (!ADMIN_PASSWORD) return;
   try {
     const resp = await fetch(SERVER + "/" + ADMIN_TOPIC + "/json?poll=1&since=all");
     if (!resp.ok) return;
@@ -253,6 +266,7 @@ async function checkForUpdate() {
   } catch { }
 }
 function startAdminFeed() {
+  if (!ADMIN_PASSWORD) return;
   if (adminFeed) adminFeed.close();
   adminFeed = new EventSource(SERVER + "/" + ADMIN_TOPIC + "/sse");
   adminFeed.onmessage = async (e) => {
@@ -344,7 +358,7 @@ async function post(r, kind, extra) {
   if (!resp.ok) throw new Error(resp.status === 429 ? "rate limited, slow down a little" : "server said " + resp.status);
 }
 
-// ---------- sidebar ----------
+// ---------- sidebars ----------
 function pingGap() {
   const n = Math.max(1, Array.from(rooms.values()).filter((r) => r.key).length);
   return Math.max(PING_FLOOR, PING_EVERY / n);
@@ -424,16 +438,41 @@ function renderWelcome() {
   $("topStatus").className = "status";
   $("btnClear").hidden = true;
   $("btnDelete").hidden = true;
+
   const emblem = el("button", { type: "button", className: "emblemRing", title: "Start a chat", onclick: startAdd },
     el("div", { className: "emblemCore", textContent: "\u2709\uFE0F" }));
   const start = el("button", { className: "pillBtn", textContent: "+ Start a chat", onclick: startAdd });
   const help = el("button", { className: "pillBtn ghost", textContent: "How it works", onclick: showHelp });
+
+  const allChats = Array.from(rooms.values());
+  const unlockedChats = allChats.filter((r) => r.key).length;
+
+  const stats = el("div", { className: "statsGrid" },
+    el("div", { className: "statCard" },
+      el("div", { className: "statLabel", textContent: "Encryption" }),
+      el("div", { className: "statValue", textContent: "AES-GCM · 256" })
+    ),
+    el("div", { className: "statCard" },
+      el("div", { className: "statLabel", textContent: "Active Chats" }),
+      el("div", { className: "statValue", textContent: unlockedChats + " / " + allChats.length + " unlocked" })
+    ),
+    el("div", { className: "statCard" },
+      el("div", { className: "statLabel", textContent: "Relay Status" }),
+      el("div", { className: "statValue" },
+        el("span", { className: "dot" }),
+        document.createTextNode("ntfy · SSE")
+      )
+    )
+  );
+
   $("view").innerHTML = "";
   $("view").append(el("div", { className: "empty" },
     emblem,
     el("div", { className: "stageTitle", textContent: "Kairo" }),
     el("p", { className: "stageSub", textContent: "Start a direct message with one person, or a group for everyone who knows its name and password. Each chat has its own password, and messages are encrypted before they leave your browser." }),
-    el("div", { className: "pillRow" }, start, help)));
+    el("div", { className: "pillRow" }, start, help),
+    stats
+  ));
   renderSidebar();
 }
 
@@ -503,7 +542,6 @@ async function onEvent(ev) {
   renderSidebar();
 }
 
-// One connection listens to every unlocked chat at once.
 function resubscribe() {
   const open = Array.from(rooms.values()).filter((r) => r.key);
   const k = open.map((r) => r.meta.topic).join(",");
@@ -586,16 +624,16 @@ function checkSecure() {
 
 function showHelp() {
   const steps = [
-    "Open Profile and set your display name.",
-    "Direct Message starts a DM. Type the other person's name exactly as they set it, and agree on a password together. They do the same on their side, typing YOUR name and the same password.",
-    "Join / New Group makes or joins a group. Everyone who enters the same group name and password lands in the same group.",
-    "After a refresh your chats are still listed but locked. Click one and enter its password to open it with your saved history.",
+    "Open Profile on the left sidebar and set your display name.",
+    "New Chat (DM) starts a direct message. Type the other person's name and agree on a shared password.",
+    "New Group makes or joins a group. Everyone who enters the same group name and password lands in the same group.",
+    "All your Direct Messages and Groups appear in the right-hand sidebar.",
   ];
   const box = el("div", { className: "modal" },
     el("h2", { textContent: "How Kairo works" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Privacy and limits" }),
-    el("p", { textContent: "Messages are encrypted in your browser with the chat password and carried by the free ntfy.sh relay. Anyone who knows a chat's name and password can read it, so pick a strong password. Admin announcements and release notices use a separate ntfy topic protected by ADMIN_PASSWORD. You can have up to " + MAX_CHATS + " chats. Messages are limited to " + MAX_TEXT + " characters. History is stored only in this browser." }),
+    el("p", { textContent: "Messages are encrypted in your browser with the chat password and carried by the free ntfy.sh relay. You can have up to " + MAX_CHATS + " chats. Messages are limited to " + MAX_TEXT + " characters. History is stored only in this browser." }),
     el("div", { className: "row" }, el("button", { className: "btn", textContent: "Got it", onclick: closeModal })));
   showModal(box);
 }
@@ -610,55 +648,6 @@ function profile() {
       lsSet(LS + "name", me.name);
       renderSidebar();
       if (!activeTopic) renderWelcome();
-    });
-}
-
-function adminDashboard() {
-  const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo Admin" }),
-    el("p", { textContent: "Commands are encrypted with ADMIN_PASSWORD and published through ntfy." }),
-    el("div", { className: "row" },
-      el("button", { className: "btn", textContent: "Publish update", onclick: () => modal("Publish update", "This announces a version. It does not upload or install code.", [{ id: "v", label: "Version", value: "1.2.6", max: 24 }, { id: "n", label: "Release notes", max: 500 }], "Publish", async (v) => { const version = v.v.trim(); if (!version) throw new Error("Enter a version number."); await publishAdminCommand({ type: "release", version, notes: v.n.trim(), at: Date.now() }); toast("Update announcement published."); }) }),
-      el("button", { className: "btn secondary", textContent: "Announcement", onclick: () => modal("Post announcement", "Send a notice to connected Kairo users.", [{ id: "m", label: "Message", max: 300 }], "Send", async (v) => { const message = v.m.trim(); if (!message) throw new Error("Enter a message."); await publishAdminCommand({ type: "announcement", message, at: Date.now() }); toast("Announcement published."); }) })),
-    el("h3", { textContent: "Recent admin activity" }),
-    el("div", { id: "adminHistory", style: "max-height:180px;overflow:auto;color:var(--muted);font-size:.82rem" }, "Loading relay history…"),
-    el("div", { className: "row" },
-      el("button", { className: "btn secondary", textContent: "Close", onclick: closeModal }),
-      el("button", { className: "btn danger", textContent: "Log out", onclick: () => { isAdmin = false; renderSidebar(); closeModal(); toast("Admin locked."); } })));
-  showModal(box);
-  loadAdminHistory();
-}
-
-async function loadAdminHistory() {
-  const host = $("modalHost").querySelector("#adminHistory");
-  if (!host) return;
-  try {
-    const resp = await fetch(SERVER + "/" + ADMIN_TOPIC + "/json?poll=1&since=all");
-    if (!resp.ok) throw new Error("Relay unavailable");
-    const lines = (await resp.text()).trim().split("\n").filter(Boolean).slice(-20);
-    const entries = [];
-    for (const line of lines) {
-      try {
-        const msg = JSON.parse(line).message;
-        const payload = await verifyAdminPacket(msg);
-        if (payload) entries.push(payload);
-      } catch {}
-    }
-    host.innerHTML = "";
-    if (!entries.length) host.textContent = "No admin activity found.";
-    entries.reverse().forEach((x) => host.append(el("div", { textContent: (x.type === "release" ? "Release v" + x.version : "Announcement") + " · " + new Date(x.at || Date.now()).toLocaleString() + (x.notes ? " · " + x.notes : x.message ? " · " + x.message : ""), style: "padding:6px 0;border-bottom:1px solid var(--border)" })));
-  } catch { host.textContent = "Could not load ntfy history."; }
-}
-
-async function adminLogin() {
-  checkSecure();
-  modal("Admin Login", "Enter the admin password to unlock the Kairo Admin dashboard.",
-    [{ id: "p", label: "Admin password", type: "password", max: 120 }], "Unlock",
-    async (v) => {
-      if (v.p !== ADMIN_PASSWORD) throw new Error("Incorrect admin password.");
-      isAdmin = true;
-      renderSidebar();
-      setTimeout(adminDashboard, 0);
     });
 }
 
@@ -770,7 +759,6 @@ $("addBtn").onclick = startAdd;
 $("groupBtn").onclick = startGroup;
 $("helpBtn").onclick = showHelp;
 $("profileBtn").onclick = profile;
-if ($("adminBtn")) $("adminBtn").style.display = "none";
 $("exit").onclick = () => {
   timers.forEach(clearInterval);
   clearTimeout(readyTimer);
