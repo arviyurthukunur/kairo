@@ -160,7 +160,7 @@ const PING_FLOOR = 8000;
 const LS = "roomchat:";
 const VERSION = "1.2.5";
 const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
-const ADMIN_PASSWORD = "CHANGE_ME_ADMIN_PASSWORD";
+const ADMIN_PASSWORD = "";
 let isAdmin = false;
 let adminFeed = null;
 
