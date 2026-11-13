@@ -111,8 +111,7 @@ const MARKUP = `
     <div class="brand">
       <div class="logo">K</div>
       <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.5</span></div><div id="brandSub" class="brandSub">not connected</div></div>
-      <button id="adminBtn" class="iconBtn" title="Admin login">🔒</button>
-      <button id="exit" class="iconBtn close" title="Close">×</button>
+           <button id="exit" class="iconBtn close" title="Close">×</button>
     </div>
     <div class="quickHeading">Navigation</div>
     <div class="sideActions">
@@ -771,10 +770,7 @@ $("addBtn").onclick = startAdd;
 $("groupBtn").onclick = startGroup;
 $("helpBtn").onclick = showHelp;
 $("profileBtn").onclick = profile;
-$("adminBtn").onclick = () => {
-  if (isAdmin) { adminDashboard(); return; }
-  adminLogin().catch((e) => toast(e.message || "Admin login failed.", 3500));
-};
+if ($("adminBtn")) $("adminBtn").style.display = "none";
 $("exit").onclick = () => {
   timers.forEach(clearInterval);
   clearTimeout(readyTimer);
