@@ -69,7 +69,7 @@ const CSS = `
 #rc-root .selfInfo{min-width:0;flex:1}
 #rc-root .selfName{font-weight:750;font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .selfBio{font-size:.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#rc-root .main{min-width:0;display:flex;flex-direction:column;background:var(--chat)}
+#rc-root .main{min-width:0;display:flex;flex-direction:column;background:var(--chat);overflow:hidden}
 #rc-root .top{height:64px;display:flex;align-items:center;gap:10px;padding:0 18px;background:var(--side);border-bottom:1px solid var(--border)}
 #rc-root .topText{flex:1;min-width:0}
 #rc-root .topName{font-family:var(--font-brand);font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -80,7 +80,7 @@ const CSS = `
 #rc-root .diag{padding:9px 18px;background:var(--panel);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--border)}
 #rc-root .banner{padding:9px 18px;background:rgba(88,101,242,.14);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--accent);display:flex;align-items:center;justify-content:space-between;gap:10px}
 #rc-root .banner button{flex:none}
-#rc-root .view{flex:1;min-height:0;display:flex;flex-direction:column}
+#rc-root .view{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #rc-root .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center;overflow:auto}
 #rc-root .emblemRing{width:158px;height:158px;flex:none;border-radius:50%;background:radial-gradient(circle,rgba(88,101,242,.22),rgba(88,101,242,.07) 70%);display:grid;place-items:center;cursor:pointer;transition:transform .2s ease,background .2s ease;border:0;padding:0}
 #rc-root .emblemRing:hover{transform:translateY(-3px);background:radial-gradient(circle,rgba(88,101,242,.3),rgba(88,101,242,.1) 70%)}
@@ -102,7 +102,7 @@ const CSS = `
 #rc-root .pulseDot::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--green);opacity:0;animation:kairoRing 1.6s infinite ease-out}
 @keyframes kairoBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.88)}}
 @keyframes kairoRing{0%{transform:scale(.6);opacity:.85}100%{transform:scale(1.9);opacity:0}}
-#rc-root .log{flex:1;min-height:0;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:11px;background:var(--chat)}
+#rc-root .log{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px;display:flex;flex-direction:column;gap:11px;background:var(--chat);scroll-behavior:auto}
 #rc-root .message{position:relative;display:flex;gap:10px;max-width:78%}
 #rc-root .message.mine{align-self:flex-end;flex-direction:row-reverse}
 #rc-root .msgCol{display:flex;flex-direction:column;min-width:0}
@@ -132,7 +132,7 @@ const CSS = `
 #rc-root .replyBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 16px;background:var(--panel);border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)}
 #rc-root .replyBar b{color:var(--text)}
 #rc-root .composer{display:flex;gap:9px;padding:12px 16px 16px;background:var(--side);border-top:1px solid var(--border)}
-#rc-root .composer input{flex:1;border:0;outline:0;border-radius:10px;padding:11px 13px;background:var(--input);color:var(--text)}
+#rc-root .composer input{flex:1;min-width:0;border:0;outline:0;border-radius:10px;padding:11px 13px;background:var(--input);color:var(--text)}
 #rc-root .composer button{width:46px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:18px}
 #rc-root .modalLayer{position:absolute;inset:0;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:18px;z-index:9999}
 #rc-root .modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--side);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 25px 80px rgba(0,0,0,.6)}
@@ -229,6 +229,7 @@ let blockedUsers = new Set();
 let activeTopic = null;
 let replyingTo = null;
 let searchQuery = "";
+let userScrolledUp = false;
 let es = null;
 let esKey = "";
 let everOpened = false;
@@ -429,7 +430,6 @@ function promptVaultLogin() {
     showModal(box);
     pwInp.focus();
   } else {
-    // First-time Vault creation (migrates any legacy chats)
     const legacyName = lsGet(LS + "name") || "";
     const box = el("form", { className: "modal" });
     box.append(
@@ -972,15 +972,40 @@ function buildMessage(r, m) {
   return row;
 }
 
-function scrollLog() { const l = $("log"); if (l) l.scrollTop = l.scrollHeight; }
-function addSystem(text) { const l = $("log"); if (l) { l.append(el("div", { className: "system", textContent: text })); scrollLog(); } }
+// ---------- smart auto-scroll & manual scroll ----------
+function handleLogScroll(e) {
+  const l = e.target;
+  const atBottom = (l.scrollHeight - l.scrollTop - l.clientHeight) < 60;
+  userScrolledUp = !atBottom;
+}
+
+function scrollToBottom(force = false) {
+  const l = $("log");
+  if (!l) return;
+  if (force || !userScrolledUp) {
+    requestAnimationFrame(() => {
+      l.scrollTop = l.scrollHeight;
+    });
+  }
+}
+
+function scrollLog() {
+  scrollToBottom(false);
+}
+
+function addSystem(text) {
+  const l = $("log");
+  if (l) {
+    l.append(el("div", { className: "system", textContent: text }));
+    scrollToBottom(false);
+  }
+}
 
 function renderChatLog(keepScroll) {
   const r = rooms.get(activeTopic);
   const l = $("log");
   if (!r || !l) return;
   const prevScroll = l.scrollTop;
-  const atBottom = l.scrollHeight - l.scrollTop - l.clientHeight < 50;
   l.innerHTML = "";
   const q = searchQuery.trim().toLowerCase();
   const visible = r.store.msgs.filter((m) => {
@@ -1000,8 +1025,11 @@ function renderChatLog(keepScroll) {
   } else if (!visible.length) {
     l.append(el("div", { className: "system", textContent: "No messages match “" + searchQuery + "”." }));
   }
-  if (!keepScroll || atBottom) scrollLog();
-  else l.scrollTop = prevScroll;
+  if (keepScroll && userScrolledUp) {
+    l.scrollTop = prevScroll;
+  } else {
+    scrollToBottom(true);
+  }
 }
 
 function renderWelcome() {
@@ -1082,8 +1110,13 @@ function openChat(id) {
   const replyBar = el("div", { id: "replyBar", className: "replyBar", hidden: true });
   const form = el("form", { id: "form", className: "composer" }, input, el("button", { textContent: "➤" }));
   form.onsubmit = sendMessage;
+
+  const logEl = el("div", { id: "log", className: "log" });
+  logEl.onscroll = handleLogScroll;
+  userScrolledUp = false;
+
   $("view").innerHTML = "";
-  $("view").append(el("div", { id: "log", className: "log" }), replyBar, form);
+  $("view").append(logEl, replyBar, form);
   renderChatLog(false);
   $("btnClear").hidden = false;
   $("btnDelete").hidden = false;
@@ -1104,7 +1137,6 @@ async function onEvent(ev) {
   if (isBlocked(who)) return;
   const isActive = r.meta.topic === activeTopic;
 
-  // Update DM title if the OTHER person changed their display name (never overwrite with our own name)
   if (r.meta.type === "dm" && who.toLowerCase() !== me.name.toLowerCase() && r.meta.title !== who) {
     r.meta.title = who;
     saveChats();
@@ -1137,7 +1169,7 @@ async function onEvent(ev) {
     if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
     persistRoom(r);
     playNotifSound();
-    if (isActive) renderChatLog(false); else { r.unread++; renderSidebar(); }
+    if (isActive) renderChatLog(true); else { r.unread++; renderSidebar(); }
     return;
   }
   if (m.k === "react" && m.targetId && m.emoji) {
@@ -1423,7 +1455,9 @@ async function sendMessage(e) {
   input.value = "";
   setDraft(activeTopic, "");
   setReply(null);
+  userScrolledUp = false;
   renderChatLog(false);
+  scrollToBottom(true);
   renderSidebar();
 }
 
