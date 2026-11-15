@@ -1,7 +1,7 @@
-// Kairo LOG 1.5.0
+// Kairo LOG 1.4.1 (Patch: Premium Calling Experience & Audio-Reactive Voice Engine)
 
 // Kairo - paste this whole file into your browser's Console and press Enter.
-// Best on [https://example.com](https://example.com) (open it in a new tab first). Blank tabs block encryption.
+// Best on https://example.com (open it in a new tab first). Blank tabs block encryption.
 (() => {
 "use strict";
 const prev = document.getElementById("rc-root");
@@ -12,7 +12,7 @@ if (!document.getElementById("kairo-fonts")) {
   const fontLink = document.createElement("link");
   fontLink.id = "kairo-fonts";
   fontLink.rel = "stylesheet";
-  fontLink.href = "[https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Unbounded:wght@600;700;800&display=swap](https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Unbounded:wght@600;700;800&display=swap)";
+  fontLink.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Unbounded:wght@600;700;800&display=swap";
   (document.head || document.documentElement).appendChild(fontLink);
 }
 const CSS = `
@@ -29,7 +29,7 @@ const CSS = `
 #rc-root .rightbar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-left:1px solid var(--border)}
 #rc-root .brand{height:64px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border)}
 #rc-root .rightTop{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--border);font-family:var(--font-brand);font-size:.82rem;font-weight:700;color:var(--text)}
-#rc-root .logo{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:var(--font-brand);font-weight:800;font-size:16px;box-shadow:0 8px 20px rgba(0,0,0,.3);letter-spacing:-.02em}
+#rc-root .logo{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:var(--font-brand);font-weight:800;font-size:15px;box-shadow:0 8px 20px rgba(0,0,0,.3)}
 #rc-root .brandText{min-width:0;flex:1}
 #rc-root .brandTitle{font-family:var(--font-brand);font-weight:700;font-size:.98rem;letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
 #rc-root .beta{font-family:var(--font-sans);font-size:.62rem;font-weight:800;letter-spacing:.04em;color:var(--accent);background:rgba(88,101,242,.18);border:1px solid var(--accent);border-radius:999px;padding:2px 7px;box-shadow:0 0 10px rgba(88,101,242,.25)}
@@ -49,6 +49,7 @@ const CSS = `
 #rc-root .btn:disabled{opacity:.5;cursor:default}
 #rc-root .btn.secondary{background:var(--panel);color:var(--text);border:1px solid var(--border)}
 #rc-root .btn.danger{background:var(--red)}
+#rc-root .btn.success{background:var(--green)}
 #rc-root .btn.small{padding:6px 10px;font-size:.8rem}
 #rc-root .sectionTitle{padding:12px 14px 5px;color:var(--muted);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 #rc-root .list{overflow:auto;flex:1;padding:0 7px 12px}
@@ -84,7 +85,7 @@ const CSS = `
 #rc-root .pinnedText{display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
 #rc-root .pinnedIcon{color:var(--accent);font-size:.9rem}
 
-/* --- CALL PANEL --- */
+/* --- PREMIUM CALL PANEL & ANIMATIONS (#21) --- */
 #rc-root .callPanel{position:relative;background:linear-gradient(160deg,rgba(30,31,34,.98),rgba(43,45,49,.94));backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:24px;margin:16px 18px;padding:24px 28px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;gap:20px;overflow:hidden;transition:all .35s cubic-bezier(.16,1,.3,1)}
 #rc-root .callPanel.endedState{opacity:0;transform:scale(.94)}
 #rc-root .callStage{width:100%;max-width:520px;display:flex;align-items:center;justify-content:space-around;position:relative}
@@ -172,24 +173,11 @@ const CSS = `
 #rc-root .audioPill{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;margin-top:6px}
 #rc-root .audioPill audio{height:30px;max-width:220px}
 #rc-root .chatLink{color:#58a6ff;text-decoration:underline;text-underline-offset:2px}
-
-/* --- MARKDOWN & CODE BLOCKS --- */
-#rc-root .codeBlockWrap{position:relative;background:#0d1117;border:1px solid var(--border);border-radius:8px;margin:6px 0;overflow:hidden}
-#rc-root .codeBlockHeader{display:flex;align-items:center;justify-content:space-between;padding:4px 10px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--font-mono);font-size:.68rem;color:var(--muted)}
-#rc-root .copyCodeBtn{border:0;background:transparent;color:var(--muted);font-size:.68rem;cursor:pointer;padding:2px 6px;border-radius:4px}
-#rc-root .copyCodeBtn:hover{background:rgba(255,255,255,.1);color:var(--text)}
-#rc-root pre.codeContent{margin:0;padding:10px;font-family:var(--font-mono);font-size:.78rem;line-height:1.45;overflow-x:auto;color:#c9d1d9}
-#rc-root code.inlineCode{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:.82em}
-
 #rc-root .system{align-self:center;color:var(--muted);font-size:.73rem;background:var(--side);padding:4px 10px;border-radius:999px;border:1px solid var(--border);text-align:center}
 #rc-root .typingIndicator{padding:2px 18px;font-size:.74rem;color:var(--muted);font-style:italic;min-height:18px}
 #rc-root .replyBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 16px;background:var(--panel);border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)}
 #rc-root .replyBar b{color:var(--text)}
-
-/* --- COMPOSER & COUNTER --- */
-#rc-root .composerArea{display:flex;flex-direction:column;background:var(--side);border-top:1px solid var(--border)}
-#rc-root .composer{display:flex;gap:7px;align-items:center;padding:10px 16px 4px}
-#rc-root .composerFooter{display:flex;align-items:center;justify-content:flex-end;padding:0 18px 8px;font-family:var(--font-mono);font-size:.68rem;color:var(--muted)}
+#rc-root .composer{display:flex;gap:7px;align-items:center;padding:10px 16px 14px;background:var(--side);border-top:1px solid var(--border)}
 #rc-root .mediaBtn{flex:none;width:38px;height:38px;border:0;border-radius:10px;background:var(--panel);color:var(--muted);font-size:16px;display:grid;place-items:center}
 #rc-root .mediaBtn:hover{background:var(--border);color:var(--text)}
 #rc-root .mediaBtn.rec{background:var(--red);color:white;animation:kairoBlink 1s infinite}
@@ -217,9 +205,9 @@ const MARKUP = `
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="logo">k.</div>
+      <div class="logo">K</div>
       <div class="brandText">
-        <div class="brandTitle">Kairo<span class="beta">v1.5.0</span></div>
+        <div class="brandTitle">Kairo<span class="beta">v1.4.1</span></div>
         <div id="brandSub" class="brandSub">vault locked</div>
       </div>
       <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
@@ -276,26 +264,18 @@ root.innerHTML = MARKUP;
 (document.body || document.documentElement).appendChild(root);
 const $ = (id) => root.querySelector("#" + id);
 
-const SERVER = "[https://ntfy.sh](https://ntfy.sh)";
+const SERVER = "https://ntfy.sh";
 const MAX_TEXT = 800;
 const MAX_CHATS = 20;
 const PING_EVERY = 120000;
 const PING_FLOOR = 25000;
 const LS = "roomchat:";
-const VERSION = "1.5.0";
+const VERSION = "1.4.1";
 const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
 const SURVEY_TOPIC = "kairo-survey-feedback-881a";
 const ADMIN_PASSWORD = "";
 const EMOJIS = ["👍", "❤️", "😂", "🔥", "👀"];
 const origTitle = document.title;
-
-const CLOAK_PRESETS = {
-  kairo: { title: "Kairo", icon: "" },
-  drive: { title: "My Drive - Google Drive", icon: "[https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png](https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png)" },
-  docs: { title: "Google Docs", icon: "[https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico](https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico)" },
-  classroom: { title: "Home - Google Classroom", icon: "[https://ssl.gstatic.com/classroom/favicon.png](https://ssl.gstatic.com/classroom/favicon.png)" },
-  canvas: { title: "Dashboard - Canvas", icon: "[https://du11hjcvx0uqb.cloudfront.net/dist/images/favicon-e10d657a73.ico](https://du11hjcvx0uqb.cloudfront.net/dist/images/favicon-e10d657a73.ico)" }
-};
 
 let isAdmin = false;
 let adminFeed = null;
@@ -304,7 +284,7 @@ let vaultKey = null;
 const te = new TextEncoder();
 const td = new TextDecoder();
 const me = { id: rnd(), name: "", avatar: "", bio: "", status: "online" };
-const settings = { theme: "dark", sound: true, titleAlert: true, cloak: "kairo", sendOnEnter: true };
+const settings = { theme: "dark", sound: true, titleAlert: true };
 const rooms = new Map();
 let blockedUsers = new Set();
 let activeTopic = null;
@@ -324,7 +304,7 @@ let isRecording = false;
 let peerConn = null;
 let localStream = null;
 let activeCallTopic = null;
-let callState = "idle";
+let callState = "idle"; // idle | calling | ringing | incoming | connected | ended
 let isCaller = false;
 let isMuted = false;
 let isDeafened = false;
@@ -390,19 +370,6 @@ function openLightbox(src) {
   box.append(lb);
 }
 
-function applyCloak(key) {
-  settings.cloak = key || "kairo";
-  const p = CLOAK_PRESETS[settings.cloak] || CLOAK_PRESETS.kairo;
-  document.title = p.title;
-  document.querySelectorAll("link[rel*='icon']").forEach((e) => e.remove());
-  if (p.icon) {
-    const l = document.createElement("link");
-    l.rel = "icon";
-    l.href = p.icon;
-    document.head.appendChild(l);
-  }
-}
-
 function playNotifSound() {
   if (!settings.sound) return;
   try {
@@ -422,9 +389,7 @@ function playNotifSound() {
     osc.stop(ctx.currentTime + 0.16);
   } catch {}
 }
-
 function updateDocTitle() {
-  if (settings.cloak && settings.cloak !== "kairo") return;
   if (!settings.titleAlert) { document.title = origTitle; return; }
   const totalUnread = Array.from(rooms.values()).reduce((sum, r) => sum + (r.unread || 0), 0);
   document.title = totalUnread > 0 ? "(" + totalUnread + ") Kairo" : origTitle;
@@ -573,7 +538,6 @@ function promptVaultLogin() {
         Object.assign(me, data.me || {});
         Object.assign(settings, data.settings || {});
         applyTheme(settings.theme);
-        applyCloak(settings.cloak);
         blockedUsers = new Set(data.blocked || []);
         rooms.clear();
         (data.chats || []).forEach((meta) => {
@@ -694,8 +658,8 @@ function showBlockedModal() {
 function showThemeSettings() {
   const box = el("form", { className: "modal" });
   box.append(
-    el("h2", { textContent: "Themes & Tab Cloaking 🎨" }),
-    el("p", { textContent: "Customize your Kairo theme, sound effects, and stealth tab disguise." }),
+    el("h2", { textContent: "Themes & Notifications 🎨" }),
+    el("p", { textContent: "Customize your Kairo workspace appearance and alert preferences." }),
     el("h3", { textContent: "Color Theme" })
   );
   const themeSel = el("select", {},
@@ -708,42 +672,30 @@ function showThemeSettings() {
   themeSel.value = settings.theme || "dark";
   themeSel.onchange = () => applyTheme(themeSel.value);
 
-  const cloakSel = el("select", {},
-    el("option", { value: "kairo", textContent: "Default (Kairo)" }),
-    el("option", { value: "drive", textContent: "Google Drive" }),
-    el("option", { value: "docs", textContent: "Google Docs" }),
-    el("option", { value: "classroom", textContent: "Google Classroom" }),
-    el("option", { value: "canvas", textContent: "Canvas LMS" })
-  );
-  cloakSel.value = settings.cloak || "kairo";
-  cloakSel.onchange = () => applyCloak(cloakSel.value);
-
-  const enterSel = el("select", {},
-    el("option", { value: "true", textContent: "Press Enter to Send (Shift+Enter for newline)" }),
-    el("option", { value: "false", textContent: "Click Send Button Only (Enter makes newline)" })
-  );
-  enterSel.value = settings.sendOnEnter !== false ? "true" : "false";
-
   const soundSel = el("select", {},
     el("option", { value: "on", textContent: "Enabled (Synthesized Chime)" }),
     el("option", { value: "off", textContent: "Muted" })
   );
   soundSel.value = settings.sound ? "on" : "off";
 
+  const tabSel = el("select", {},
+    el("option", { value: "on", textContent: "Show Unread Count in Tab Title" }),
+    el("option", { value: "off", textContent: "Keep Original Tab Title" })
+  );
+  tabSel.value = settings.titleAlert ? "on" : "off";
+
   const saveBtn = el("button", { type: "submit", className: "btn", textContent: "Save Preferences" });
   box.append(
     themeSel,
-    el("h3", { textContent: "Tab Cloaking (Stealth Disguise)" }), cloakSel,
-    el("h3", { textContent: "Send Message Keybind" }), enterSel,
     el("h3", { textContent: "Message Sound Effects" }), soundSel,
+    el("h3", { textContent: "Tab Title Badge" }), tabSel,
     el("div", { className: "row" }, saveBtn)
   );
   box.onsubmit = async (e) => {
     e.preventDefault();
     applyTheme(themeSel.value);
-    applyCloak(cloakSel.value);
-    settings.sendOnEnter = enterSel.value === "true";
     settings.sound = soundSel.value === "on";
+    settings.titleAlert = tabSel.value === "on";
     updateDocTitle();
     await saveVault();
     closeModal();
@@ -848,7 +800,7 @@ async function post(r, kind, extra) {
   if (!resp.ok) throw new Error(resp.status === 429 ? "rate limited, slow down a little" : "server said " + resp.status);
 }
 
-// ---------- CALL DURATION & VOICE ACTIVITY ----------
+// ---------- PREMIUM CALL PANEL & WEBRTC ENGINE ----------
 function formatDuration(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
@@ -915,6 +867,7 @@ function renderCallPanel() {
   const panel = el("div", { id: "callPanel", className: "callPanel" });
   if (callState === "ended") panel.classList.add("endedState");
 
+  // Dual participant stage
   const myWrap = el("div", { className: "callAvatarWrap" + (callState === "calling" ? " pulsing" : "") },
     el("div", { className: "callPulseRing" }),
     el("div", { className: "callAvatar", textContent: myAv })
@@ -932,6 +885,7 @@ function renderCallPanel() {
 
   const stage = el("div", { className: "callStage" }, mySide, waves, centerGlow, remoteSide);
 
+  // Status & Duration
   let statusStr = "Connecting...";
   if (callState === "calling") statusStr = "Calling " + peerName + "...";
   else if (callState === "ringing") statusStr = "Ringing...";
@@ -944,6 +898,7 @@ function renderCallPanel() {
     el("div", { id: "callDurationText", className: "callDuration", textContent: callState === "connected" ? "00:00" : (callState === "ended" ? "Disconnected" : "Secure P2P") })
   );
 
+  // Controls aligned along the bottom
   const ctrls = el("div", { className: "callControls" });
   if (callState === "incoming") {
     ctrls.append(
@@ -1276,90 +1231,6 @@ function handleTypingEvent(r, who) {
   }, 4000));
 }
 
-// ---------- MARKDOWN FORMATTING & CODE BLOCKS (v1.5.0) ----------
-function parseInlineMarkdown(text) {
-  const frag = document.createDocumentFragment();
-  const tokens = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|~[^~]+~|`[^`]+`|https?:\/\/[^\s]+)/g;
-  let lastIdx = 0;
-  let match;
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIdx) {
-      tokens.push({ type: "text", val: text.slice(lastIdx, match.index) });
-    }
-    const raw = match[0];
-    if (raw.startsWith("**") && raw.endsWith("**")) {
-      tokens.push({ type: "bold", val: raw.slice(2, -2) });
-    } else if (raw.startsWith("*") && raw.endsWith("*")) {
-      tokens.push({ type: "italic", val: raw.slice(1, -1) });
-    } else if (raw.startsWith("~") && raw.endsWith("~")) {
-      tokens.push({ type: "strike", val: raw.slice(1, -1) });
-    } else if (raw.startsWith("`") && raw.endsWith("`")) {
-      tokens.push({ type: "inlineCode", val: raw.slice(1, -1) });
-    } else if (raw.startsWith("http")) {
-      tokens.push({ type: "link", val: raw });
-    }
-    lastIdx = regex.lastIndex;
-  }
-  if (lastIdx < text.length) {
-    tokens.push({ type: "text", val: text.slice(lastIdx) });
-  }
-
-  tokens.forEach((tk) => {
-    if (tk.type === "bold") frag.append(el("b", { textContent: tk.val }));
-    else if (tk.type === "italic") frag.append(el("i", { textContent: tk.val }));
-    else if (tk.type === "strike") frag.append(el("s", { textContent: tk.val }));
-    else if (tk.type === "inlineCode") frag.append(el("code", { className: "inlineCode", textContent: tk.val }));
-    else if (tk.type === "link") {
-      if (tk.val.toLowerCase().match(/\.(gif)(\?.*)?$/i)) {
-        frag.append(el("img", { src: tk.val, className: "chatImg", loading: "lazy", onclick: () => openLightbox(tk.val) }));
-      } else {
-        frag.append(el("a", { href: tk.val, target: "_blank", rel: "noopener noreferrer", className: "chatLink", textContent: tk.val }));
-      }
-    } else {
-      frag.append(document.createTextNode(tk.val));
-    }
-  });
-  return frag;
-}
-
-function formatMessageContent(rawText) {
-  const container = document.createDocumentFragment();
-  const codeBlockRegex = /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g;
-  let lastIdx = 0;
-  let match;
-
-  while ((match = codeBlockRegex.exec(rawText)) !== null) {
-    if (match.index > lastIdx) {
-      container.append(parseInlineMarkdown(rawText.slice(lastIdx, match.index)));
-    }
-    const lang = match[1] || "code";
-    const code = match[2].trimEnd();
-
-    const block = el("div", { className: "codeBlockWrap" },
-      el("div", { className: "codeBlockHeader" },
-        el("span", { textContent: lang.toLowerCase() }),
-        el("button", {
-          type: "button",
-          className: "copyCodeBtn",
-          textContent: "Copy code",
-          onclick: () => {
-            navigator.clipboard.writeText(code).then(() => toast("Code copied!"));
-          }
-        })
-      ),
-      el("pre", { className: "codeContent" }, document.createTextNode(code))
-    );
-    container.append(block);
-    lastIdx = codeBlockRegex.lastIndex;
-  }
-  if (lastIdx < rawText.length) {
-    container.append(parseInlineMarkdown(rawText.slice(lastIdx)));
-  }
-  return container;
-}
-
 // ---------- interactive message rendering ----------
 function setReply(m) {
   replyingTo = m ? { id: m.id, who: m.who, text: String(m.text || (m.img ? "Photo" : "Voice message")).slice(0, 90) } : null;
@@ -1438,6 +1309,38 @@ async function pinMessage(r, m) {
   } catch (e) { toast("Couldn't pin: " + (e.message || "error")); }
 }
 
+function formatContent(text) {
+  const container = document.createDocumentFragment();
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = String(text || "").split(urlRegex);
+
+  parts.forEach((part) => {
+    if (urlRegex.test(part)) {
+      if (part.toLowerCase().match(/\.(gif)(\?.*)?$/i)) {
+        const gif = el("img", {
+          src: part,
+          className: "chatImg",
+          loading: "lazy",
+          onclick: () => openLightbox(part)
+        });
+        container.append(gif);
+      } else {
+        const a = el("a", {
+          href: part,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          className: "chatLink",
+          textContent: part
+        });
+        container.append(a);
+      }
+    } else if (part) {
+      container.append(document.createTextNode(part));
+    }
+  });
+  return container;
+}
+
 function buildMessage(r, m) {
   const mine = m.mine;
   const who = m.who;
@@ -1475,7 +1378,7 @@ function buildMessage(r, m) {
   bubble.append(meta);
 
   if (m.text) {
-    bubble.append(formatMessageContent(m.text));
+    bubble.append(formatContent(m.text));
   }
   if (m.img && !m.deleted) {
     const imgEl = el("img", {
@@ -1517,17 +1420,8 @@ function buildMessage(r, m) {
       }
     });
     const replyBtn = el("button", { type: "button", className: "actBtn", title: "Reply", textContent: "↩", onclick: () => setReply(m) });
-    const copyBtn = el("button", {
-      type: "button",
-      className: "actBtn",
-      title: "Copy text",
-      textContent: "📋",
-      onclick: () => {
-        if (m.text) navigator.clipboard.writeText(m.text).then(() => toast("Message copied!"));
-      }
-    });
     const pinBtn = el("button", { type: "button", className: "actBtn", title: "Pin", textContent: "📌", onclick: () => pinMessage(r, m) });
-    actions.append(reactBtn, replyBtn, copyBtn, pinBtn);
+    actions.append(reactBtn, replyBtn, pinBtn);
     if (mine) {
       if (m.text) actions.append(el("button", { type: "button", className: "actBtn", title: "Edit message", textContent: "✎", onclick: () => promptEditMessage(r, m) }));
       actions.append(el("button", { type: "button", className: "actBtn", title: "Delete message", textContent: "🗑", onclick: () => deleteMessage(r, m) }));
@@ -1611,8 +1505,8 @@ function renderChatLog(keepScroll) {
     l.append(el("div", {
       className: "system",
       textContent: isDm
-        ? "Direct message with " + r.meta.title + ". Markdown, code blocks, photos, voice notes & calls active."
-        : "Group “" + r.meta.title + "”. Markdown, code blocks, photos & voice notes active."
+        ? "Direct message with " + r.meta.title + ". Photos, voice notes, calls & receipts active."
+        : "Group “" + r.meta.title + "”. Photos, voice notes & receipts active."
     }));
   } else if (!visible.length) {
     l.append(el("div", { className: "system", textContent: "No messages match “" + searchQuery + "”." }));
@@ -1657,11 +1551,11 @@ function renderWelcome() {
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
-        el("div", { className: "statLabel", textContent: "Formatting Engine" }),
-        el("span", { className: "pulseDot", title: "Markdown Engine Online" })
+        el("div", { className: "statLabel", textContent: "Voice & Realtime" }),
+        el("span", { className: "pulseDot", title: "WebRTC Online" })
       ),
-      el("div", { className: "statValue", textContent: "v1.5.0" }),
-      el("div", { className: "statSub", textContent: "Markdown, Code Blocks & Cloak" })
+      el("div", { className: "statValue", textContent: "P2P WebRTC" }),
+      el("div", { className: "statSub", textContent: "Zero-Relay Direct Audio" })
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
@@ -1676,7 +1570,7 @@ function renderWelcome() {
   $("view").append(el("div", { className: "empty" },
     emblem,
     el("div", { className: "stageTitle", textContent: "Kairo" }),
-    el("p", { className: "stageSub", textContent: "End-to-end encrypted messaging, Markdown code blocks, media sharing, and tab cloaking." }),
+    el("p", { className: "stageSub", textContent: "End-to-end encrypted messaging, media sharing, and direct WebRTC voice calling inside your browser." }),
     el("div", { className: "pillRow" }, start, help),
     stats
   ));
@@ -1740,34 +1634,22 @@ function openChat(id) {
   }
 
   const isDm = r.meta.type === "dm";
-  const draftVal = getDraft(id);
-  const charCounter = el("div", { id: "charCount", className: "composerFooter", textContent: draftVal.length + "/" + MAX_TEXT });
-
   const input = el("input", {
     id: "msg",
     maxLength: MAX_TEXT,
     autocomplete: "off",
-    value: draftVal,
+    value: getDraft(id),
     placeholder: "Message " + (isDm ? r.meta.title : "#" + r.meta.title),
     oninput: (e) => {
-      const len = e.target.value.length;
-      charCounter.textContent = len + "/" + MAX_TEXT;
       setDraft(id, e.target.value);
       renderSidebar();
       const now = Date.now();
-      if (now - lastTypingSent > 3500 && len > 0) {
+      if (now - lastTypingSent > 3500 && e.target.value.trim().length > 0) {
         lastTypingSent = now;
         post(r, "typing").catch(() => {});
       }
-    },
-    onkeydown: (e) => {
-      if (e.key === "Enter" && !e.shiftKey && settings.sendOnEnter !== false) {
-        e.preventDefault();
-        sendMessage(e);
-      }
     }
   });
-
   const replyBar = el("div", { id: "replyBar", className: "replyBar", hidden: true });
   const photoBtn = el("button", {
     type: "button",
@@ -1788,14 +1670,12 @@ function openChat(id) {
   const form = el("form", { id: "form", className: "composer" }, photoBtn, voiceBtn, input, sendBtn);
   form.onsubmit = sendMessage;
 
-  const composerWrap = el("div", { className: "composerArea" }, form, charCounter);
-
   const logEl = el("div", { id: "log", className: "log" });
   logEl.onscroll = handleLogScroll;
   userScrolledUp = false;
 
   $("view").innerHTML = "";
-  $("view").append(logEl, replyBar, typingBar, composerWrap);
+  $("view").append(logEl, replyBar, typingBar, form);
   renderChatLog(false);
   updateTypingDisplay();
   renderCallPanel();
@@ -1832,6 +1712,7 @@ async function onEvent(ev) {
     last: Date.now()
   });
 
+  // WebRTC Signals
   if (m.k === "rtc_offer" && m.sdp) {
     promptIncomingCall(r, who, m.sdp);
     return;
@@ -2025,17 +1906,17 @@ function modal(title, hint, fields, okText, onOk) {
 
 function checkSecure() {
   if (!window.crypto || !crypto.subtle) {
-    throw new Error("This tab blocks encryption. Open [https://example.com](https://example.com) in a new tab and paste the script there.");
+    throw new Error("This tab blocks encryption. Open https://example.com in a new tab and paste the script there.");
   }
 }
 
 function showHelp() {
   const steps = [
     "Your Account Vault encrypts your profile, contacts, and room passwords with one Master Password.",
-    "Use **bold**, *italic*, ~strike~, `inline code`, or ```code blocks``` in your messages.",
-    "Hover any message to Copy (📋), Reply (↩), React (😀), Pin (📌), Edit (✎), Delete (🗑), or Block (🚫).",
-    "Change your Tab Cloak in Themes & Alerts (🎨) to disguise the tab as Google Drive or Canvas.",
-    "Click 📞 Call in any DM to start an animated, high-fidelity WebRTC voice call."
+    "Click 📞 Call in any DM to start an animated, high-fidelity WebRTC voice call.",
+    "Real-time voice activity glows around whoever is speaking.",
+    "Share photos (📷), voice notes (🎙️), and animated GIFs (.gif links).",
+    "Hover any message to Reply (↩), React (😀), Pin (📌), Edit (✎), Delete (🗑), or Block (🚫)."
   ];
   const shortcuts = [
     ["Alt + N", "Start a new Direct Message"],
@@ -2050,7 +1931,7 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.5.0 Guide" }),
+    el("h2", { textContent: "Kairo v1.4.1 Guide" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
@@ -2197,10 +2078,9 @@ async function dispatchMediaMessage(imgBase64, audioBase64) {
 }
 
 async function sendMessage(e) {
-  if (e) e.preventDefault();
+  e.preventDefault();
   const r = rooms.get(activeTopic);
   const input = $("msg");
-  if (!input) return;
   const text = input.value.trim().slice(0, MAX_TEXT);
   if (!r || !r.key || !text) return;
   const id = rnd();
@@ -2218,8 +2098,6 @@ async function sendMessage(e) {
   persistRoom(r);
   input.value = "";
   setDraft(activeTopic, "");
-  const cc = $("charCount");
-  if (cc) cc.textContent = "0/" + MAX_TEXT;
   setReply(null);
   userScrolledUp = false;
   renderChatLog(false);
