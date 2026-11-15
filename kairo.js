@@ -1,4 +1,4 @@
-// Kairo LOG 1.2.8
+// Kairo LOG 1.2.9
 
 // Kairo - paste this whole file into your browser's Console and press Enter.
 // Best on https://example.com (open it in a new tab first). Blank tabs block encryption.
@@ -16,17 +16,20 @@ if (!document.getElementById("kairo-fonts")) {
   (document.head || document.documentElement).appendChild(fontLink);
 }
 const CSS = `
-#rc-root{--bg:#111214;--side:#1e1f22;--panel:#2b2d31;--chat:#313338;--input:#383a40;--text:#f2f3f5;--muted:#949ba4;--accent:#5865f2;--accent2:#4752c4;--border:#3f4147;--green:#23a55a;--red:#f23f42;--font-brand:'Unbounded',system-ui,sans-serif;--font-sans:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;position:fixed;inset:0;z-index:2147483647;background:var(--bg);color:var(--text);font:15px/1.4 var(--font-sans)}
-#rc-root.light{--bg:#eef0f4;--side:#ffffff;--panel:#e3e5e8;--chat:#f7f8fa;--input:#e3e5e8;--text:#2e3338;--muted:#5c6370;--accent:#5865f2;--accent2:#4752c4;--border:#d4d7dc;--green:#248046;--red:#da373c}
+#rc-root{--bg:#111214;--side:#1e1f22;--panel:#2b2d31;--chat:#313338;--input:#383a40;--text:#f2f3f5;--muted:#949ba4;--accent:#5865f2;--accent2:#4752c4;--border:#3f4147;--green:#23a55a;--amber:#f0b232;--red:#f23f42;--font-brand:'Unbounded',system-ui,sans-serif;--font-sans:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;position:fixed;inset:0;z-index:2147483647;background:var(--bg);color:var(--text);font:15px/1.4 var(--font-sans)}
+#rc-root[data-theme="light"]{--bg:#eef0f4;--side:#ffffff;--panel:#e3e5e8;--chat:#f7f8fa;--input:#e3e5e8;--text:#2e3338;--muted:#5c6370;--accent:#5865f2;--accent2:#4752c4;--border:#d4d7dc;--green:#248046;--amber:#d97706;--red:#da373c}
+#rc-root[data-theme="cyberpunk"]{--bg:#090614;--side:#120d24;--panel:#1e1638;--chat:#16102b;--input:#251b45;--text:#f8f0ff;--muted:#a38ec4;--accent:#ff2a85;--accent2:#d91b6b;--border:#34265c;--green:#00f5d4;--amber:#fee440;--red:#ff3864}
+#rc-root[data-theme="emerald"]{--bg:#091410;--side:#10211b;--panel:#183028;--chat:#132820;--input:#1e3b30;--text:#ecfdf5;--muted:#84b59f;--accent:#10b981;--accent2:#059669;--border:#234739;--green:#34d399;--amber:#fbbf24;--red:#f87171}
+#rc-root[data-theme="crimson"]{--bg:#14080a;--side:#210e12;--panel:#33161c;--chat:#281116;--input:#3d1a22;--text:#fff1f2;--muted:#fda4af;--accent:#e11d48;--accent2:#be123c;--border:#4c1d26;--green:#22c55e;--amber:#f59e0b;--red:#ef4444}
 #rc-root *{box-sizing:border-box}
 #rc-root button,#rc-root input,#rc-root textarea,#rc-root select{font:inherit}
 #rc-root button{cursor:pointer}
-#rc-root .app{height:100%;display:grid;grid-template-columns:230px 1fr 270px}
+#rc-root .app{height:100%;display:grid;grid-template-columns:238px 1fr 270px}
 #rc-root .sidebar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--border)}
 #rc-root .rightbar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-left:1px solid var(--border)}
 #rc-root .brand{height:64px;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid var(--border)}
 #rc-root .rightTop{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--border);font-family:var(--font-brand);font-size:.82rem;font-weight:700;color:var(--text)}
-#rc-root .logo{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#7289da,var(--accent));color:white;font-family:var(--font-brand);font-weight:800;font-size:15px;box-shadow:0 8px 20px rgba(88,101,242,.3)}
+#rc-root .logo{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:var(--font-brand);font-weight:800;font-size:15px;box-shadow:0 8px 20px rgba(0,0,0,.3)}
 #rc-root .brandText{min-width:0;flex:1}
 #rc-root .brandTitle{font-family:var(--font-brand);font-weight:700;font-size:.98rem;letter-spacing:-.01em;display:flex;align-items:center;gap:7px}
 #rc-root .beta{font-family:var(--font-sans);font-size:.6rem;font-weight:800;letter-spacing:.04em;color:var(--accent);background:rgba(88,101,242,.15);border:1px solid var(--accent);border-radius:999px;padding:1px 6px}
@@ -36,11 +39,11 @@ const CSS = `
 #rc-root .iconBtn{flex:none;border:0;background:transparent;color:var(--muted);font-size:15px;border-radius:8px;width:28px;height:28px}
 #rc-root .iconBtn:hover{background:var(--panel);color:var(--text)}
 #rc-root .iconBtn.close:hover{background:var(--red);color:white}
-#rc-root .sideActions{display:flex;flex-direction:column;gap:4px;padding:12px 9px 10px;flex:1;overflow:auto}
-#rc-root .quickHeading{padding:12px 14px 4px;color:var(--muted);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
-#rc-root .quickAction{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:9px;padding:10px 11px;background:transparent;color:var(--muted);text-align:left;font-weight:600;font-size:.84rem}
+#rc-root .sideActions{display:flex;flex-direction:column;gap:3px;padding:10px 9px;flex:1;overflow:auto}
+#rc-root .quickHeading{padding:10px 14px 3px;color:var(--muted);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+#rc-root .quickAction{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:9px;padding:9px 11px;background:transparent;color:var(--muted);text-align:left;font-weight:600;font-size:.83rem}
 #rc-root .quickAction:hover{background:var(--panel);color:var(--text)}
-#rc-root .quickIcon{width:17px;flex:none;text-align:center;color:var(--accent);font-size:.95rem}
+#rc-root .quickIcon{width:18px;flex:none;text-align:center;color:var(--accent);font-size:.95rem}
 #rc-root .btn{border:0;border-radius:9px;padding:9px 11px;background:var(--accent);color:white;font-weight:750}
 #rc-root .btn:hover{background:var(--accent2)}
 #rc-root .btn:disabled{opacity:.5;cursor:default}
@@ -51,16 +54,21 @@ const CSS = `
 #rc-root .list{overflow:auto;flex:1;padding:0 7px 12px}
 #rc-root .item{width:100%;display:flex;align-items:center;gap:9px;border:0;border-radius:9px;padding:8px;background:transparent;color:var(--muted);text-align:left;margin:2px 0}
 #rc-root .item:hover,#rc-root .item.active{background:var(--panel);color:var(--text)}
-#rc-root .avatar{position:relative;width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;background:#41434a;color:white;font-weight:850}
-#rc-root.light .avatar{background:#6b7280}
+#rc-root .avatar{position:relative;width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--border);color:var(--text);font-weight:850;font-size:14px}
 #rc-root .presence{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border:3px solid var(--side);border-radius:50%;background:#747f8d}
-#rc-root .presence.on{background:var(--green)}
+#rc-root .presence.online{background:var(--green)}
+#rc-root .presence.idle{background:var(--amber)}
+#rc-root .presence.dnd{background:var(--red)}
 #rc-root .itemText{min-width:0;flex:1}
 #rc-root .itemName{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .itemSub{font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .draftTag{color:var(--accent);font-weight:700}
 #rc-root .badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:white;display:grid;place-items:center;font-size:.68rem;font-weight:850}
-#rc-root .self{padding:12px;background:var(--side);border-top:1px solid var(--border);color:var(--muted);font-size:.76rem}
+#rc-root .selfCard{padding:10px 12px;background:var(--side);border-top:1px solid var(--border);display:flex;align-items:center;gap:9px;cursor:pointer}
+#rc-root .selfCard:hover{background:var(--panel)}
+#rc-root .selfInfo{min-width:0;flex:1}
+#rc-root .selfName{font-weight:750;font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rc-root .selfBio{font-size:.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .main{min-width:0;display:flex;flex-direction:column;background:var(--chat)}
 #rc-root .top{height:64px;display:flex;align-items:center;gap:10px;padding:0 18px;background:var(--side);border-bottom:1px solid var(--border)}
 #rc-root .topText{flex:1;min-width:0}
@@ -72,16 +80,15 @@ const CSS = `
 #rc-root .diag{padding:9px 18px;background:var(--panel);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--border)}
 #rc-root .banner{padding:9px 18px;background:rgba(88,101,242,.14);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--accent);display:flex;align-items:center;justify-content:space-between;gap:10px}
 #rc-root .banner button{flex:none}
-#rc-root .adminTag{font-family:var(--font-mono);font-size:.63rem;font-weight:700;color:var(--accent);background:rgba(88,101,242,.15);border:1px solid var(--accent);border-radius:5px;padding:0 5px;margin-left:6px}
 #rc-root .view{flex:1;min-height:0;display:flex;flex-direction:column}
 #rc-root .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center;overflow:auto}
 #rc-root .emblemRing{width:158px;height:158px;flex:none;border-radius:50%;background:radial-gradient(circle,rgba(88,101,242,.22),rgba(88,101,242,.07) 70%);display:grid;place-items:center;cursor:pointer;transition:transform .2s ease,background .2s ease;border:0;padding:0}
 #rc-root .emblemRing:hover{transform:translateY(-3px);background:radial-gradient(circle,rgba(88,101,242,.3),rgba(88,101,242,.1) 70%)}
-#rc-root .emblemCore{width:106px;height:106px;border-radius:50%;background:linear-gradient(145deg,#7289da,var(--accent));color:#fff;display:grid;place-items:center;font-size:40px;box-shadow:0 14px 34px rgba(88,101,242,.38)}
+#rc-root .emblemCore{width:106px;height:106px;border-radius:50%;background:linear-gradient(145deg,var(--accent),var(--accent2));color:#fff;display:grid;place-items:center;font-size:40px;box-shadow:0 14px 34px rgba(0,0,0,.38)}
 #rc-root .stageTitle{font-family:var(--font-brand);font-weight:800;font-size:1.75rem;letter-spacing:-.02em;margin:4px 0 0;color:var(--text)}
 #rc-root .stageSub{color:var(--muted);font-size:.9rem;max-width:440px;margin:0}
 #rc-root .pillRow{display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;justify-content:center}
-#rc-root .pillBtn{font-family:var(--font-brand);border:0;border-radius:999px;padding:12px 24px;background:var(--accent);color:#fff;font-weight:700;font-size:.82rem;box-shadow:0 8px 20px rgba(88,101,242,.32);transition:transform .15s ease,background .15s ease}
+#rc-root .pillBtn{font-family:var(--font-brand);border:0;border-radius:999px;padding:12px 24px;background:var(--accent);color:#fff;font-weight:700;font-size:.82rem;box-shadow:0 8px 20px rgba(0,0,0,.32);transition:transform .15s ease,background .15s ease}
 #rc-root .pillBtn:hover{background:var(--accent2);transform:translateY(-1px)}
 #rc-root .pillBtn.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:none}
 #rc-root .statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:min(760px,100%);margin-top:22px}
@@ -96,7 +103,7 @@ const CSS = `
 @keyframes kairoBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.88)}}
 @keyframes kairoRing{0%{transform:scale(.6);opacity:.85}100%{transform:scale(1.9);opacity:0}}
 #rc-root .log{flex:1;min-height:0;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:11px;background:var(--chat)}
-#rc-root .message{position:relative;display:flex;gap:10px;max-width:78%; group:msg}
+#rc-root .message{position:relative;display:flex;gap:10px;max-width:78%}
 #rc-root .message.mine{align-self:flex-end;flex-direction:row-reverse}
 #rc-root .msgCol{display:flex;flex-direction:column;min-width:0}
 #rc-root .mine .msgCol{align-items:flex-end}
@@ -127,40 +134,41 @@ const CSS = `
 #rc-root .composer{display:flex;gap:9px;padding:12px 16px 16px;background:var(--side);border-top:1px solid var(--border)}
 #rc-root .composer input{flex:1;border:0;outline:0;border-radius:10px;padding:11px 13px;background:var(--input);color:var(--text)}
 #rc-root .composer button{width:46px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:18px}
-#rc-root .modalLayer{position:absolute;inset:0;background:rgba(0,0,0,.76);display:grid;place-items:center;padding:18px;z-index:9999}
+#rc-root .modalLayer{position:absolute;inset:0;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:18px;z-index:9999}
 #rc-root .modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--side);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 25px 80px rgba(0,0,0,.6)}
 #rc-root .modal h2{font-family:var(--font-brand);font-size:1.15rem;margin:0 0 8px}
-#rc-root .modal h3{font-size:.85rem;margin:14px 0 6px}
-#rc-root .modal p,#rc-root .modal li{color:var(--muted);font-size:.86rem;line-height:1.4}
+#rc-root .modal h3{font-size:.82rem;margin:12px 0 5px;color:var(--text)}
+#rc-root .modal p,#rc-root .modal li{color:var(--muted);font-size:.85rem;line-height:1.4}
 #rc-root .modal input,#rc-root .modal select,#rc-root .modal textarea{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);padding:10px;outline:0}
-#rc-root .modal .err{color:var(--red);min-height:1.2em;margin:8px 0 0}
+#rc-root .modal .err{color:var(--red);min-height:1.2em;margin:8px 0 0;font-size:.82rem}
 #rc-root .row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 #rc-root .row .btn{flex:1;min-width:120px}
 #rc-root .kbd{font-family:var(--font-mono);font-size:.72rem;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--text)}
 #rc-root .toast{position:absolute;left:50%;bottom:22px;z-index:99999;transform:translate(-50%,15px);background:#09090a;color:white;padding:9px 13px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw)}
 #rc-root .toast.show{opacity:1;transform:translate(-50%,0)}
 #rc-root [hidden]{display:none!important}
-@media(max-width:960px){#rc-root .app{grid-template-columns:72px 1fr 210px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .self{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
+@media(max-width:960px){#rc-root .app{grid-template-columns:72px 1fr 210px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .selfInfo{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
 `;
 const MARKUP = `
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">K</div>
-      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.8</span></div><div id="brandSub" class="brandSub">not connected</div></div>
+      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.9</span></div><div id="brandSub" class="brandSub">vault locked</div></div>
       <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
     </div>
     <div class="quickHeading">Navigation</div>
     <div class="sideActions">
       <button id="overviewBtn" class="quickAction"><span class="quickIcon">⌂</span><span class="quickLabel">Overview</span></button>
-      <button id="profileBtn" class="quickAction"><span class="quickIcon">◉</span><span class="quickLabel">Profile</span></button>
+      <button id="profileBtn" class="quickAction"><span class="quickIcon">◉</span><span class="quickLabel">Profile & Status</span></button>
       <button id="addBtn" class="quickAction"><span class="quickIcon">＋</span><span class="quickLabel">New Chat (DM)</span></button>
       <button id="groupBtn" class="quickAction"><span class="quickIcon">＃</span><span class="quickLabel">New Group</span></button>
+      <button id="themeBtn" class="quickAction"><span class="quickIcon">🎨</span><span class="quickLabel">Themes & Alerts</span></button>
       <button id="blockedBtn" class="quickAction"><span class="quickIcon">🚫</span><span class="quickLabel">Blocked Users</span></button>
-      <button id="themeBtn" class="quickAction"><span class="quickIcon">◐</span><span id="themeLabel" class="quickLabel">Dark Mode</span></button>
+      <button id="lockVaultBtn" class="quickAction"><span class="quickIcon">🔐</span><span class="quickLabel">Lock Account Vault</span></button>
       <button id="helpBtn" class="quickAction"><span class="quickIcon">?</span><span class="quickLabel">Guide & Shortcuts</span></button>
     </div>
-    <div id="self" class="self"></div>
+    <div id="selfCard" class="selfCard" title="Edit Profile & Status"></div>
   </aside>
   <main class="main">
     <header class="top">
@@ -201,17 +209,21 @@ const MAX_CHATS = 20;
 const PING_EVERY = 45000;
 const PING_FLOOR = 8000;
 const LS = "roomchat:";
-const VERSION = "1.2.8";
+const VERSION = "1.2.9";
 const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
 const SURVEY_TOPIC = "kairo-survey-feedback-881a";
 const ADMIN_PASSWORD = "";
 const EMOJIS = ["👍", "❤️", "😂", "🔥", "👀"];
+const origTitle = document.title;
+
 let isAdmin = false;
 let adminFeed = null;
+let vaultKey = null;
 
 const te = new TextEncoder();
 const td = new TextDecoder();
-const me = { id: rnd(), name: "" };
+const me = { id: rnd(), name: "", avatar: "", bio: "", status: "online" };
+const settings = { theme: "dark", sound: true, titleAlert: true };
 const rooms = new Map();
 let blockedUsers = new Set();
 let activeTopic = null;
@@ -224,6 +236,8 @@ let everOpened = false;
 let queue = Promise.resolve();
 let readyTimer = null;
 let toastTimer = null;
+let pingTimer = null;
+let pingIdx = 0;
 const timers = [];
 
 function rnd() {
@@ -261,16 +275,221 @@ function setDiag(text) {
   d.hidden = !text;
 }
 
-// ---------- blocked users ----------
-function loadBlocked() {
+// ---------- sound & tab notifications ----------
+function playNotifSound() {
+  if (!settings.sound) return;
   try {
-    const arr = JSON.parse(lsGet(LS + "blocked") || "[]");
-    blockedUsers = new Set(arr.map((x) => String(x).toLowerCase()));
-  } catch { blockedUsers = new Set(); }
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.09);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.16);
+  } catch {}
 }
-function saveBlocked() {
-  lsSet(LS + "blocked", JSON.stringify(Array.from(blockedUsers)));
+function updateDocTitle() {
+  if (!settings.titleAlert) { document.title = origTitle; return; }
+  const totalUnread = Array.from(rooms.values()).reduce((sum, r) => sum + (r.unread || 0), 0);
+  document.title = totalUnread > 0 ? "(" + totalUnread + ") Kairo" : origTitle;
 }
+
+// ---------- encryption ----------
+function toB64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  return btoa(s);
+}
+function fromB64(s) {
+  const b = atob(s);
+  const a = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+  return a;
+}
+async function sha256Hex(str) {
+  const d = await crypto.subtle.digest("SHA-256", te.encode(str));
+  return Array.from(new Uint8Array(d), (x) => x.toString(16).padStart(2, "0")).join("");
+}
+async function deriveKey(room, pw) {
+  const base = await crypto.subtle.importKey("raw", te.encode(pw + "|" + room), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: te.encode("roomchat-v1|" + room), iterations: 150000, hash: "SHA-256" },
+    base,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+async function topicFor(room, pw) {
+  return "rc" + (await sha256Hex("topic|" + room + "|" + pw)).slice(0, 40);
+}
+async function seal(key, obj) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, te.encode(JSON.stringify(obj))));
+  const out = new Uint8Array(12 + ct.length);
+  out.set(iv);
+  out.set(ct, 12);
+  return toB64(out);
+}
+async function unseal(key, b64) {
+  const raw = fromB64(b64.trim());
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: raw.slice(0, 12) }, key, raw.slice(12));
+  return JSON.parse(td.decode(pt));
+}
+
+// ---------- master account vault (#22) ----------
+function applyTheme(t) {
+  settings.theme = t || "dark";
+  if (settings.theme === "dark") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", settings.theme);
+}
+
+async function saveVault() {
+  if (!vaultKey) return;
+  const payload = {
+    me,
+    settings,
+    blocked: Array.from(blockedUsers),
+    chats: Array.from(rooms.values(), (r) => r.meta)
+  };
+  try {
+    const enc = await seal(vaultKey, payload);
+    lsSet(LS + "vault_v129", enc);
+  } catch {}
+}
+
+async function unlockAllSavedRooms() {
+  for (const r of rooms.values()) {
+    if (!r.key && r.meta.pw) {
+      try { r.key = await deriveKey(r.meta.room, r.meta.pw); } catch {}
+    }
+  }
+  resubscribe();
+  renderSidebar();
+  if (!activeTopic) renderWelcome();
+}
+
+function promptVaultLogin() {
+  checkSecure();
+  const rawVault = lsGet(LS + "vault_v129");
+  if (rawVault) {
+    const box = el("form", { className: "modal" });
+    box.append(
+      el("h2", { textContent: "Unlock Kairo Account 🔐" }),
+      el("p", { textContent: "Enter your Master Password to decrypt your profile, saved contacts, and chat keys." }),
+      el("h3", { textContent: "Master Password" })
+    );
+    const pwInp = el("input", { type: "password", placeholder: "Enter master password...", maxLength: 80 });
+    const err = el("p", { className: "err" });
+    const unlockBtn = el("button", { type: "submit", className: "btn", textContent: "Unlock Account" });
+    const resetBtn = el("button", {
+      type: "button",
+      className: "btn danger",
+      textContent: "Reset Vault",
+      onclick: () => {
+        if (!confirm("Wipe your saved vault and create a new account on this browser?")) return;
+        lsDel(LS + "vault_v129");
+        rooms.clear();
+        promptVaultLogin();
+      }
+    });
+    box.append(pwInp, err, el("div", { className: "row" }, unlockBtn, resetBtn));
+    box.onsubmit = async (e) => {
+      e.preventDefault();
+      unlockBtn.disabled = true;
+      err.textContent = "Decrypting vault...";
+      try {
+        const k = await deriveKey("kairo-master-vault", pwInp.value);
+        const data = await unseal(k, rawVault);
+        vaultKey = k;
+        Object.assign(me, data.me || {});
+        Object.assign(settings, data.settings || {});
+        applyTheme(settings.theme);
+        blockedUsers = new Set(data.blocked || []);
+        rooms.clear();
+        (data.chats || []).forEach((meta) => {
+          if (meta && meta.topic) rooms.set(meta.topic, makeRoom(meta));
+        });
+        closeModal();
+        toast("Welcome back, " + me.name + "!");
+        await unlockAllSavedRooms();
+        promptSurvey(false);
+      } catch {
+        err.textContent = "Incorrect Master Password.";
+        unlockBtn.disabled = false;
+      }
+    };
+    showModal(box);
+    pwInp.focus();
+  } else {
+    // First-time Vault creation (migrates any legacy chats)
+    const legacyName = lsGet(LS + "name") || "";
+    const box = el("form", { className: "modal" });
+    box.append(
+      el("h2", { textContent: "Create Protected Account 🛡️" }),
+      el("p", { textContent: "Set up your Kairo profile and a Master Password. All your contacts and room passwords will be encrypted inside your personal vault." })
+    );
+    const nameInp = el("input", { type: "text", placeholder: "e.g. arviyarrrr", value: legacyName, maxLength: 20 });
+    const avInp = el("input", { type: "text", placeholder: "Emoji or initials (e.g. ⚡, 🦊, AR)", maxLength: 4 });
+    const bioInp = el("input", { type: "text", placeholder: "Status bio (optional)", maxLength: 50 });
+    const pwInp = el("input", { type: "password", placeholder: "Create Master Password (4+ chars)", maxLength: 80 });
+    const err = el("p", { className: "err" });
+    const createBtn = el("button", { type: "submit", className: "btn", textContent: "Create & Encrypt Vault" });
+
+    box.append(
+      el("h3", { textContent: "Display Name" }), nameInp,
+      el("h3", { textContent: "Avatar Emoji / Icon (optional)" }), avInp,
+      el("h3", { textContent: "Bio / Custom Status (optional)" }), bioInp,
+      el("h3", { textContent: "Master Password" }), pwInp,
+      err,
+      el("div", { className: "row" }, createBtn)
+    );
+    box.onsubmit = async (e) => {
+      e.preventDefault();
+      const n = nameInp.value.trim();
+      const pw = pwInp.value;
+      if (!n) { err.textContent = "Enter a display name."; return; }
+      if (pw.length < 4) { err.textContent = "Use a Master Password with at least 4 characters."; return; }
+      createBtn.disabled = true;
+      try {
+        vaultKey = await deriveKey("kairo-master-vault", pw);
+        me.name = n.slice(0, 20);
+        me.avatar = avInp.value.trim().slice(0, 4);
+        me.bio = bioInp.value.trim().slice(0, 50);
+        loadLegacyChats();
+        await saveVault();
+        closeModal();
+        renderSidebar();
+        renderWelcome();
+        promptSurvey(false);
+      } catch (ex) {
+        err.textContent = ex.message || "Could not create vault.";
+        createBtn.disabled = false;
+      }
+    };
+    showModal(box);
+    nameInp.focus();
+  }
+}
+
+function lockVaultSession() {
+  vaultKey = null;
+  if (es) { es.close(); es = null; esKey = ""; }
+  rooms.forEach((r) => { r.key = null; r.ready = false; });
+  activeTopic = null;
+  setStatus("vault locked");
+  renderWelcome();
+  promptVaultLogin();
+}
+
+// ---------- blocked users ----------
 function isBlocked(name) {
   return blockedUsers.has(String(name || "").toLowerCase());
 }
@@ -284,8 +503,8 @@ function toggleBlockUser(name) {
     blockedUsers.add(key);
     toast("Blocked " + name);
   }
-  saveBlocked();
-  if (activeTopic) renderChatLog();
+  saveVault();
+  if (activeTopic) renderChatLog(true);
 }
 function showBlockedModal() {
   const list = Array.from(blockedUsers);
@@ -313,22 +532,68 @@ function showBlockedModal() {
   showModal(box);
 }
 
+// ---------- themes & notification settings (#14 & #15) ----------
+function showThemeSettings() {
+  const box = el("form", { className: "modal" });
+  box.append(
+    el("h2", { textContent: "Themes & Notifications 🎨" }),
+    el("p", { textContent: "Customize your Kairo workspace appearance and alert preferences." }),
+    el("h3", { textContent: "Color Theme" })
+  );
+  const themeSel = el("select", {},
+    el("option", { value: "dark", textContent: "Midnight Dark (Default)" }),
+    el("option", { value: "cyberpunk", textContent: "Cyberpunk Neon" }),
+    el("option", { value: "emerald", textContent: "Emerald Forest" }),
+    el("option", { value: "crimson", textContent: "Crimson Velvet" }),
+    el("option", { value: "light", textContent: "Daylight Mode" })
+  );
+  themeSel.value = settings.theme || "dark";
+  themeSel.onchange = () => applyTheme(themeSel.value);
+
+  const soundSel = el("select", {},
+    el("option", { value: "on", textContent: "Enabled (Synthesized Chime)" }),
+    el("option", { value: "off", textContent: "Muted" })
+  );
+  soundSel.value = settings.sound ? "on" : "off";
+
+  const tabSel = el("select", {},
+    el("option", { value: "on", textContent: "Show Unread Count in Tab Title" }),
+    el("option", { value: "off", textContent: "Keep Original Tab Title" })
+  );
+  tabSel.value = settings.titleAlert ? "on" : "off";
+
+  const saveBtn = el("button", { type: "submit", className: "btn", textContent: "Save Preferences" });
+  box.append(
+    themeSel,
+    el("h3", { textContent: "Message Sound Effects" }), soundSel,
+    el("h3", { textContent: "Tab Title Badge" }), tabSel,
+    el("div", { className: "row" }, saveBtn)
+  );
+  box.onsubmit = async (e) => {
+    e.preventDefault();
+    applyTheme(themeSel.value);
+    settings.sound = soundSel.value === "on";
+    settings.titleAlert = tabSel.value === "on";
+    updateDocTitle();
+    await saveVault();
+    closeModal();
+    toast("Preferences saved!");
+  };
+  showModal(box);
+}
+
 // ---------- survey feature ----------
 function promptSurvey(force) {
-  if (!force && lsGet(LS + "surveyAnswered_v127")) {
-    if (!me.name) profile();
-    return;
-  }
+  if (!force && lsGet(LS + "surveyAnswered_v127")) return;
   const box = el("form", { className: "modal" });
   box.append(
     el("h2", { textContent: "Help Shape Kairo 🚀" }),
-    el("p", { textContent: "We are designing the next major upgrade for Kairo. Before jumping in, tell us what feature matters to you most!" }),
+    el("p", { textContent: "We are designing the next major upgrade for Kairo. Tell us what feature matters to you most!" }),
     el("h3", { textContent: "What should we add next?" })
   );
   const select = el("select", {},
-    el("option", { value: "vault", textContent: "Password-Protected Profile Login Vault & Custom Themes" }),
-    el("option", { value: "files", textContent: "Encrypted File & Image Sharing (memes, attachments, docs)" }),
-    el("option", { value: "voice", textContent: "WebRTC Voice / Calling (direct peer-to-peer audio)" }),
+    el("option", { value: "media", textContent: "Phase 3: Voice Messages, Image Sharing, GIFs & Pins" }),
+    el("option", { value: "webrtc", textContent: "Phase 4: Live Voice Calling, Typing Indicators & Read Receipts" }),
     el("option", { value: "other", textContent: "Something else" })
   );
   const thoughts = el("textarea", {
@@ -345,7 +610,6 @@ function promptSurvey(force) {
     onclick: () => {
       lsSet(LS + "surveyAnswered_v127", "skipped");
       closeModal();
-      if (!me.name) profile();
     }
   });
   box.append(select, el("h3", { textContent: "Your Thoughts:" }), thoughts, err, el("div", { className: "row" }, sendBtn, skipBtn));
@@ -359,11 +623,9 @@ function promptSurvey(force) {
       lsSet(LS + "surveyAnswered_v127", "submitted");
       toast("Thanks! Your feedback was sent.");
       closeModal();
-      if (!me.name) profile();
     } catch {
       lsSet(LS + "surveyAnswered_v127", "failed");
       closeModal();
-      if (!me.name) profile();
     }
   };
   showModal(box);
@@ -427,52 +689,9 @@ function showUpdateBanner(latest, notes) {
   b.hidden = false;
 }
 
-// ---------- encryption ----------
-function toB64(bytes) {
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192));
-  return btoa(s);
-}
-function fromB64(s) {
-  const b = atob(s);
-  const a = new Uint8Array(b.length);
-  for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
-  return a;
-}
-async function sha256Hex(str) {
-  const d = await crypto.subtle.digest("SHA-256", te.encode(str));
-  return Array.from(new Uint8Array(d), (x) => x.toString(16).padStart(2, "0")).join("");
-}
-async function deriveKey(room, pw) {
-  const base = await crypto.subtle.importKey("raw", te.encode(pw + "|" + room), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: te.encode("roomchat-v1|" + room), iterations: 150000, hash: "SHA-256" },
-    base,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-}
-async function topicFor(room, pw) {
-  return "rc" + (await sha256Hex("topic|" + room + "|" + pw)).slice(0, 40);
-}
-async function seal(key, obj) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, te.encode(JSON.stringify(obj))));
-  const out = new Uint8Array(12 + ct.length);
-  out.set(iv);
-  out.set(ct, 12);
-  return toB64(out);
-}
-async function unseal(key, b64) {
-  const raw = fromB64(b64.trim());
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: raw.slice(0, 12) }, key, raw.slice(12));
-  return JSON.parse(td.decode(pt));
-}
-
 // ---------- saved chats & drafts ----------
 function persistRoom(r) { lsSet(LS + "t:" + r.meta.topic, JSON.stringify(r.store)); }
-function saveChats() { lsSet(LS + "chats", JSON.stringify(Array.from(rooms.values(), (r) => r.meta))); }
+function saveChats() { saveVault(); }
 function getDraft(topic) { return lsGet(LS + "draft:" + topic) || ""; }
 function setDraft(topic, val) {
   if (!val) lsDel(LS + "draft:" + topic);
@@ -487,7 +706,7 @@ function makeRoom(meta) {
     people: new Map(), unread: 0, ready: false, helloSent: false,
   };
 }
-function loadChats() {
+function loadLegacyChats() {
   let list = [];
   try { list = JSON.parse(lsGet(LS + "chats") || "[]"); } catch {}
   list.forEach((meta) => { if (meta && meta.topic && !rooms.has(meta.topic)) rooms.set(meta.topic, makeRoom(meta)); });
@@ -495,7 +714,16 @@ function loadChats() {
 
 // ---------- sending ----------
 async function post(r, kind, extra) {
-  const m = Object.assign({ i: me.id, k: kind, name: me.name, t: Date.now() }, extra || {});
+  if ((kind === "h" || kind === "p") && me.status === "invisible") return;
+  const m = Object.assign({
+    i: me.id,
+    k: kind,
+    name: me.name,
+    av: me.avatar || "",
+    bio: me.bio || "",
+    st: me.status || "online",
+    t: Date.now()
+  }, extra || {});
   const body = await seal(r.key, m);
   const resp = await fetch(SERVER + "/" + r.meta.topic, { method: "POST", body });
   if (!resp.ok) throw new Error(resp.status === 429 ? "rate limited, slow down a little" : "server said " + resp.status);
@@ -510,24 +738,29 @@ function onlineMs() {
   const n = Math.max(1, Array.from(rooms.values()).filter((r) => r.key).length);
   return Math.max(110000, pingGap() * n * 2.5);
 }
-function onlineNames(r) {
+function activePeople(r) {
   const now = Date.now();
   const limit = onlineMs();
-  const names = [];
-  r.people.forEach((p) => { if (now - p.last < limit) names.push(p.name); });
-  return names;
+  const list = [];
+  r.people.forEach((p) => { if (now - p.last < limit && p.st !== "invisible") list.push(p); });
+  return list;
 }
 function chatItem(r) {
   const topic = r.meta.topic;
   const locked = !r.key;
   const isDm = r.meta.type === "dm";
-  const names = locked ? [] : onlineNames(r);
+  const onlineList = locked ? [] : activePeople(r);
   const draft = getDraft(topic);
+  const peer = onlineList[0];
   const subText = locked ? "locked · click to unlock"
-    : isDm ? (names.length ? "online" : "no one online")
-    : (names.length ? names.length + " online" : "just you");
-  const avatar = el("div", { className: "avatar", textContent: isDm ? initials(r.meta.title) : "#" });
-  if (isDm) avatar.append(el("span", { className: "presence" + (names.length ? " on" : "") }));
+    : isDm ? (peer ? (peer.bio ? peer.st + " · " + peer.bio : peer.st) : "offline")
+    : (onlineList.length ? onlineList.length + " online" : "just you");
+  const avText = isDm ? (peer && peer.av ? peer.av : initials(r.meta.title)) : (r.meta.icon || "#");
+  const avatar = el("div", { className: "avatar", textContent: avText });
+  if (isDm) {
+    const pState = peer ? (peer.st || "online") : "";
+    avatar.append(el("span", { className: "presence" + (pState ? " " + pState : "") }));
+  }
   const subEl = el("div", { className: "itemSub" });
   if (draft && topic !== activeTopic) {
     subEl.append(el("span", { className: "draftTag", textContent: "Draft: " }), document.createTextNode(draft));
@@ -554,18 +787,34 @@ function renderSidebar() {
   };
   fill($("contacts"), dms, "No direct messages yet.");
   fill($("groups"), groups, "No groups yet.");
-  $("self").innerHTML = "";
-  $("self").append(document.createTextNode(me.name ? me.name + " · " + all.length + "/" + MAX_CHATS + " chats" : "Set up your profile"));
-  if (isAdmin) $("self").append(el("span", { className: "adminTag", textContent: "ADMIN" }));
+
+  const sc = $("selfCard");
+  sc.innerHTML = "";
+  const myAv = el("div", { className: "avatar", textContent: me.avatar || initials(me.name || "?") });
+  myAv.append(el("span", { className: "presence " + (me.status === "invisible" ? "" : (me.status || "online")) }));
+  sc.append(
+    myAv,
+    el("div", { className: "selfInfo" },
+      el("div", { className: "selfName", textContent: me.name || "Set up profile" }),
+      el("div", { className: "selfBio", textContent: me.bio || (me.status + " · " + all.length + "/" + MAX_CHATS + " chats") })
+    )
+  );
+  updateDocTitle();
 }
 function updateTop() {
   const r = rooms.get(activeTopic);
   if (!r) return;
-  const names = onlineNames(r);
+  const list = activePeople(r);
   const isDm = r.meta.type === "dm";
-  $("topName").textContent = (isDm ? "@ " : "# ") + r.meta.title;
-  $("topStatus").textContent = isDm ? (names.length ? "online" : "offline") : "Online: You" + (names.length ? ", " + names.join(", ") : "");
-  $("topStatus").className = "status" + (isDm && names.length ? " online" : "");
+  $("topName").textContent = (isDm ? "@ " : (r.meta.icon || "#") + " ") + r.meta.title;
+  if (isDm) {
+    const peer = list[0];
+    $("topStatus").textContent = peer ? (peer.st + (peer.bio ? " — " + peer.bio : "")) : "offline";
+    $("topStatus").className = "status" + (peer ? " online" : "");
+  } else {
+    $("topStatus").textContent = "Online: You" + (list.length ? ", " + list.map((x) => x.name).join(", ") : "");
+    $("topStatus").className = "status";
+  }
 }
 
 // ---------- chat view & interactive messages ----------
@@ -659,7 +908,6 @@ function buildMessage(r, m) {
   bubble.append(meta, document.createTextNode(m.text));
   if (m.edited && !m.deleted) bubble.append(el("span", { className: "editedTag", textContent: "(edited)" }));
 
-  // Hover action bar
   const actions = el("div", { className: "msgActions" });
   if (!m.deleted) {
     const reactBtn = el("button", {
@@ -715,8 +963,9 @@ function buildMessage(r, m) {
     col.append(rRow);
   }
 
+  const avText = mine ? (me.avatar || initials(me.name)) : (m.av || initials(who));
   const row = el("div", { className: "message " + (mine ? "mine" : "theirs") },
-    el("div", { className: "avatar", textContent: initials(mine ? me.name : who) }),
+    el("div", { className: "avatar", textContent: avText, title: who }),
     col
   );
   row.setAttribute("data-mid", m.id);
@@ -778,17 +1027,17 @@ function renderWelcome() {
   const stats = el("div", { className: "statsGrid" },
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
-        el("div", { className: "statLabel", textContent: "Encryption" })
+        el("div", { className: "statLabel", textContent: "Account Vault" })
       ),
-      el("div", { className: "statValue", textContent: "AES-256" }),
-      el("div", { className: "statSub", textContent: "PBKDF2 · Zero-Knowledge" })
+      el("div", { className: "statValue", textContent: vaultKey ? "UNLOCKED" : "LOCKED" }),
+      el("div", { className: "statSub", textContent: "AES-256 · PBKDF2 Protected" })
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
         el("div", { className: "statLabel", textContent: "Active Chats" })
       ),
       el("div", { className: "statValue", textContent: unlockedChats + " / " + allChats.length }),
-      el("div", { className: "statSub", textContent: "Up to " + MAX_CHATS + " channels" })
+      el("div", { className: "statSub", textContent: "Auto-unlocked via Vault" })
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
@@ -804,7 +1053,7 @@ function renderWelcome() {
   $("view").append(el("div", { className: "empty" },
     emblem,
     el("div", { className: "stageTitle", textContent: "Kairo" }),
-    el("p", { className: "stageSub", textContent: "Start a direct message with one person, or a group for everyone who knows its name and password. Each chat has its own password, and messages are encrypted before they leave your browser." }),
+    el("p", { className: "stageSub", textContent: "Your contacts, custom profile, and chat keys are protected by your Master Vault password. Messages are encrypted before leaving your browser." }),
     el("div", { className: "pillRow" }, start, help),
     stats
   ));
@@ -855,12 +1104,21 @@ async function onEvent(ev) {
   if (isBlocked(who)) return;
   const isActive = r.meta.topic === activeTopic;
 
-  if (r.meta.type === "dm" && r.meta.title !== who) {
+  // Update DM title if the OTHER person changed their display name (never overwrite with our own name)
+  if (r.meta.type === "dm" && who.toLowerCase() !== me.name.toLowerCase() && r.meta.title !== who) {
     r.meta.title = who;
     saveChats();
     if (isActive) updateTop();
     renderSidebar();
   }
+
+  r.people.set(m.i, {
+    name: who,
+    av: String(m.av || "").slice(0, 4),
+    bio: String(m.bio || "").slice(0, 50),
+    st: String(m.st || "online"),
+    last: Date.now()
+  });
 
   if (m.k === "m") {
     if (!m.id || r.seen.has(m.id)) return;
@@ -868,6 +1126,7 @@ async function onEvent(ev) {
     const rec = {
       id: m.id,
       who,
+      av: String(m.av || "").slice(0, 4),
       text: String(m.text || "").slice(0, MAX_TEXT),
       mine: false,
       time: m.t || Date.now(),
@@ -877,6 +1136,7 @@ async function onEvent(ev) {
     r.store.msgs.push(rec);
     if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
     persistRoom(r);
+    playNotifSound();
     if (isActive) renderChatLog(false); else { r.unread++; renderSidebar(); }
     return;
   }
@@ -907,11 +1167,8 @@ async function onEvent(ev) {
   }
   if (!r.ready) return;
   if (m.k === "h") {
-    r.people.set(m.i, { name: who, last: Date.now() });
     if (isActive) addSystem(who + " joined");
     setTimeout(() => post(r, "p").catch(() => {}), Math.random() * 1500);
-  } else if (m.k === "p") {
-    r.people.set(m.i, { name: who, last: Date.now() });
   } else if (m.k === "b") {
     if (r.people.delete(m.i) && isActive) addSystem(who + " left");
   }
@@ -926,7 +1183,7 @@ function resubscribe() {
   if (es) { es.close(); es = null; }
   esKey = k;
   open.forEach((r) => { r.ready = false; });
-  if (!open.length) { setStatus("no chat unlocked"); return; }
+  if (!open.length) { setStatus(vaultKey ? "no chat unlocked" : "vault locked"); return; }
   const mins = open.map((r) => r.store.lastSrv);
   const since = mins.every((x) => x > 0) ? Math.min.apply(null, mins) : "6h";
   everOpened = false;
@@ -1001,9 +1258,9 @@ function checkSecure() {
 
 function showHelp() {
   const steps = [
+    "Your Account Vault encrypts your profile, contacts, and room passwords with one Master Password.",
     "Hover any message in chat to Reply (↩), React (😀), Edit (✎), Delete (🗑), or Block (🚫).",
-    "Unsent messages are automatically saved as Drafts when you switch rooms.",
-    "Use the Search bar in the top header to filter messages in the current chat.",
+    "Change your online status, avatar emoji, or color theme anytime from the left sidebar.",
   ];
   const shortcuts = [
     ["Alt + N", "Start a new Direct Message"],
@@ -1018,7 +1275,7 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.2.8 Guide" }),
+    el("h2", { textContent: "Kairo v1.2.9 Guide" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
@@ -1029,20 +1286,57 @@ function showHelp() {
   showModal(box);
 }
 
+// ---------- rich profile & status modal (#6 & #7) ----------
 function profile() {
-  modal("Your profile", "Other people see this name on your messages. It's saved only in this browser.",
-    [{ id: "n", label: "Display name", value: me.name, max: 20 }], "Save",
-    async (v) => {
-      const n = v.n.trim();
-      if (!n) throw new Error("Enter a name.");
-      me.name = n.slice(0, 20);
-      lsSet(LS + "name", me.name);
-      renderSidebar();
-      if (!activeTopic) renderWelcome();
-    });
+  if (!vaultKey) return promptVaultLogin();
+  const box = el("form", { className: "modal" });
+  box.append(
+    el("h2", { textContent: "Your Profile & Presence ◉" }),
+    el("p", { textContent: "Customize how others see you in chats. Saved inside your encrypted vault." })
+  );
+  const nameInp = el("input", { type: "text", value: me.name, maxLength: 20 });
+  const avInp = el("input", { type: "text", value: me.avatar || "", placeholder: "Emoji or initials (e.g. ⚡, 🐉, AK)", maxLength: 4 });
+  const bioInp = el("input", { type: "text", value: me.bio || "", placeholder: "What are you up to?", maxLength: 50 });
+  const stSel = el("select", {},
+    el("option", { value: "online", textContent: "🟢 Online" }),
+    el("option", { value: "idle", textContent: "🌙 Idle / Away" }),
+    el("option", { value: "dnd", textContent: "⛔ Do Not Disturb" }),
+    el("option", { value: "invisible", textContent: "👻 Invisible (Appear Offline)" })
+  );
+  stSel.value = me.status || "online";
+
+  const err = el("p", { className: "err" });
+  const saveBtn = el("button", { type: "submit", className: "btn", textContent: "Save Profile" });
+  const cancelBtn = el("button", { type: "button", className: "btn secondary", textContent: "Cancel", onclick: closeModal });
+
+  box.append(
+    el("h3", { textContent: "Display Name" }), nameInp,
+    el("h3", { textContent: "Custom Avatar Emoji / Icon" }), avInp,
+    el("h3", { textContent: "Bio / Status Note" }), bioInp,
+    el("h3", { textContent: "Online Presence" }), stSel,
+    err,
+    el("div", { className: "row" }, saveBtn, cancelBtn)
+  );
+
+  box.onsubmit = async (e) => {
+    e.preventDefault();
+    const n = nameInp.value.trim();
+    if (!n) { err.textContent = "Enter a display name."; return; }
+    me.name = n.slice(0, 20);
+    me.avatar = avInp.value.trim().slice(0, 4);
+    me.bio = bioInp.value.trim().slice(0, 50);
+    me.status = stSel.value;
+    await saveVault();
+    renderSidebar();
+    if (activeTopic) renderChatLog(true);
+    else renderWelcome();
+    closeModal();
+    toast("Profile updated!");
+  };
+  showModal(box);
 }
 
-async function createChat(type, label, pw) {
+async function createChat(type, label, pw, icon) {
   checkSecure();
   label = label.trim();
   if (!label) throw new Error(type === "dm" ? "Enter their name." : "Enter a group name.");
@@ -1060,41 +1354,50 @@ async function createChat(type, label, pw) {
   if (!r && rooms.size >= MAX_CHATS) throw new Error("You can have up to " + MAX_CHATS + " chats. Delete one first.");
   const key = await deriveKey(room, pw);
   if (!r) {
-    r = makeRoom({ topic, type, title, room });
+    r = makeRoom({ topic, type, title, room, pw, icon: (icon || "").trim().slice(0, 4) });
     rooms.set(topic, r);
-    saveChats();
+  } else {
+    r.meta.pw = pw;
+    if (icon) r.meta.icon = icon.trim().slice(0, 4);
   }
   r.key = key;
+  await saveVault();
   resubscribe();
   openChat(topic);
 }
 
 function askUnlock(r) {
-  modal("Unlock “" + r.meta.title + "”", "Passwords aren't saved on this device, so enter this chat's password to open it.",
+  modal("Unlock “" + r.meta.title + "”", "Enter this chat's password to unlock it and save it to your Vault.",
     [{ id: "p", label: "Password", type: "password" }], "Unlock",
     async (v) => {
       checkSecure();
       const topic = await topicFor(r.meta.room, v.p);
       if (topic !== r.meta.topic) throw new Error("That password doesn't match this chat.");
       r.key = await deriveKey(r.meta.room, v.p);
+      r.meta.pw = v.p;
+      await saveVault();
       resubscribe();
       openChat(r.meta.topic);
     });
 }
 
 function startAdd() {
-  if (!me.name) return profile();
+  if (!vaultKey) return promptVaultLogin();
   modal("New direct message",
-    "Type their name exactly as they set it, and agree on a password together. They do the same, typing YOUR name and the same password.",
+    "Type their name and agree on a shared password. Your Vault will remember this chat and its key.",
     [{ id: "f", label: "Their name", max: 20 }, { id: "p", label: "Shared password", type: "password" }], "Start DM",
     (v) => createChat("dm", v.f, v.p));
 }
 function startGroup() {
-  if (!me.name) return profile();
+  if (!vaultKey) return promptVaultLogin();
   modal("New or existing group",
-    "Pick a group name and password. Everyone who enters the same name and password joins the same group.",
-    [{ id: "f", label: "Group name", max: 40 }, { id: "p", label: "Group password", type: "password" }], "Create / join",
-    (v) => createChat("group", v.f, v.p));
+    "Pick a group name, optional group emoji avatar, and shared password.",
+    [
+      { id: "f", label: "Group name", max: 40 },
+      { id: "i", label: "Group Avatar Emoji (optional, e.g. 🎮, 🔥)", max: 4 },
+      { id: "p", label: "Group password", type: "password" }
+    ], "Create / join",
+    (v) => createChat("group", v.f, v.p, v.i));
 }
 
 // ---------- actions ----------
@@ -1113,7 +1416,7 @@ async function sendMessage(e) {
     return;
   }
   r.seen.add(id);
-  const rec = { id, who: me.name, text, mine: true, time: Date.now(), replyTo: replyPayload, reactions: {} };
+  const rec = { id, who: me.name, av: me.avatar || "", text, mine: true, time: Date.now(), replyTo: replyPayload, reactions: {} };
   r.store.msgs.push(rec);
   if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
   persistRoom(r);
@@ -1138,34 +1441,30 @@ $("btnClear").onclick = () => {
 };
 $("btnDelete").onclick = async () => {
   const r = rooms.get(activeTopic);
-  if (!r || !confirm("Remove “" + r.meta.title + "” and its saved history from this device?")) return;
+  if (!r || !confirm("Remove “" + r.meta.title + "” and its saved history from your Vault?")) return;
   if (r.key) { try { await post(r, "b"); } catch {} }
   rooms.delete(r.meta.topic);
   lsDel(LS + "t:" + r.meta.topic);
   lsDel(LS + "draft:" + r.meta.topic);
-  saveChats();
+  await saveVault();
   resubscribe();
   renderWelcome();
 };
 
-$("themeBtn").onclick = () => {
-  root.classList.toggle("light");
-  const light = root.classList.contains("light");
-  lsSet(LS + "theme", light ? "light" : "dark");
-  $("themeLabel").textContent = light ? "Light Mode" : "Dark Mode";
-};
+$("themeBtn").onclick = showThemeSettings;
 $("overviewBtn").onclick = renderWelcome;
 $("addBtn").onclick = startAdd;
 $("groupBtn").onclick = startGroup;
 $("blockedBtn").onclick = showBlockedModal;
+$("lockVaultBtn").onclick = lockVaultSession;
 $("helpBtn").onclick = showHelp;
 $("profileBtn").onclick = profile;
+$("selfCard").onclick = profile;
 
-// Global click to close emoji pickers & keyboard shortcuts
 function onKeyDown(e) {
   if (!document.getElementById("rc-root")) return;
   if (e.key === "Escape") {
-    if ($("modalHost").innerHTML) { closeModal(); return; }
+    if ($("modalHost").innerHTML && vaultKey) { closeModal(); return; }
     if (replyingTo) { setReply(null); return; }
     if (searchQuery) { $("searchBox").value = ""; searchQuery = ""; renderChatLog(true); return; }
   }
@@ -1184,6 +1483,7 @@ root.addEventListener("click", () => {
 });
 
 $("exit").onclick = () => {
+  document.title = origTitle;
   window.removeEventListener("keydown", onKeyDown);
   timers.forEach(clearInterval);
   clearTimeout(readyTimer);
@@ -1196,23 +1496,16 @@ $("exit").onclick = () => {
 };
 
 // ---------- start ----------
-let pingIdx = 0;
 function pingNext() {
   const open = Array.from(rooms.values()).filter((r) => r.key && r.ready);
   if (open.length) { const r = open[pingIdx++ % open.length]; post(r, "p").catch(() => {}); }
   pingTimer = setTimeout(pingNext, pingGap());
 }
-let pingTimer = setTimeout(pingNext, pingGap());
+pingTimer = setTimeout(pingNext, pingGap());
 timers.push(setInterval(() => { renderSidebar(); updateTop(); }, 5000));
 
-if (lsGet(LS + "theme") === "light") { root.classList.add("light"); $("themeLabel").textContent = "Light Mode"; } else { $("themeLabel").textContent = "Dark Mode"; }
-me.name = lsGet(LS + "name") || "";
-loadBlocked();
-loadChats();
-setStatus("no chat unlocked");
 renderWelcome();
-promptSurvey(false);
-renderSidebar();
+promptVaultLogin();
 checkForUpdate();
 startAdminFeed();
 
