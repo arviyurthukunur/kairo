@@ -1,4 +1,4 @@
-// Kairo LOG 1.4.0
+// Kairo LOG 1.4.1 (Patch: Premium Calling Experience & Audio-Reactive Voice Engine)
 
 // Kairo - paste this whole file into your browser's Console and press Enter.
 // Best on https://example.com (open it in a new tab first). Blank tabs block encryption.
@@ -27,12 +27,12 @@ const CSS = `
 #rc-root .app{height:100%;display:grid;grid-template-columns:238px 1fr 270px}
 #rc-root .sidebar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--border)}
 #rc-root .rightbar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-left:1px solid var(--border)}
-#rc-root .brand{height:64px;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid var(--border)}
+#rc-root .brand{height:64px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border)}
 #rc-root .rightTop{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--border);font-family:var(--font-brand);font-size:.82rem;font-weight:700;color:var(--text)}
 #rc-root .logo{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:var(--font-brand);font-weight:800;font-size:15px;box-shadow:0 8px 20px rgba(0,0,0,.3)}
 #rc-root .brandText{min-width:0;flex:1}
-#rc-root .brandTitle{font-family:var(--font-brand);font-weight:700;font-size:.98rem;letter-spacing:-.01em;display:flex;align-items:center;gap:7px}
-#rc-root .beta{font-family:var(--font-sans);font-size:.6rem;font-weight:800;letter-spacing:.04em;color:var(--accent);background:rgba(88,101,242,.15);border:1px solid var(--accent);border-radius:999px;padding:1px 6px}
+#rc-root .brandTitle{font-family:var(--font-brand);font-weight:700;font-size:.98rem;letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
+#rc-root .beta{font-family:var(--font-sans);font-size:.62rem;font-weight:800;letter-spacing:.04em;color:var(--accent);background:rgba(88,101,242,.18);border:1px solid var(--accent);border-radius:999px;padding:2px 7px;box-shadow:0 0 10px rgba(88,101,242,.25)}
 #rc-root .brandSub{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .brandSub.ok{color:var(--green)}
 #rc-root .brandSub.bad{color:var(--red)}
@@ -49,6 +49,7 @@ const CSS = `
 #rc-root .btn:disabled{opacity:.5;cursor:default}
 #rc-root .btn.secondary{background:var(--panel);color:var(--text);border:1px solid var(--border)}
 #rc-root .btn.danger{background:var(--red)}
+#rc-root .btn.success{background:var(--green)}
 #rc-root .btn.small{padding:6px 10px;font-size:.8rem}
 #rc-root .sectionTitle{padding:12px 14px 5px;color:var(--muted);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 #rc-root .list{overflow:auto;flex:1;padding:0 7px 12px}
@@ -69,7 +70,7 @@ const CSS = `
 #rc-root .selfInfo{min-width:0;flex:1}
 #rc-root .selfName{font-weight:750;font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .selfBio{font-size:.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#rc-root .main{min-width:0;display:flex;flex-direction:column;background:var(--chat);overflow:hidden}
+#rc-root .main{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--chat);overflow:hidden}
 #rc-root .top{height:64px;display:flex;align-items:center;gap:10px;padding:0 18px;background:var(--side);border-bottom:1px solid var(--border)}
 #rc-root .topText{flex:1;min-width:0}
 #rc-root .topName{font-family:var(--font-brand);font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -83,8 +84,42 @@ const CSS = `
 #rc-root .pinnedBar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--text)}
 #rc-root .pinnedText{display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
 #rc-root .pinnedIcon{color:var(--accent);font-size:.9rem}
-#rc-root .callBanner{background:linear-gradient(90deg,var(--accent2),var(--accent));color:white;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.83rem;font-weight:700}
-#rc-root .callActions{display:flex;gap:8px}
+
+/* --- PREMIUM CALL PANEL & ANIMATIONS (#21) --- */
+#rc-root .callPanel{position:relative;background:linear-gradient(160deg,rgba(30,31,34,.98),rgba(43,45,49,.94));backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:24px;margin:16px 18px;padding:24px 28px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;gap:20px;overflow:hidden;transition:all .35s cubic-bezier(.16,1,.3,1)}
+#rc-root .callPanel.endedState{opacity:0;transform:scale(.94)}
+#rc-root .callStage{width:100%;max-width:520px;display:flex;align-items:center;justify-content:space-around;position:relative}
+#rc-root .callParticipant{display:flex;flex-direction:column;align-items:center;gap:9px;z-index:2;transition:transform .3s cubic-bezier(.16,1,.3,1)}
+#rc-root .callAvatarWrap{position:relative;width:96px;height:96px;border-radius:50%;display:grid;place-items:center}
+#rc-root .callAvatar{width:86px;height:86px;border-radius:50%;background:linear-gradient(145deg,var(--panel),var(--input));border:2px solid var(--border);color:var(--text);font-family:var(--font-brand);font-size:32px;font-weight:800;display:grid;place-items:center;box-shadow:0 12px 28px rgba(0,0,0,.35);transition:all .3s ease;z-index:2}
+#rc-root .callAvatarWrap.speaking .callAvatar{border-color:var(--green);box-shadow:0 0 24px rgba(35,165,90,.65);transform:scale(1.04)}
+#rc-root .callPulseRing{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;pointer-events:none}
+#rc-root .callAvatarWrap.pulsing .callPulseRing{animation:callWavePulse 2s infinite cubic-bezier(.2,.6,.35,1)}
+#rc-root .callAvatarWrap.speaking .callPulseRing{border-color:var(--green);animation:callSpeakerPulse 1.2s infinite ease-out}
+#rc-root .callParticipantName{font-family:var(--font-brand);font-size:.86rem;font-weight:700;color:var(--text);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rc-root .callWaves{position:absolute;left:30%;right:30%;height:3px;top:48px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4;pointer-events:none;transform:translateY(-50%)}
+#rc-root .callWaves.activeWaves{animation:callBeamTravel 2s infinite linear;opacity:.8}
+#rc-root .callCenterGlow{position:absolute;left:50%;top:48px;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,rgba(88,101,242,.45),transparent 70%);opacity:0;transition:opacity .6s ease;pointer-events:none}
+#rc-root .callCenterGlow.visible{opacity:1}
+#rc-root .callMeta{display:flex;flex-direction:column;align-items:center;gap:4px}
+#rc-root .callStatusLine{font-family:var(--font-brand);font-size:.88rem;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+#rc-root .callDuration{font-family:var(--font-mono);font-size:.76rem;color:var(--muted)}
+#rc-root .callControls{display:flex;align-items:center;gap:12px}
+#rc-root .callCtrlBtn{width:46px;height:46px;border-radius:50%;border:0;display:grid;place-items:center;font-size:18px;background:var(--input);color:var(--text);box-shadow:0 6px 16px rgba(0,0,0,.25);transition:all .18s ease}
+#rc-root .callCtrlBtn:hover{transform:translateY(-2px);background:var(--panel)}
+#rc-root .callCtrlBtn.active{background:var(--red);color:white}
+#rc-root .callCtrlBtn.endCallBtn{width:56px;height:56px;background:var(--red);color:white;font-size:22px}
+#rc-root .callCtrlBtn.endCallBtn:hover{background:#dc2626;transform:scale(1.06)}
+#rc-root .callCtrlBtn.acceptBtn{width:56px;height:56px;background:var(--green);color:white;font-size:22px}
+#rc-root .callCtrlBtn.acceptBtn:hover{background:#16a34a;transform:scale(1.06)}
+
+@keyframes callWavePulse{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.45);opacity:0}}
+@keyframes callSpeakerPulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(1.35);opacity:0}}
+@keyframes callBeamTravel{0%{background-position:-200px 0}100%{background-position:200px 0}}
+@media (prefers-reduced-motion: reduce){
+  #rc-root .callPulseRing,#rc-root .callWaves,#rc-root .callAvatarWrap.speaking .callAvatar{animation:none!important}
+}
+
 #rc-root .view{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #rc-root .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center;overflow:auto}
 #rc-root .emblemRing{width:158px;height:158px;flex:none;border-radius:50%;background:radial-gradient(circle,rgba(88,101,242,.22),rgba(88,101,242,.07) 70%);display:grid;place-items:center;cursor:pointer;transition:transform .2s ease,background .2s ease;border:0;padding:0}
@@ -171,7 +206,10 @@ const MARKUP = `
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">K</div>
-      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.4.0</span></div><div id="brandSub" class="brandSub">vault locked</div></div>
+      <div class="brandText">
+        <div class="brandTitle">Kairo<span class="beta">v1.4.1</span></div>
+        <div id="brandSub" class="brandSub">vault locked</div>
+      </div>
       <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
     </div>
     <div class="quickHeading">Navigation</div>
@@ -195,7 +233,7 @@ const MARKUP = `
       <button id="btnClear" class="btn secondary small" hidden>Clear history</button>
       <button id="btnDelete" class="btn danger small" hidden>Delete chat</button>
     </header>
-    <div id="callHeader" class="callBanner" hidden></div>
+    <div id="callHost"></div>
     <div id="pinnedHeader" class="pinnedBar" hidden></div>
     <div id="updateBanner" class="banner" hidden></div>
     <div id="diag" class="diag" hidden></div>
@@ -232,7 +270,7 @@ const MAX_CHATS = 20;
 const PING_EVERY = 120000;
 const PING_FLOOR = 25000;
 const LS = "roomchat:";
-const VERSION = "1.4.0";
+const VERSION = "1.4.1";
 const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
 const SURVEY_TOPIC = "kairo-survey-feedback-881a";
 const ADMIN_PASSWORD = "";
@@ -262,12 +300,19 @@ let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 
-// WebRTC calling state (#21)
+// WebRTC Voice Call Engine (#21)
 let peerConn = null;
 let localStream = null;
 let activeCallTopic = null;
+let callState = "idle"; // idle | calling | ringing | incoming | connected | ended
 let isCaller = false;
 let isMuted = false;
+let isDeafened = false;
+let callStartTime = 0;
+let callDurationTimer = null;
+let audioContext = null;
+let analyserNode = null;
+let remoteAudioCheckTimer = null;
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 // Typing throttling state (#8)
@@ -393,7 +438,6 @@ async function unseal(key, b64) {
   return JSON.parse(td.decode(pt));
 }
 
-// ---------- image compression ----------
 function compressImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -427,7 +471,6 @@ function compressImage(file) {
   });
 }
 
-// ---------- master account vault ----------
 function applyTheme(t) {
   settings.theme = t || "dark";
   if (settings.theme === "dark") root.removeAttribute("data-theme");
@@ -570,7 +613,6 @@ function lockVaultSession() {
   promptVaultLogin();
 }
 
-// ---------- blocked users ----------
 function isBlocked(name) {
   return blockedUsers.has(String(name || "").toLowerCase());
 }
@@ -613,7 +655,6 @@ function showBlockedModal() {
   showModal(box);
 }
 
-// ---------- themes & notification settings ----------
 function showThemeSettings() {
   const box = el("form", { className: "modal" });
   box.append(
@@ -663,7 +704,6 @@ function showThemeSettings() {
   showModal(box);
 }
 
-// ---------- admin feed and update notices ----------
 async function getAdminKey() {
   return deriveKey("admin|" + ADMIN_TOPIC, ADMIN_PASSWORD);
 }
@@ -721,7 +761,6 @@ function showUpdateBanner(latest, notes) {
   b.hidden = false;
 }
 
-// ---------- saved chats & drafts ----------
 function persistRoom(r) { lsSet(LS + "t:" + r.meta.topic, JSON.stringify(r.store)); }
 function saveChats() { saveVault(); }
 function getDraft(topic) { return lsGet(LS + "draft:" + topic) || ""; }
@@ -745,7 +784,6 @@ function loadLegacyChats() {
   list.forEach((meta) => { if (meta && meta.topic && !rooms.has(meta.topic)) rooms.set(meta.topic, makeRoom(meta)); });
 }
 
-// ---------- sending ----------
 async function post(r, kind, extra) {
   if ((kind === "h" || kind === "p") && me.status === "invisible") return;
   const m = Object.assign({
@@ -762,7 +800,153 @@ async function post(r, kind, extra) {
   if (!resp.ok) throw new Error(resp.status === 429 ? "rate limited, slow down a little" : "server said " + resp.status);
 }
 
-// ---------- WebRTC voice calling (#21) ----------
+// ---------- PREMIUM CALL PANEL & WEBRTC ENGINE ----------
+function formatDuration(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function startCallDuration() {
+  clearInterval(callDurationTimer);
+  callStartTime = Date.now();
+  callDurationTimer = setInterval(() => {
+    const durEl = $("callDurationText");
+    if (durEl && callStartTime > 0) {
+      const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+      durEl.textContent = formatDuration(elapsed);
+    }
+  }, 1000);
+}
+
+function setupAudioAnalysis(stream) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!audioContext) audioContext = new Ctx();
+    if (audioContext.state === "suspended") audioContext.resume();
+    analyserNode = audioContext.createAnalyser();
+    analyserNode.fftSize = 64;
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyserNode);
+
+    const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+    clearInterval(remoteAudioCheckTimer);
+    remoteAudioCheckTimer = setInterval(() => {
+      if (!analyserNode || callState !== "connected") return;
+      analyserNode.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+      const avg = sum / dataArray.length;
+      const remoteWrap = $("remoteAvatarWrap");
+      if (remoteWrap) {
+        if (avg > 18) remoteWrap.classList.add("speaking");
+        else remoteWrap.classList.remove("speaking");
+      }
+    }, 120);
+  } catch {}
+}
+
+function renderCallPanel() {
+  const host = $("callHost");
+  if (!host) return;
+
+  if (callState === "idle" || !activeCallTopic) {
+    host.innerHTML = "";
+    return;
+  }
+
+  const r = rooms.get(activeCallTopic);
+  const peer = r ? activePeople(r)[0] : null;
+  const peerName = peer ? peer.name : (r ? r.meta.title : "Friend");
+  const peerAv = peer && peer.av ? peer.av : (r ? initials(r.meta.title) : "?");
+  const myAv = me.avatar || initials(me.name);
+
+  host.innerHTML = "";
+
+  const panel = el("div", { id: "callPanel", className: "callPanel" });
+  if (callState === "ended") panel.classList.add("endedState");
+
+  // Dual participant stage
+  const myWrap = el("div", { className: "callAvatarWrap" + (callState === "calling" ? " pulsing" : "") },
+    el("div", { className: "callPulseRing" }),
+    el("div", { className: "callAvatar", textContent: myAv })
+  );
+  const mySide = el("div", { className: "callParticipant" }, myWrap, el("div", { className: "callParticipantName", textContent: "You (" + me.name + ")" }));
+
+  const remoteWrap = el("div", { id: "remoteAvatarWrap", className: "callAvatarWrap" + (callState === "ringing" || callState === "incoming" ? " pulsing" : "") },
+    el("div", { className: "callPulseRing" }),
+    el("div", { className: "callAvatar", textContent: peerAv })
+  );
+  const remoteSide = el("div", { className: "callParticipant" }, remoteWrap, el("div", { className: "callParticipantName", textContent: peerName }));
+
+  const waves = el("div", { className: "callWaves" + (callState === "calling" || callState === "ringing" ? " activeWaves" : "") });
+  const centerGlow = el("div", { className: "callCenterGlow" + (callState === "connected" ? " visible" : "") });
+
+  const stage = el("div", { className: "callStage" }, mySide, waves, centerGlow, remoteSide);
+
+  // Status & Duration
+  let statusStr = "Connecting...";
+  if (callState === "calling") statusStr = "Calling " + peerName + "...";
+  else if (callState === "ringing") statusStr = "Ringing...";
+  else if (callState === "incoming") statusStr = "Incoming call from " + peerName;
+  else if (callState === "connected") statusStr = "Call in progress";
+  else if (callState === "ended") statusStr = "Call ended";
+
+  const meta = el("div", { className: "callMeta" },
+    el("div", { className: "callStatusLine", textContent: statusStr }),
+    el("div", { id: "callDurationText", className: "callDuration", textContent: callState === "connected" ? "00:00" : (callState === "ended" ? "Disconnected" : "Secure P2P") })
+  );
+
+  // Controls aligned along the bottom
+  const ctrls = el("div", { className: "callControls" });
+  if (callState === "incoming") {
+    ctrls.append(
+      el("button", {
+        type: "button",
+        className: "callCtrlBtn acceptBtn",
+        title: "Accept Call",
+        textContent: "📞",
+        onclick: acceptIncomingCall
+      }),
+      el("button", {
+        type: "button",
+        className: "callCtrlBtn endCallBtn",
+        title: "Decline Call",
+        textContent: "×",
+        onclick: () => endCall("Call declined")
+      })
+    );
+  } else {
+    ctrls.append(
+      el("button", {
+        type: "button",
+        className: "callCtrlBtn" + (isMuted ? " active" : ""),
+        title: isMuted ? "Unmute Microphone" : "Mute Microphone",
+        textContent: isMuted ? "🔇" : "🎙️",
+        onclick: toggleMute
+      }),
+      el("button", {
+        type: "button",
+        className: "callCtrlBtn" + (isDeafened ? " active" : ""),
+        title: isDeafened ? "Unmute Audio" : "Deafen Audio",
+        textContent: isDeafened ? "🔈" : "🔊",
+        onclick: toggleDeafen
+      }),
+      el("button", {
+        type: "button",
+        className: "callCtrlBtn endCallBtn",
+        title: "End Call",
+        textContent: "×",
+        onclick: () => endCall("Call ended")
+      })
+    );
+  }
+
+  panel.append(stage, meta, ctrls);
+  host.append(panel);
+}
+
 async function initCallPeer(r) {
   if (peerConn) endCall();
   activeCallTopic = r.meta.topic;
@@ -775,6 +959,7 @@ async function initCallPeer(r) {
     const audioEl = $("remoteAudio");
     if (audioEl && e.streams && e.streams[0]) {
       audioEl.srcObject = e.streams[0];
+      setupAudioAnalysis(e.streams[0]);
     }
   };
 
@@ -785,9 +970,13 @@ async function initCallPeer(r) {
   };
 
   peerConn.onconnectionstatechange = () => {
-    renderCallBanner();
-    if (peerConn && (peerConn.connectionState === "disconnected" || peerConn.connectionState === "failed" || peerConn.connectionState === "closed")) {
-      endCall();
+    if (!peerConn) return;
+    if (peerConn.connectionState === "connected") {
+      callState = "connected";
+      renderCallPanel();
+      startCallDuration();
+    } else if (peerConn.connectionState === "disconnected" || peerConn.connectionState === "failed") {
+      endCall("Connection dropped");
     }
   };
 }
@@ -798,70 +987,79 @@ async function startCall() {
   try {
     isCaller = true;
     isMuted = false;
+    isDeafened = false;
+    callState = "calling";
     await initCallPeer(r);
+    renderCallPanel();
     const offer = await peerConn.createOffer();
     await peerConn.setLocalDescription(offer);
     await post(r, "rtc_offer", { sdp: offer });
-    renderCallBanner("Calling...");
+    setTimeout(() => {
+      if (callState === "calling") {
+        callState = "ringing";
+        renderCallPanel();
+      }
+    }, 2200);
   } catch (err) {
     toast("Could not start call: " + (err.message || "microphone permission needed"));
-    endCall();
+    endCall("Failed to start call");
   }
 }
 
-async function acceptIncomingCall(r, offerSdp) {
+let pendingIncomingOffer = null;
+async function promptIncomingCall(r, who, sdp) {
+  playNotifSound();
+  activeCallTopic = r.meta.topic;
+  callState = "incoming";
+  pendingIncomingOffer = sdp;
+  renderCallPanel();
+}
+
+async function acceptIncomingCall() {
+  const r = rooms.get(activeCallTopic);
+  if (!r || !pendingIncomingOffer) return;
   try {
     isCaller = false;
     isMuted = false;
-    closeModal();
+    isDeafened = false;
     await initCallPeer(r);
-    await peerConn.setRemoteDescription(new RTCSessionDescription(offerSdp));
+    await peerConn.setRemoteDescription(new RTCSessionDescription(pendingIncomingOffer));
     const answer = await peerConn.createAnswer();
     await peerConn.setLocalDescription(answer);
     await post(r, "rtc_answer", { sdp: answer });
-    renderCallBanner("Connecting audio...");
+    pendingIncomingOffer = null;
+    callState = "connected";
+    renderCallPanel();
+    startCallDuration();
   } catch (err) {
     toast("Failed to connect call: " + (err.message || "error"));
-    endCall();
+    endCall("Failed to connect");
   }
-}
-
-function promptIncomingCall(r, who, sdp) {
-  playNotifSound();
-  const box = el("div", { className: "modal", style: "text-align:center" },
-    el("h2", { textContent: "Incoming Voice Call 📞" }),
-    el("p", { textContent: who + " is calling you in " + (r.meta.type === "dm" ? "direct message" : r.meta.title) + "." }),
-    el("div", { className: "row", style: "justify-content:center" },
-      el("button", {
-        className: "btn",
-        textContent: "Accept",
-        onclick: () => acceptIncomingCall(r, sdp)
-      }),
-      el("button", {
-        className: "btn danger",
-        textContent: "Decline",
-        onclick: () => {
-          post(r, "rtc_hangup").catch(() => {});
-          closeModal();
-        }
-      })
-    )
-  );
-  showModal(box);
 }
 
 function toggleMute() {
   if (!localStream) return;
   isMuted = !isMuted;
   localStream.getAudioTracks().forEach((track) => { track.enabled = !isMuted; });
-  renderCallBanner();
+  renderCallPanel();
 }
 
-function endCall() {
+function toggleDeafen() {
+  const audioEl = $("remoteAudio");
+  isDeafened = !isDeafened;
+  if (audioEl) audioEl.muted = isDeafened;
+  renderCallPanel();
+}
+
+function endCall(msg) {
   if (activeCallTopic) {
     const r = rooms.get(activeCallTopic);
-    if (r && r.key) post(r, "rtc_hangup").catch(() => {});
+    if (r && r.key) post(r, "rtc_hangup", { reason: msg || "Call ended" }).catch(() => {});
   }
+  clearInterval(callDurationTimer);
+  clearInterval(remoteAudioCheckTimer);
+  callStartTime = 0;
+
   if (localStream) {
     localStream.getTracks().forEach((t) => t.stop());
     localStream = null;
@@ -872,44 +1070,19 @@ function endCall() {
   }
   const audioEl = $("remoteAudio");
   if (audioEl) audioEl.srcObject = null;
-  activeCallTopic = null;
-  isCaller = false;
-  isMuted = false;
-  $("callHeader").hidden = true;
-  $("callHeader").innerHTML = "";
-}
 
-function renderCallBanner(statusText) {
-  const bar = $("callHeader");
-  if (!peerConn || !activeCallTopic) {
-    bar.hidden = true;
-    bar.innerHTML = "";
-    return;
+  if (callState !== "idle") {
+    callState = "ended";
+    renderCallPanel();
+    setTimeout(() => {
+      callState = "idle";
+      activeCallTopic = null;
+      isCaller = false;
+      isMuted = false;
+      isDeafened = false;
+      renderCallPanel();
+    }, 1100);
   }
-  bar.hidden = false;
-  bar.innerHTML = "";
-
-  const r = rooms.get(activeCallTopic);
-  const title = r ? r.meta.title : "Voice Call";
-  const state = statusText || (peerConn.connectionState === "connected" ? "Connected (P2P Audio)" : "Connecting...");
-
-  const actions = el("div", { className: "callActions" },
-    el("button", {
-      className: "btn secondary small",
-      textContent: isMuted ? "🔇 Unmute" : "🎤 Mute",
-      onclick: toggleMute
-    }),
-    el("button", {
-      className: "btn danger small",
-      textContent: "Hang Up",
-      onclick: endCall
-    })
-  );
-
-  bar.append(
-    el("span", {}, document.createTextNode("📞 " + title + " — "), el("span", { textContent: state, style: "font-weight:400" })),
-    actions
-  );
 }
 
 // ---------- sidebars ----------
@@ -1030,7 +1203,7 @@ function updateTop() {
   }
 }
 
-// ---------- typing indicator UI (#8) ----------
+// ---------- typing indicator UI ----------
 function updateTypingDisplay() {
   const ind = $("typingInd");
   if (!ind) return;
@@ -1058,7 +1231,7 @@ function handleTypingEvent(r, who) {
   }, 4000));
 }
 
-// ---------- interactive message rendering & link parsing ----------
+// ---------- interactive message rendering ----------
 function setReply(m) {
   replyingTo = m ? { id: m.id, who: m.who, text: String(m.text || (m.img ? "Photo" : "Voice message")).slice(0, 90) } : null;
   const bar = $("replyBar");
@@ -1176,7 +1349,6 @@ function buildMessage(r, m) {
     el("span", { textContent: new Date(m.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
   );
 
-  // Read receipt mark (#9)
   if (mine && !m.deleted) {
     const receipt = el("span", {
       className: "receipt",
@@ -1359,6 +1531,7 @@ function renderWelcome() {
   $("btnClear").hidden = true;
   $("btnDelete").hidden = true;
   $("pinnedHeader").hidden = true;
+  $("callHost").innerHTML = "";
 
   const emblem = el("button", { type: "button", className: "emblemRing", title: "Start a chat", onclick: startAdd },
     el("div", { className: "emblemCore", textContent: "\u2709\uFE0F" }));
@@ -1382,7 +1555,7 @@ function renderWelcome() {
         el("span", { className: "pulseDot", title: "WebRTC Online" })
       ),
       el("div", { className: "statValue", textContent: "P2P WebRTC" }),
-      el("div", { className: "statSub", textContent: "Direct Audio Streaming" })
+      el("div", { className: "statSub", textContent: "Zero-Relay Direct Audio" })
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
@@ -1404,7 +1577,6 @@ function renderWelcome() {
   renderSidebar();
 }
 
-// ---------- audio recording engine ----------
 async function toggleVoiceRecording(recBtn) {
   if (isRecording) {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
@@ -1455,7 +1627,6 @@ function openChat(id) {
   $("searchBox").hidden = false;
   r.unread = 0;
 
-  // Mark pending unread messages as read (#9)
   const unreadMsgIds = r.store.msgs.filter((m) => !m.mine && !m.seenByMe).map((m) => { m.seenByMe = true; return m.id; });
   if (unreadMsgIds.length) {
     persistRoom(r);
@@ -1472,7 +1643,6 @@ function openChat(id) {
     oninput: (e) => {
       setDraft(id, e.target.value);
       renderSidebar();
-      // Throttled typing indicator broadcast (#8)
       const now = Date.now();
       if (now - lastTypingSent > 3500 && e.target.value.trim().length > 0) {
         lastTypingSent = now;
@@ -1508,6 +1678,7 @@ function openChat(id) {
   $("view").append(logEl, replyBar, typingBar, form);
   renderChatLog(false);
   updateTypingDisplay();
+  renderCallPanel();
   $("btnClear").hidden = false;
   $("btnDelete").hidden = false;
   updateTop();
@@ -1515,7 +1686,6 @@ function openChat(id) {
   input.focus();
 }
 
-// ---------- receiving ----------
 async function onEvent(ev) {
   const r = rooms.get(ev.topic);
   if (!r || !r.key) return;
@@ -1542,14 +1712,16 @@ async function onEvent(ev) {
     last: Date.now()
   });
 
-  // Real-time WebRTC Signaling (#21)
+  // WebRTC Signals
   if (m.k === "rtc_offer" && m.sdp) {
     promptIncomingCall(r, who, m.sdp);
     return;
   }
   if (m.k === "rtc_answer" && m.sdp && peerConn && isCaller) {
     await peerConn.setRemoteDescription(new RTCSessionDescription(m.sdp));
-    renderCallBanner("Audio connected");
+    callState = "connected";
+    renderCallPanel();
+    startCallDuration();
     return;
   }
   if (m.k === "rtc_candidate" && m.candidate && peerConn) {
@@ -1557,18 +1729,16 @@ async function onEvent(ev) {
     return;
   }
   if (m.k === "rtc_hangup") {
-    toast("Call ended by " + who);
-    endCall();
+    toast((m.reason || "Call ended") + " by " + who);
+    endCall(m.reason || "Call ended");
     return;
   }
 
-  // Real-time typing indicators (#8)
   if (m.k === "typing") {
     handleTypingEvent(r, who);
     return;
   }
 
-  // Real-time read receipts (#9)
   if (m.k === "read" && Array.isArray(m.ids)) {
     let changed = false;
     m.ids.forEach((targetId) => {
@@ -1608,7 +1778,6 @@ async function onEvent(ev) {
     persistRoom(r);
     playNotifSound();
 
-    // If chat is open, immediately send read receipt back
     if (isActive) {
       post(r, "read", { ids: [m.id] }).catch(() => {});
       renderChatLog(true);
@@ -1701,7 +1870,6 @@ function resubscribe() {
   };
 }
 
-// ---------- dialogs ----------
 function closeModal() { $("modalHost").innerHTML = ""; }
 function showModal(box) {
   const layer = el("div", { className: "modalLayer" }, box);
@@ -1745,8 +1913,8 @@ function checkSecure() {
 function showHelp() {
   const steps = [
     "Your Account Vault encrypts your profile, contacts, and room passwords with one Master Password.",
-    "Click 📞 Call in any DM to start a direct, encrypted peer-to-peer audio call.",
-    "Typing indicators and read receipts (✓ / ✓✓) keep you in sync in real time.",
+    "Click 📞 Call in any DM to start an animated, high-fidelity WebRTC voice call.",
+    "Real-time voice activity glows around whoever is speaking.",
     "Share photos (📷), voice notes (🎙️), and animated GIFs (.gif links).",
     "Hover any message to Reply (↩), React (😀), Pin (📌), Edit (✎), Delete (🗑), or Block (🚫)."
   ];
@@ -1763,7 +1931,7 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.4.0 Guide" }),
+    el("h2", { textContent: "Kairo v1.4.1 Guide" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
@@ -1773,7 +1941,6 @@ function showHelp() {
   showModal(box);
 }
 
-// ---------- rich profile & status modal ----------
 function profile() {
   if (!vaultKey) return promptVaultLogin();
   const box = el("form", { className: "modal" });
@@ -1887,7 +2054,6 @@ function startGroup() {
     (v) => createChat("group", v.f, v.p, v.i));
 }
 
-// ---------- actions & media sending ----------
 async function dispatchMediaMessage(imgBase64, audioBase64) {
   const r = rooms.get(activeTopic);
   if (!r || !r.key) return;
@@ -2025,7 +2191,6 @@ $("exit").onclick = () => {
   root.remove();
 };
 
-// ---------- start ----------
 function pingNext() {
   const open = Array.from(rooms.values()).filter((r) => r.key && r.ready);
   if (open.length) { const r = open[pingIdx++ % open.length]; post(r, "p").catch(() => {}); }
