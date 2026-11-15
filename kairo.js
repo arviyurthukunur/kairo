@@ -1,4 +1,4 @@
-// Kairo LOG 1.2.5
+// Kairo LOG 1.2.7
 
 // Kairo - paste this whole file into your browser's Console and press Enter.
 // Best on https://example.com (open it in a new tab first). Blank tabs block encryption.
@@ -19,7 +19,7 @@ const CSS = `
 #rc-root{--bg:#111214;--side:#1e1f22;--panel:#2b2d31;--chat:#313338;--input:#383a40;--text:#f2f3f5;--muted:#949ba4;--accent:#5865f2;--accent2:#4752c4;--border:#3f4147;--green:#23a55a;--red:#f23f42;--font-brand:'Unbounded',system-ui,sans-serif;--font-sans:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;position:fixed;inset:0;z-index:2147483647;background:var(--bg);color:var(--text);font:15px/1.4 var(--font-sans)}
 #rc-root.light{--bg:#eef0f4;--side:#ffffff;--panel:#e3e5e8;--chat:#f7f8fa;--input:#e3e5e8;--text:#2e3338;--muted:#5c6370;--accent:#5865f2;--accent2:#4752c4;--border:#d4d7dc;--green:#248046;--red:#da373c}
 #rc-root *{box-sizing:border-box}
-#rc-root button,#rc-root input{font:inherit}
+#rc-root button,#rc-root input,#rc-root textarea,#rc-root select{font:inherit}
 #rc-root button{cursor:pointer}
 #rc-root .app{height:100%;display:grid;grid-template-columns:230px 1fr 270px}
 #rc-root .sidebar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--border)}
@@ -104,16 +104,16 @@ const CSS = `
 #rc-root .composer{display:flex;gap:9px;padding:12px 16px 16px;background:var(--side);border-top:1px solid var(--border)}
 #rc-root .composer input{flex:1;border:0;outline:0;border-radius:10px;padding:11px 13px;background:var(--input);color:var(--text)}
 #rc-root .composer button{width:46px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:18px}
-#rc-root .modalLayer{position:absolute;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:18px;z-index:5}
-#rc-root .modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--side);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 25px 80px rgba(0,0,0,.5)}
-#rc-root .modal h2{font-family:var(--font-brand);margin:0 0 6px}
-#rc-root .modal h3{margin:14px 0 6px}
-#rc-root .modal p,#rc-root .modal li{color:var(--muted)}
-#rc-root .modal input{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);padding:10px;outline:0}
+#rc-root .modalLayer{position:absolute;inset:0;background:rgba(0,0,0,.76);display:grid;place-items:center;padding:18px;z-index:9999}
+#rc-root .modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--side);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 25px 80px rgba(0,0,0,.6)}
+#rc-root .modal h2{font-family:var(--font-brand);font-size:1.15rem;margin:0 0 8px}
+#rc-root .modal h3{font-size:.85rem;margin:14px 0 6px}
+#rc-root .modal p,#rc-root .modal li{color:var(--muted);font-size:.86rem;line-height:1.4}
+#rc-root .modal input,#rc-root .modal select,#rc-root .modal textarea{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);padding:10px;outline:0}
 #rc-root .modal .err{color:var(--red);min-height:1.2em;margin:8px 0 0}
-#rc-root .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+#rc-root .row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 #rc-root .row .btn{flex:1;min-width:120px}
-#rc-root .toast{position:absolute;left:50%;bottom:22px;z-index:9;transform:translate(-50%,15px);background:#09090a;color:white;padding:9px 13px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw)}
+#rc-root .toast{position:absolute;left:50%;bottom:22px;z-index:99999;transform:translate(-50%,15px);background:#09090a;color:white;padding:9px 13px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw)}
 #rc-root .toast.show{opacity:1;transform:translate(-50%,0)}
 #rc-root [hidden]{display:none!important}
 @media(max-width:960px){#rc-root .app{grid-template-columns:72px 1fr 210px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .self{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
@@ -123,7 +123,7 @@ const MARKUP = `
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">K</div>
-      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.5</span></div><div id="brandSub" class="brandSub">not connected</div></div>
+      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.7</span></div><div id="brandSub" class="brandSub">not connected</div></div>
       <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
     </div>
     <div class="quickHeading">Navigation</div>
@@ -175,8 +175,9 @@ const MAX_CHATS = 20;
 const PING_EVERY = 45000;
 const PING_FLOOR = 8000;
 const LS = "roomchat:";
-const VERSION = "1.2.5";
+const VERSION = "1.2.7";
 const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
+const SURVEY_TOPIC = "kairo-survey-feedback-881a";
 const ADMIN_PASSWORD = "";
 let isAdmin = false;
 let adminFeed = null;
@@ -228,6 +229,83 @@ function setDiag(text) {
   const d = $("diag");
   d.textContent = text;
   d.hidden = !text;
+}
+
+// ---------- survey feature ----------
+function promptSurvey(force) {
+  if (!force && lsGet(LS + "surveyAnswered_v127")) {
+    if (!me.name) profile();
+    return;
+  }
+
+  const box = el("form", { className: "modal" });
+  box.append(
+    el("h2", { textContent: "Help Shape Kairo 🚀" }),
+    el("p", { textContent: "We are designing the next major upgrade for Kairo. Before jumping in, tell us what feature matters to you most!" }),
+    el("h3", { textContent: "What should we add first?" })
+  );
+
+  const select = el("select", {},
+    el("option", { value: "files", textContent: "Encrypted File & Image Sharing (memes, attachments, docs)" }),
+    el("option", { value: "voice", textContent: "WebRTC Voice / Calling (direct peer-to-peer audio)" }),
+    el("option", { value: "both", textContent: "Both are equally important" }),
+    el("option", { value: "other", textContent: "Something else" })
+  );
+
+  const thoughts = el("textarea", {
+    placeholder: "Any ideas, feature requests, or notes for the developer? (optional)",
+    rows: 3,
+    maxLength: 300
+  });
+
+  const err = el("p", { className: "err" });
+  const sendBtn = el("button", { type: "submit", className: "btn", textContent: "Submit Feedback" });
+  const skipBtn = el("button", {
+    type: "button",
+    className: "btn secondary",
+    textContent: "Skip",
+    onclick: () => {
+      lsSet(LS + "surveyAnswered_v127", "skipped");
+      closeModal();
+      if (!me.name) profile();
+    }
+  });
+
+  box.append(
+    select,
+    el("h3", { textContent: "Your Thoughts:" }),
+    thoughts,
+    err,
+    el("div", { className: "row" }, sendBtn, skipBtn)
+  );
+
+  box.onsubmit = async (e) => {
+    e.preventDefault();
+    sendBtn.disabled = true;
+    err.textContent = "Submitting feedback...";
+    try {
+      const payload = {
+        vote: select.value,
+        notes: thoughts.value.trim(),
+        user: me.name || "Anonymous",
+        time: new Date().toISOString()
+      };
+      await fetch(SERVER + "/" + SURVEY_TOPIC, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      lsSet(LS + "surveyAnswered_v127", "submitted");
+      toast("Thanks! Your feedback was sent.");
+      closeModal();
+      if (!me.name) profile();
+    } catch {
+      lsSet(LS + "surveyAnswered_v127", "failed");
+      closeModal();
+      if (!me.name) profile();
+    }
+  };
+
+  showModal(box);
 }
 
 // ---------- admin feed and update notices ----------
@@ -647,7 +725,10 @@ function showHelp() {
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Privacy and limits" }),
     el("p", { textContent: "Messages are encrypted in your browser with the chat password and carried by the free ntfy.sh relay. You can have up to " + MAX_CHATS + " chats. Messages are limited to " + MAX_TEXT + " characters. History is stored only in this browser." }),
-    el("div", { className: "row" }, el("button", { className: "btn", textContent: "Got it", onclick: closeModal })));
+    el("div", { className: "row" },
+      el("button", { className: "btn secondary", textContent: "Take Survey", onclick: () => promptSurvey(true) }),
+      el("button", { className: "btn", textContent: "Got it", onclick: closeModal })
+    ));
   showModal(box);
 }
 
@@ -798,7 +879,7 @@ me.name = lsGet(LS + "name") || "";
 loadChats();
 setStatus("no chat unlocked");
 renderWelcome();
-if (!me.name) profile();
+promptSurvey(false);
 renderSidebar();
 checkForUpdate();
 startAdminFeed();
