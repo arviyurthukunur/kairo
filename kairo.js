@@ -1,4 +1,4 @@
-// Kairo LOG 1.2.7
+// Kairo LOG 1.2.8
 
 // Kairo - paste this whole file into your browser's Console and press Enter.
 // Best on https://example.com (open it in a new tab first). Blank tabs block encryption.
@@ -36,7 +36,7 @@ const CSS = `
 #rc-root .iconBtn{flex:none;border:0;background:transparent;color:var(--muted);font-size:15px;border-radius:8px;width:28px;height:28px}
 #rc-root .iconBtn:hover{background:var(--panel);color:var(--text)}
 #rc-root .iconBtn.close:hover{background:var(--red);color:white}
-#rc-root .sideActions{display:flex;flex-direction:column;gap:4px;padding:12px 9px 10px;flex:1}
+#rc-root .sideActions{display:flex;flex-direction:column;gap:4px;padding:12px 9px 10px;flex:1;overflow:auto}
 #rc-root .quickHeading{padding:12px 14px 4px;color:var(--muted);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
 #rc-root .quickAction{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:9px;padding:10px 11px;background:transparent;color:var(--muted);text-align:left;font-weight:600;font-size:.84rem}
 #rc-root .quickAction:hover{background:var(--panel);color:var(--text)}
@@ -57,7 +57,8 @@ const CSS = `
 #rc-root .presence.on{background:var(--green)}
 #rc-root .itemText{min-width:0;flex:1}
 #rc-root .itemName{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#rc-root .itemSub{font-size:.7rem;color:var(--muted)}
+#rc-root .itemSub{font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rc-root .draftTag{color:var(--accent);font-weight:700}
 #rc-root .badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:white;display:grid;place-items:center;font-size:.68rem;font-weight:850}
 #rc-root .self{padding:12px;background:var(--side);border-top:1px solid var(--border);color:var(--muted);font-size:.76rem}
 #rc-root .main{min-width:0;display:flex;flex-direction:column;background:var(--chat)}
@@ -66,6 +67,8 @@ const CSS = `
 #rc-root .topName{font-family:var(--font-brand);font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .status{color:var(--muted);font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .status.online{color:var(--green)}
+#rc-root .searchInput{width:185px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--input);color:var(--text);font-size:.8rem;outline:0;transition:border-color .15s,width .2s}
+#rc-root .searchInput:focus{border-color:var(--accent);width:230px}
 #rc-root .diag{padding:9px 18px;background:var(--panel);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--border)}
 #rc-root .banner{padding:9px 18px;background:rgba(88,101,242,.14);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--accent);display:flex;align-items:center;justify-content:space-between;gap:10px}
 #rc-root .banner button{flex:none}
@@ -92,15 +95,35 @@ const CSS = `
 #rc-root .pulseDot::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--green);opacity:0;animation:kairoRing 1.6s infinite ease-out}
 @keyframes kairoBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.88)}}
 @keyframes kairoRing{0%{transform:scale(.6);opacity:.85}100%{transform:scale(1.9);opacity:0}}
-#rc-root .log{flex:1;min-height:0;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:9px;background:var(--chat)}
-#rc-root .message{display:flex;gap:10px;max-width:78%}
+#rc-root .log{flex:1;min-height:0;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:11px;background:var(--chat)}
+#rc-root .message{position:relative;display:flex;gap:10px;max-width:78%; group:msg}
 #rc-root .message.mine{align-self:flex-end;flex-direction:row-reverse}
-#rc-root .bubble{padding:9px 12px;border-radius:14px;background:var(--side);color:var(--text);border:1px solid var(--border);white-space:pre-wrap;overflow-wrap:anywhere}
+#rc-root .msgCol{display:flex;flex-direction:column;min-width:0}
+#rc-root .mine .msgCol{align-items:flex-end}
+#rc-root .bubbleWrap{position:relative;display:flex;align-items:center;gap:6px}
+#rc-root .mine .bubbleWrap{flex-direction:row-reverse}
+#rc-root .bubble{padding:9px 12px;border-radius:14px;background:var(--side);color:var(--text);border:1px solid var(--border);white-space:pre-wrap;overflow-wrap:anywhere;transition:box-shadow .2s}
 #rc-root .mine .bubble{background:var(--accent);color:white;border-color:transparent;border-bottom-right-radius:4px}
 #rc-root .theirs .bubble{border-bottom-left-radius:4px}
-#rc-root .meta{font-size:.68rem;color:inherit;opacity:.7;margin-bottom:2px;display:flex;gap:7px}
+#rc-root .bubble.deleted{opacity:.6;font-style:italic}
+#rc-root .meta{font-size:.68rem;color:inherit;opacity:.75;margin-bottom:3px;display:flex;align-items:center;gap:7px}
 #rc-root .meta span{font-family:var(--font-mono)}
+#rc-root .editedTag{font-size:.62rem;opacity:.75;font-style:italic;margin-left:5px}
+#rc-root .replyQuote{font-size:.73rem;padding:4px 8px;margin-bottom:5px;border-left:3px solid rgba(255,255,255,.55);background:rgba(0,0,0,.18);border-radius:5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+#rc-root .theirs .replyQuote{border-left-color:var(--accent);background:var(--panel)}
+#rc-root .msgActions{display:none;align-items:center;gap:2px;background:var(--side);border:1px solid var(--border);border-radius:8px;padding:2px;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:2}
+#rc-root .message:hover .msgActions{display:flex}
+#rc-root .actBtn{border:0;background:transparent;color:var(--muted);font-size:13px;width:25px;height:25px;border-radius:6px;display:grid;place-items:center;padding:0}
+#rc-root .actBtn:hover{background:var(--panel);color:var(--text)}
+#rc-root .emojiPicker{position:absolute;bottom:100%;margin-bottom:4px;display:flex;gap:3px;background:var(--side);border:1px solid var(--border);border-radius:999px;padding:3px 6px;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:4}
+#rc-root .mine .emojiPicker{right:0}
+#rc-root .theirs .emojiPicker{left:0}
+#rc-root .reactionsRow{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+#rc-root .reactPill{border:1px solid var(--border);background:var(--side);color:var(--text);border-radius:999px;padding:1px 7px;font-size:.72rem;display:flex;align-items:center;gap:4px}
+#rc-root .reactPill.active{border-color:var(--accent);background:rgba(88,101,242,.18)}
 #rc-root .system{align-self:center;color:var(--muted);font-size:.73rem;background:var(--side);padding:4px 10px;border-radius:999px;border:1px solid var(--border);text-align:center}
+#rc-root .replyBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 16px;background:var(--panel);border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)}
+#rc-root .replyBar b{color:var(--text)}
 #rc-root .composer{display:flex;gap:9px;padding:12px 16px 16px;background:var(--side);border-top:1px solid var(--border)}
 #rc-root .composer input{flex:1;border:0;outline:0;border-radius:10px;padding:11px 13px;background:var(--input);color:var(--text)}
 #rc-root .composer button{width:46px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:18px}
@@ -113,6 +136,7 @@ const CSS = `
 #rc-root .modal .err{color:var(--red);min-height:1.2em;margin:8px 0 0}
 #rc-root .row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 #rc-root .row .btn{flex:1;min-width:120px}
+#rc-root .kbd{font-family:var(--font-mono);font-size:.72rem;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--text)}
 #rc-root .toast{position:absolute;left:50%;bottom:22px;z-index:99999;transform:translate(-50%,15px);background:#09090a;color:white;padding:9px 13px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw)}
 #rc-root .toast.show{opacity:1;transform:translate(-50%,0)}
 #rc-root [hidden]{display:none!important}
@@ -123,7 +147,7 @@ const MARKUP = `
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">K</div>
-      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.7</span></div><div id="brandSub" class="brandSub">not connected</div></div>
+      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.8</span></div><div id="brandSub" class="brandSub">not connected</div></div>
       <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
     </div>
     <div class="quickHeading">Navigation</div>
@@ -132,14 +156,16 @@ const MARKUP = `
       <button id="profileBtn" class="quickAction"><span class="quickIcon">◉</span><span class="quickLabel">Profile</span></button>
       <button id="addBtn" class="quickAction"><span class="quickIcon">＋</span><span class="quickLabel">New Chat (DM)</span></button>
       <button id="groupBtn" class="quickAction"><span class="quickIcon">＃</span><span class="quickLabel">New Group</span></button>
+      <button id="blockedBtn" class="quickAction"><span class="quickIcon">🚫</span><span class="quickLabel">Blocked Users</span></button>
       <button id="themeBtn" class="quickAction"><span class="quickIcon">◐</span><span id="themeLabel" class="quickLabel">Dark Mode</span></button>
-      <button id="helpBtn" class="quickAction"><span class="quickIcon">?</span><span class="quickLabel">Guide</span></button>
+      <button id="helpBtn" class="quickAction"><span class="quickIcon">?</span><span class="quickLabel">Guide & Shortcuts</span></button>
     </div>
     <div id="self" class="self"></div>
   </aside>
   <main class="main">
     <header class="top">
       <div class="topText"><div id="topName" class="topName">Welcome</div><div id="topStatus" class="status"></div></div>
+      <input id="searchBox" class="searchInput" type="search" placeholder="Search chat (Ctrl+K)..." hidden>
       <button id="btnClear" class="btn secondary small" hidden>Clear history</button>
       <button id="btnDelete" class="btn danger small" hidden>Delete chat</button>
     </header>
@@ -175,10 +201,11 @@ const MAX_CHATS = 20;
 const PING_EVERY = 45000;
 const PING_FLOOR = 8000;
 const LS = "roomchat:";
-const VERSION = "1.2.7";
+const VERSION = "1.2.8";
 const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
 const SURVEY_TOPIC = "kairo-survey-feedback-881a";
 const ADMIN_PASSWORD = "";
+const EMOJIS = ["👍", "❤️", "😂", "🔥", "👀"];
 let isAdmin = false;
 let adminFeed = null;
 
@@ -186,7 +213,10 @@ const te = new TextEncoder();
 const td = new TextDecoder();
 const me = { id: rnd(), name: "" };
 const rooms = new Map();
+let blockedUsers = new Set();
 let activeTopic = null;
+let replyingTo = null;
+let searchQuery = "";
 let es = null;
 let esKey = "";
 let everOpened = false;
@@ -207,7 +237,7 @@ function lsDel(k) { try { localStorage.removeItem(k); } catch {} }
 function el(tag, props, ...kids) {
   const e = document.createElement(tag);
   Object.keys(props || {}).forEach((k) => { e[k] = props[k]; });
-  kids.forEach((x) => e.append(x));
+  kids.forEach((x) => { if (x != null) e.append(x); });
   return e;
 }
 function initials(s) {
@@ -231,33 +261,81 @@ function setDiag(text) {
   d.hidden = !text;
 }
 
+// ---------- blocked users ----------
+function loadBlocked() {
+  try {
+    const arr = JSON.parse(lsGet(LS + "blocked") || "[]");
+    blockedUsers = new Set(arr.map((x) => String(x).toLowerCase()));
+  } catch { blockedUsers = new Set(); }
+}
+function saveBlocked() {
+  lsSet(LS + "blocked", JSON.stringify(Array.from(blockedUsers)));
+}
+function isBlocked(name) {
+  return blockedUsers.has(String(name || "").toLowerCase());
+}
+function toggleBlockUser(name) {
+  const key = String(name || "").trim().toLowerCase();
+  if (!key) return;
+  if (blockedUsers.has(key)) {
+    blockedUsers.delete(key);
+    toast("Unblocked " + name);
+  } else {
+    blockedUsers.add(key);
+    toast("Blocked " + name);
+  }
+  saveBlocked();
+  if (activeTopic) renderChatLog();
+}
+function showBlockedModal() {
+  const list = Array.from(blockedUsers);
+  const box = el("div", { className: "modal" },
+    el("h2", { textContent: "Blocked Users" }),
+    el("p", { textContent: list.length ? "Messages from these display names are hidden:" : "You haven't blocked anyone yet." })
+  );
+  if (list.length) {
+    const ul = el("div", { style: "display:flex;flex-direction:column;gap:6px;margin-top:10px" });
+    list.forEach((u) => {
+      const row = el("div", { style: "display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--panel);border-radius:8px" },
+        el("span", { textContent: u, style: "font-weight:700" }),
+        el("button", {
+          type: "button",
+          className: "btn secondary small",
+          textContent: "Unblock",
+          onclick: () => { toggleBlockUser(u); showBlockedModal(); }
+        })
+      );
+      ul.append(row);
+    });
+    box.append(ul);
+  }
+  box.append(el("div", { className: "row" }, el("button", { type: "button", className: "btn", textContent: "Done", onclick: closeModal })));
+  showModal(box);
+}
+
 // ---------- survey feature ----------
 function promptSurvey(force) {
   if (!force && lsGet(LS + "surveyAnswered_v127")) {
     if (!me.name) profile();
     return;
   }
-
   const box = el("form", { className: "modal" });
   box.append(
     el("h2", { textContent: "Help Shape Kairo 🚀" }),
     el("p", { textContent: "We are designing the next major upgrade for Kairo. Before jumping in, tell us what feature matters to you most!" }),
-    el("h3", { textContent: "What should we add first?" })
+    el("h3", { textContent: "What should we add next?" })
   );
-
   const select = el("select", {},
+    el("option", { value: "vault", textContent: "Password-Protected Profile Login Vault & Custom Themes" }),
     el("option", { value: "files", textContent: "Encrypted File & Image Sharing (memes, attachments, docs)" }),
     el("option", { value: "voice", textContent: "WebRTC Voice / Calling (direct peer-to-peer audio)" }),
-    el("option", { value: "both", textContent: "Both are equally important" }),
     el("option", { value: "other", textContent: "Something else" })
   );
-
   const thoughts = el("textarea", {
     placeholder: "Any ideas, feature requests, or notes for the developer? (optional)",
     rows: 3,
     maxLength: 300
   });
-
   const err = el("p", { className: "err" });
   const sendBtn = el("button", { type: "submit", className: "btn", textContent: "Submit Feedback" });
   const skipBtn = el("button", {
@@ -270,30 +348,14 @@ function promptSurvey(force) {
       if (!me.name) profile();
     }
   });
-
-  box.append(
-    select,
-    el("h3", { textContent: "Your Thoughts:" }),
-    thoughts,
-    err,
-    el("div", { className: "row" }, sendBtn, skipBtn)
-  );
-
+  box.append(select, el("h3", { textContent: "Your Thoughts:" }), thoughts, err, el("div", { className: "row" }, sendBtn, skipBtn));
   box.onsubmit = async (e) => {
     e.preventDefault();
     sendBtn.disabled = true;
     err.textContent = "Submitting feedback...";
     try {
-      const payload = {
-        vote: select.value,
-        notes: thoughts.value.trim(),
-        user: me.name || "Anonymous",
-        time: new Date().toISOString()
-      };
-      await fetch(SERVER + "/" + SURVEY_TOPIC, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
+      const payload = { vote: select.value, notes: thoughts.value.trim(), user: me.name || "Anonymous", version: VERSION, time: new Date().toISOString() };
+      await fetch(SERVER + "/" + SURVEY_TOPIC, { method: "POST", body: JSON.stringify(payload) });
       lsSet(LS + "surveyAnswered_v127", "submitted");
       toast("Thanks! Your feedback was sent.");
       closeModal();
@@ -304,7 +366,6 @@ function promptSurvey(force) {
       if (!me.name) profile();
     }
   };
-
   showModal(box);
 }
 
@@ -318,13 +379,6 @@ async function verifyAdminPacket(raw) {
     const key = await getAdminKey();
     return await unseal(key, typeof raw === "string" ? raw : JSON.stringify(raw));
   } catch { return null; }
-}
-async function publishAdminCommand(payload) {
-  if (!isAdmin || !ADMIN_PASSWORD) throw new Error("Log in as admin first.");
-  const key = await getAdminKey();
-  const body = await seal(key, payload);
-  const resp = await fetch(SERVER + "/" + ADMIN_TOPIC, { method: "POST", body });
-  if (!resp.ok) throw new Error("ntfy rejected the post (" + resp.status + ").");
 }
 function handleAdminCommand(payload) {
   if (!payload || !payload.type) return;
@@ -416,9 +470,14 @@ async function unseal(key, b64) {
   return JSON.parse(td.decode(pt));
 }
 
-// ---------- saved chats ----------
+// ---------- saved chats & drafts ----------
 function persistRoom(r) { lsSet(LS + "t:" + r.meta.topic, JSON.stringify(r.store)); }
 function saveChats() { lsSet(LS + "chats", JSON.stringify(Array.from(rooms.values(), (r) => r.meta))); }
+function getDraft(topic) { return lsGet(LS + "draft:" + topic) || ""; }
+function setDraft(topic, val) {
+  if (!val) lsDel(LS + "draft:" + topic);
+  else lsSet(LS + "draft:" + topic, val);
+}
 function makeRoom(meta) {
   let store = { msgs: [], lastSrv: 0 };
   try { store = Object.assign(store, JSON.parse(lsGet(LS + "t:" + meta.topic) || "{}")); } catch {}
@@ -463,16 +522,23 @@ function chatItem(r) {
   const locked = !r.key;
   const isDm = r.meta.type === "dm";
   const names = locked ? [] : onlineNames(r);
-  const sub = locked ? "locked · click to unlock"
+  const draft = getDraft(topic);
+  const subText = locked ? "locked · click to unlock"
     : isDm ? (names.length ? "online" : "no one online")
     : (names.length ? names.length + " online" : "just you");
   const avatar = el("div", { className: "avatar", textContent: isDm ? initials(r.meta.title) : "#" });
   if (isDm) avatar.append(el("span", { className: "presence" + (names.length ? " on" : "") }));
+  const subEl = el("div", { className: "itemSub" });
+  if (draft && topic !== activeTopic) {
+    subEl.append(el("span", { className: "draftTag", textContent: "Draft: " }), document.createTextNode(draft));
+  } else {
+    subEl.textContent = subText;
+  }
   const item = el("button", { type: "button", className: "item" + (topic === activeTopic ? " active" : "") },
     avatar,
     el("div", { className: "itemText" },
       el("div", { className: "itemName", textContent: (locked ? "🔒 " : "") + r.meta.title }),
-      el("div", { className: "itemSub", textContent: sub })));
+      subEl));
   if (r.unread) item.append(el("span", { className: "badge", textContent: String(r.unread) }));
   item.onclick = () => openChat(topic);
   return item;
@@ -502,24 +568,202 @@ function updateTop() {
   $("topStatus").className = "status" + (isDm && names.length ? " online" : "");
 }
 
-// ---------- chat view ----------
-function buildMessage(who, text, mine, time) {
+// ---------- chat view & interactive messages ----------
+function setReply(m) {
+  replyingTo = m ? { id: m.id, who: m.who, text: String(m.text || "").slice(0, 90) } : null;
+  const bar = $("replyBar");
+  if (!bar) return;
+  if (!replyingTo) { bar.hidden = true; bar.innerHTML = ""; return; }
+  bar.hidden = false;
+  bar.innerHTML = "";
+  bar.append(
+    el("span", {}, document.createTextNode("Replying to "), el("b", { textContent: replyingTo.who }), document.createTextNode(": “" + replyingTo.text + "”")),
+    el("button", { type: "button", className: "iconBtn", textContent: "×", onclick: () => setReply(null) })
+  );
+  const inp = $("msg");
+  if (inp) inp.focus();
+}
+
+async function sendReaction(r, targetId, emoji) {
+  try {
+    await post(r, "react", { targetId, emoji });
+    applyReaction(r, targetId, emoji, me.name);
+  } catch (e) { toast("Couldn't react: " + (e.message || "error")); }
+}
+
+function applyReaction(r, targetId, emoji, who) {
+  const msg = r.store.msgs.find((x) => x.id === targetId);
+  if (!msg || msg.deleted) return;
+  if (!msg.reactions) msg.reactions = {};
+  if (!Array.isArray(msg.reactions[emoji])) msg.reactions[emoji] = [];
+  const idx = msg.reactions[emoji].indexOf(who);
+  if (idx >= 0) {
+    msg.reactions[emoji].splice(idx, 1);
+    if (!msg.reactions[emoji].length) delete msg.reactions[emoji];
+  } else {
+    msg.reactions[emoji].push(who);
+  }
+  persistRoom(r);
+  if (r.meta.topic === activeTopic) renderChatLog(true);
+}
+
+function promptEditMessage(r, m) {
+  modal("Edit message", "Update your message for everyone in this chat.",
+    [{ id: "t", label: "Message text", value: m.text, max: MAX_TEXT }], "Save changes",
+    async (v) => {
+      const next = v.t.trim().slice(0, MAX_TEXT);
+      if (!next || next === m.text) return;
+      await post(r, "edit", { targetId: m.id, text: next });
+      m.text = next;
+      m.edited = true;
+      persistRoom(r);
+      renderChatLog(true);
+    });
+}
+
+async function deleteMessage(r, m) {
+  if (!confirm("Delete this message for everyone in the chat?")) return;
+  try {
+    await post(r, "del", { targetId: m.id });
+    m.text = "This message was deleted.";
+    m.deleted = true;
+    m.reactions = {};
+    persistRoom(r);
+    renderChatLog(true);
+  } catch (e) { toast("Couldn't delete: " + (e.message || "error")); }
+}
+
+function buildMessage(r, m) {
+  const mine = m.mine;
+  const who = m.who;
   const meta = el("div", { className: "meta" },
     el("b", { textContent: mine ? "You" : who }),
-    el("span", { textContent: new Date(time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }));
-  const bubble = el("div", { className: "bubble" }, meta, document.createTextNode(text));
-  return el("div", { className: "message " + (mine ? "mine" : "theirs") },
-    el("div", { className: "avatar", textContent: initials(mine ? me.name : who) }), bubble);
+    el("span", { textContent: new Date(m.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }));
+
+  const bubble = el("div", { className: "bubble" + (m.deleted ? " deleted" : "") });
+  if (m.replyTo && !m.deleted) {
+    const q = el("div", {
+      className: "replyQuote",
+      textContent: "↩ " + m.replyTo.who + ": " + m.replyTo.text,
+      onclick: () => {
+        const target = root.querySelector('[data-mid="' + m.replyTo.id + '"] .bubble');
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+          target.style.boxShadow = "0 0 0 2px var(--accent)";
+          setTimeout(() => { target.style.boxShadow = ""; }, 1400);
+        }
+      }
+    });
+    bubble.append(q);
+  }
+  bubble.append(meta, document.createTextNode(m.text));
+  if (m.edited && !m.deleted) bubble.append(el("span", { className: "editedTag", textContent: "(edited)" }));
+
+  // Hover action bar
+  const actions = el("div", { className: "msgActions" });
+  if (!m.deleted) {
+    const reactBtn = el("button", {
+      type: "button",
+      className: "actBtn",
+      title: "React",
+      textContent: "😀",
+      onclick: (ev) => {
+        ev.stopPropagation();
+        const existing = wrap.querySelector(".emojiPicker");
+        if (existing) { existing.remove(); return; }
+        const picker = el("div", { className: "emojiPicker" },
+          ...EMOJIS.map((em) => el("button", {
+            type: "button",
+            className: "actBtn",
+            textContent: em,
+            onclick: (e2) => { e2.stopPropagation(); picker.remove(); sendReaction(r, m.id, em); }
+          }))
+        );
+        wrap.append(picker);
+      }
+    });
+    const replyBtn = el("button", { type: "button", className: "actBtn", title: "Reply", textContent: "↩", onclick: () => setReply(m) });
+    actions.append(reactBtn, replyBtn);
+    if (mine) {
+      actions.append(
+        el("button", { type: "button", className: "actBtn", title: "Edit message", textContent: "✎", onclick: () => promptEditMessage(r, m) }),
+        el("button", { type: "button", className: "actBtn", title: "Delete message", textContent: "🗑", onclick: () => deleteMessage(r, m) })
+      );
+    } else {
+      actions.append(
+        el("button", { type: "button", className: "actBtn", title: "Block " + who, textContent: "🚫", onclick: () => toggleBlockUser(who) })
+      );
+    }
+  }
+
+  const wrap = el("div", { className: "bubbleWrap" }, bubble, actions);
+  const col = el("div", { className: "msgCol" }, wrap);
+
+  if (m.reactions && Object.keys(m.reactions).length && !m.deleted) {
+    const rRow = el("div", { className: "reactionsRow" });
+    Object.entries(m.reactions).forEach(([em, users]) => {
+      if (!users || !users.length) return;
+      const active = users.includes(me.name);
+      rRow.append(el("button", {
+        type: "button",
+        className: "reactPill" + (active ? " active" : ""),
+        title: users.join(", "),
+        textContent: em + " " + users.length,
+        onclick: () => sendReaction(r, m.id, em)
+      }));
+    });
+    col.append(rRow);
+  }
+
+  const row = el("div", { className: "message " + (mine ? "mine" : "theirs") },
+    el("div", { className: "avatar", textContent: initials(mine ? me.name : who) }),
+    col
+  );
+  row.setAttribute("data-mid", m.id);
+  return row;
 }
+
 function scrollLog() { const l = $("log"); if (l) l.scrollTop = l.scrollHeight; }
 function addSystem(text) { const l = $("log"); if (l) { l.append(el("div", { className: "system", textContent: text })); scrollLog(); } }
-function showMessage(m) { const l = $("log"); if (l) { l.append(buildMessage(m.who, m.text, m.mine, m.time)); scrollLog(); } }
+
+function renderChatLog(keepScroll) {
+  const r = rooms.get(activeTopic);
+  const l = $("log");
+  if (!r || !l) return;
+  const prevScroll = l.scrollTop;
+  const atBottom = l.scrollHeight - l.scrollTop - l.clientHeight < 50;
+  l.innerHTML = "";
+  const q = searchQuery.trim().toLowerCase();
+  const visible = r.store.msgs.filter((m) => {
+    if (!m.mine && isBlocked(m.who)) return false;
+    if (q && !String(m.text || "").toLowerCase().includes(q) && !String(m.who || "").toLowerCase().includes(q)) return false;
+    return true;
+  });
+  visible.forEach((m) => l.append(buildMessage(r, m)));
+  if (!q) {
+    const isDm = r.meta.type === "dm";
+    l.append(el("div", {
+      className: "system",
+      textContent: isDm
+        ? "Direct message with " + r.meta.title + ". Hover any message to reply, react, edit, or delete."
+        : "Group “" + r.meta.title + "”. Hover any message to reply, react, edit, or delete."
+    }));
+  } else if (!visible.length) {
+    l.append(el("div", { className: "system", textContent: "No messages match “" + searchQuery + "”." }));
+  }
+  if (!keepScroll || atBottom) scrollLog();
+  else l.scrollTop = prevScroll;
+}
 
 function renderWelcome() {
   activeTopic = null;
+  replyingTo = null;
+  searchQuery = "";
   $("topName").textContent = "Welcome";
   $("topStatus").textContent = "";
   $("topStatus").className = "status";
+  $("searchBox").hidden = true;
+  $("searchBox").value = "";
   $("btnClear").hidden = true;
   $("btnDelete").hidden = true;
 
@@ -572,18 +816,26 @@ function openChat(id) {
   if (!r) return;
   if (!r.key) return askUnlock(r);
   activeTopic = id;
+  replyingTo = null;
+  searchQuery = "";
+  $("searchBox").value = "";
+  $("searchBox").hidden = false;
   r.unread = 0;
   const isDm = r.meta.type === "dm";
-  const input = el("input", { id: "msg", maxLength: MAX_TEXT, autocomplete: "off", placeholder: "Message " + (isDm ? r.meta.title : "#" + r.meta.title) });
+  const input = el("input", {
+    id: "msg",
+    maxLength: MAX_TEXT,
+    autocomplete: "off",
+    value: getDraft(id),
+    placeholder: "Message " + (isDm ? r.meta.title : "#" + r.meta.title),
+    oninput: (e) => { setDraft(id, e.target.value); renderSidebar(); }
+  });
+  const replyBar = el("div", { id: "replyBar", className: "replyBar", hidden: true });
   const form = el("form", { id: "form", className: "composer" }, input, el("button", { textContent: "➤" }));
   form.onsubmit = sendMessage;
   $("view").innerHTML = "";
-  $("view").append(el("div", { id: "log", className: "log" }), form);
-  r.store.msgs.forEach(showMessage);
-  if (r.store.msgs.length) addSystem("— earlier messages —");
-  addSystem(isDm
-    ? "Direct message with " + r.meta.title + ". They start a DM with your name and the same password."
-    : "Group “" + r.meta.title + "”. Anyone with the group name and password can join.");
+  $("view").append(el("div", { id: "log", className: "log" }), replyBar, form);
+  renderChatLog(false);
   $("btnClear").hidden = false;
   $("btnDelete").hidden = false;
   updateTop();
@@ -600,6 +852,7 @@ async function onEvent(ev) {
   try { m = await unseal(r.key, ev.message || ""); } catch { return; }
   if (!m || !m.i || m.i === me.id) return;
   const who = String(m.name || "Someone").slice(0, 20);
+  if (isBlocked(who)) return;
   const isActive = r.meta.topic === activeTopic;
 
   if (r.meta.type === "dm" && r.meta.title !== who) {
@@ -612,11 +865,44 @@ async function onEvent(ev) {
   if (m.k === "m") {
     if (!m.id || r.seen.has(m.id)) return;
     r.seen.add(m.id);
-    const rec = { id: m.id, who, text: String(m.text || "").slice(0, MAX_TEXT), mine: false, time: m.t || Date.now() };
+    const rec = {
+      id: m.id,
+      who,
+      text: String(m.text || "").slice(0, MAX_TEXT),
+      mine: false,
+      time: m.t || Date.now(),
+      replyTo: m.replyTo || null,
+      reactions: {}
+    };
     r.store.msgs.push(rec);
     if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
     persistRoom(r);
-    if (isActive) showMessage(rec); else { r.unread++; renderSidebar(); }
+    if (isActive) renderChatLog(false); else { r.unread++; renderSidebar(); }
+    return;
+  }
+  if (m.k === "react" && m.targetId && m.emoji) {
+    applyReaction(r, m.targetId, String(m.emoji).slice(0, 8), who);
+    return;
+  }
+  if (m.k === "edit" && m.targetId) {
+    const target = r.store.msgs.find((x) => x.id === m.targetId);
+    if (target && !target.mine && !target.deleted) {
+      target.text = String(m.text || "").slice(0, MAX_TEXT);
+      target.edited = true;
+      persistRoom(r);
+      if (isActive) renderChatLog(true);
+    }
+    return;
+  }
+  if (m.k === "del" && m.targetId) {
+    const target = r.store.msgs.find((x) => x.id === m.targetId);
+    if (target && !target.mine) {
+      target.text = "This message was deleted.";
+      target.deleted = true;
+      target.reactions = {};
+      persistRoom(r);
+      if (isActive) renderChatLog(true);
+    }
     return;
   }
   if (!r.ready) return;
@@ -715,16 +1001,27 @@ function checkSecure() {
 
 function showHelp() {
   const steps = [
-    "Open Profile on the left sidebar and set your display name.",
-    "New Chat (DM) starts a direct message. Type the other person's name and agree on a shared password.",
-    "New Group makes or joins a group. Everyone who enters the same group name and password lands in the same group.",
-    "All your Direct Messages and Groups appear in the right-hand sidebar.",
+    "Hover any message in chat to Reply (↩), React (😀), Edit (✎), Delete (🗑), or Block (🚫).",
+    "Unsent messages are automatically saved as Drafts when you switch rooms.",
+    "Use the Search bar in the top header to filter messages in the current chat.",
   ];
+  const shortcuts = [
+    ["Alt + N", "Start a new Direct Message"],
+    ["Alt + G", "Create or join a Group"],
+    ["Ctrl + K", "Focus chat search box"],
+    ["Esc", "Close dialog / cancel reply / clear search"],
+  ];
+  const scList = el("div", { style: "display:grid;gap:6px;margin-top:8px" },
+    ...shortcuts.map(([k, desc]) => el("div", { style: "display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted)" },
+      el("span", { className: "kbd", textContent: k }),
+      el("span", { textContent: desc })
+    ))
+  );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "How Kairo works" }),
+    el("h2", { textContent: "Kairo v1.2.8 Guide" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
-    el("h3", { textContent: "Privacy and limits" }),
-    el("p", { textContent: "Messages are encrypted in your browser with the chat password and carried by the free ntfy.sh relay. You can have up to " + MAX_CHATS + " chats. Messages are limited to " + MAX_TEXT + " characters. History is stored only in this browser." }),
+    el("h3", { textContent: "Keyboard Shortcuts" }),
+    scList,
     el("div", { className: "row" },
       el("button", { className: "btn secondary", textContent: "Take Survey", onclick: () => promptSurvey(true) }),
       el("button", { className: "btn", textContent: "Got it", onclick: closeModal })
@@ -808,28 +1105,36 @@ async function sendMessage(e) {
   const text = input.value.trim().slice(0, MAX_TEXT);
   if (!r || !r.key || !text) return;
   const id = rnd();
+  const replyPayload = replyingTo ? Object.assign({}, replyingTo) : null;
   try {
-    await post(r, "m", { id, text });
+    await post(r, "m", { id, text, replyTo: replyPayload });
   } catch (err) {
     addSystem("Couldn't send: " + (err && err.message ? err.message : "network error") + ". Your text is still in the box.");
     return;
   }
   r.seen.add(id);
-  const rec = { id, who: me.name, text, mine: true, time: Date.now() };
+  const rec = { id, who: me.name, text, mine: true, time: Date.now(), replyTo: replyPayload, reactions: {} };
   r.store.msgs.push(rec);
   if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
   persistRoom(r);
-  showMessage(rec);
   input.value = "";
+  setDraft(activeTopic, "");
+  setReply(null);
+  renderChatLog(false);
+  renderSidebar();
 }
+
+$("searchBox").oninput = (e) => {
+  searchQuery = e.target.value;
+  renderChatLog(true);
+};
 
 $("btnClear").onclick = () => {
   const r = rooms.get(activeTopic);
   if (!r || !confirm("Delete the saved history for this chat on this device?")) return;
   r.store.msgs = [];
   persistRoom(r);
-  $("log").innerHTML = "";
-  addSystem("Saved history cleared.");
+  renderChatLog(false);
 };
 $("btnDelete").onclick = async () => {
   const r = rooms.get(activeTopic);
@@ -837,6 +1142,7 @@ $("btnDelete").onclick = async () => {
   if (r.key) { try { await post(r, "b"); } catch {} }
   rooms.delete(r.meta.topic);
   lsDel(LS + "t:" + r.meta.topic);
+  lsDel(LS + "draft:" + r.meta.topic);
   saveChats();
   resubscribe();
   renderWelcome();
@@ -851,9 +1157,34 @@ $("themeBtn").onclick = () => {
 $("overviewBtn").onclick = renderWelcome;
 $("addBtn").onclick = startAdd;
 $("groupBtn").onclick = startGroup;
+$("blockedBtn").onclick = showBlockedModal;
 $("helpBtn").onclick = showHelp;
 $("profileBtn").onclick = profile;
+
+// Global click to close emoji pickers & keyboard shortcuts
+function onKeyDown(e) {
+  if (!document.getElementById("rc-root")) return;
+  if (e.key === "Escape") {
+    if ($("modalHost").innerHTML) { closeModal(); return; }
+    if (replyingTo) { setReply(null); return; }
+    if (searchQuery) { $("searchBox").value = ""; searchQuery = ""; renderChatLog(true); return; }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+    if (activeTopic && !$("searchBox").hidden) {
+      e.preventDefault();
+      $("searchBox").focus();
+    }
+  }
+  if (e.altKey && e.key.toLowerCase() === "n") { e.preventDefault(); startAdd(); }
+  if (e.altKey && e.key.toLowerCase() === "g") { e.preventDefault(); startGroup(); }
+}
+window.addEventListener("keydown", onKeyDown);
+root.addEventListener("click", () => {
+  root.querySelectorAll(".emojiPicker").forEach((p) => p.remove());
+});
+
 $("exit").onclick = () => {
+  window.removeEventListener("keydown", onKeyDown);
   timers.forEach(clearInterval);
   clearTimeout(readyTimer);
   clearTimeout(pingTimer);
@@ -876,6 +1207,7 @@ timers.push(setInterval(() => { renderSidebar(); updateTop(); }, 5000));
 
 if (lsGet(LS + "theme") === "light") { root.classList.add("light"); $("themeLabel").textContent = "Light Mode"; } else { $("themeLabel").textContent = "Dark Mode"; }
 me.name = lsGet(LS + "name") || "";
+loadBlocked();
 loadChats();
 setStatus("no chat unlocked");
 renderWelcome();
