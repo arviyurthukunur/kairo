@@ -1,4 +1,4 @@
-// Kairo LOG 1.2.9
+// Kairo LOG 1.4.0
 
 // Kairo - paste this whole file into your browser's Console and press Enter.
 // Best on https://example.com (open it in a new tab first). Blank tabs block encryption.
@@ -41,10 +41,10 @@ const CSS = `
 #rc-root .iconBtn.close:hover{background:var(--red);color:white}
 #rc-root .sideActions{display:flex;flex-direction:column;gap:3px;padding:10px 9px;flex:1;overflow:auto}
 #rc-root .quickHeading{padding:10px 14px 3px;color:var(--muted);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
-#rc-root .quickAction{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:9px;padding:9px 11px;background:transparent;color:var(--muted);text-align:left;font-weight:600;font-size:.83rem}
+#rc-root .quickAction{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:999px;padding:9px 12px;background:transparent;color:var(--muted);text-align:left;font-weight:600;font-size:.83rem}
 #rc-root .quickAction:hover{background:var(--panel);color:var(--text)}
 #rc-root .quickIcon{width:18px;flex:none;text-align:center;color:var(--accent);font-size:.95rem}
-#rc-root .btn{border:0;border-radius:9px;padding:9px 11px;background:var(--accent);color:white;font-weight:750}
+#rc-root .btn{border:0;border-radius:999px;padding:9px 14px;background:var(--accent);color:white;font-weight:750}
 #rc-root .btn:hover{background:var(--accent2)}
 #rc-root .btn:disabled{opacity:.5;cursor:default}
 #rc-root .btn.secondary{background:var(--panel);color:var(--text);border:1px solid var(--border)}
@@ -75,11 +75,16 @@ const CSS = `
 #rc-root .topName{font-family:var(--font-brand);font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .status{color:var(--muted);font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rc-root .status.online{color:var(--green)}
-#rc-root .searchInput{width:185px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--input);color:var(--text);font-size:.8rem;outline:0;transition:border-color .15s,width .2s}
-#rc-root .searchInput:focus{border-color:var(--accent);width:230px}
+#rc-root .searchInput{width:160px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--input);color:var(--text);font-size:.8rem;outline:0;transition:border-color .15s,width .2s}
+#rc-root .searchInput:focus{border-color:var(--accent);width:200px}
 #rc-root .diag{padding:9px 18px;background:var(--panel);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--border)}
 #rc-root .banner{padding:9px 18px;background:rgba(88,101,242,.14);color:var(--text);font-size:.8rem;border-bottom:1px solid var(--accent);display:flex;align-items:center;justify-content:space-between;gap:10px}
 #rc-root .banner button{flex:none}
+#rc-root .pinnedBar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--text)}
+#rc-root .pinnedText{display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+#rc-root .pinnedIcon{color:var(--accent);font-size:.9rem}
+#rc-root .callBanner{background:linear-gradient(90deg,var(--accent2),var(--accent));color:white;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.83rem;font-weight:700}
+#rc-root .callActions{display:flex;gap:8px}
 #rc-root .view{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #rc-root .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center;overflow:auto}
 #rc-root .emblemRing{width:158px;height:158px;flex:none;border-radius:50%;background:radial-gradient(circle,rgba(88,101,242,.22),rgba(88,101,242,.07) 70%);display:grid;place-items:center;cursor:pointer;transition:transform .2s ease,background .2s ease;border:0;padding:0}
@@ -113,8 +118,9 @@ const CSS = `
 #rc-root .mine .bubble{background:var(--accent);color:white;border-color:transparent;border-bottom-right-radius:4px}
 #rc-root .theirs .bubble{border-bottom-left-radius:4px}
 #rc-root .bubble.deleted{opacity:.6;font-style:italic}
-#rc-root .meta{font-size:.68rem;color:inherit;opacity:.75;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+#rc-root .meta{font-size:.68rem;color:inherit;opacity:.75;margin-bottom:3px;display:flex;align-items:center;gap:6px}
 #rc-root .meta span{font-family:var(--font-mono)}
+#rc-root .receipt{font-size:.7rem;font-weight:700;margin-left:3px;opacity:.9}
 #rc-root .editedTag{font-size:.62rem;opacity:.75;font-style:italic;margin-left:5px}
 #rc-root .replyQuote{font-size:.73rem;padding:4px 8px;margin-bottom:5px;border-left:3px solid rgba(255,255,255,.55);background:rgba(0,0,0,.18);border-radius:5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
 #rc-root .theirs .replyQuote{border-left-color:var(--accent);background:var(--panel)}
@@ -128,24 +134,35 @@ const CSS = `
 #rc-root .reactionsRow{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 #rc-root .reactPill{border:1px solid var(--border);background:var(--side);color:var(--text);border-radius:999px;padding:1px 7px;font-size:.72rem;display:flex;align-items:center;gap:4px}
 #rc-root .reactPill.active{border-color:var(--accent);background:rgba(88,101,242,.18)}
+#rc-root .chatImg{max-width:280px;max-height:220px;border-radius:8px;margin-top:6px;cursor:zoom-in;display:block;object-fit:cover;background:#000}
+#rc-root .audioPill{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;margin-top:6px}
+#rc-root .audioPill audio{height:30px;max-width:220px}
+#rc-root .chatLink{color:#58a6ff;text-decoration:underline;text-underline-offset:2px}
 #rc-root .system{align-self:center;color:var(--muted);font-size:.73rem;background:var(--side);padding:4px 10px;border-radius:999px;border:1px solid var(--border);text-align:center}
+#rc-root .typingIndicator{padding:2px 18px;font-size:.74rem;color:var(--muted);font-style:italic;min-height:18px}
 #rc-root .replyBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 16px;background:var(--panel);border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)}
 #rc-root .replyBar b{color:var(--text)}
-#rc-root .composer{display:flex;gap:9px;padding:12px 16px 16px;background:var(--side);border-top:1px solid var(--border)}
+#rc-root .composer{display:flex;gap:7px;align-items:center;padding:10px 16px 14px;background:var(--side);border-top:1px solid var(--border)}
+#rc-root .mediaBtn{flex:none;width:38px;height:38px;border:0;border-radius:10px;background:var(--panel);color:var(--muted);font-size:16px;display:grid;place-items:center}
+#rc-root .mediaBtn:hover{background:var(--border);color:var(--text)}
+#rc-root .mediaBtn.rec{background:var(--red);color:white;animation:kairoBlink 1s infinite}
 #rc-root .composer input{flex:1;min-width:0;border:0;outline:0;border-radius:10px;padding:11px 13px;background:var(--input);color:var(--text)}
-#rc-root .composer button{width:46px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:18px}
+#rc-root .composer button.sendBtn{flex:none;width:44px;height:38px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:18px}
 #rc-root .modalLayer{position:absolute;inset:0;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:18px;z-index:9999}
 #rc-root .modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--side);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 25px 80px rgba(0,0,0,.6)}
 #rc-root .modal h2{font-family:var(--font-brand);font-size:1.15rem;margin:0 0 8px}
 #rc-root .modal h3{font-size:.82rem;margin:12px 0 5px;color:var(--text)}
 #rc-root .modal p,#rc-root .modal li{color:var(--muted);font-size:.85rem;line-height:1.4}
-#rc-root .modal input,#rc-root .modal select,#rc-root .modal textarea{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);padding:10px;outline:0}
+#rc-root .modal input,#rc-root .modal select,#rc-root .modal textarea{width:100%;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--text);padding:10px;outline:0}
+#rc-root .modal textarea{border-radius:10px}
 #rc-root .modal .err{color:var(--red);min-height:1.2em;margin:8px 0 0;font-size:.82rem}
 #rc-root .row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-#rc-root .row .btn{flex:1;min-width:120px}
+#rc-root .row .btn{flex:1;min-width:120px;border-radius:999px}
 #rc-root .kbd{font-family:var(--font-mono);font-size:.72rem;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--text)}
 #rc-root .toast{position:absolute;left:50%;bottom:22px;z-index:99999;transform:translate(-50%,15px);background:#09090a;color:white;padding:9px 13px;border-radius:9px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw)}
 #rc-root .toast.show{opacity:1;transform:translate(-50%,0)}
+#rc-root .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999999;display:grid;place-items:center;padding:20px;cursor:zoom-out}
+#rc-root .lightbox img{max-width:92vw;max-height:92vh;border-radius:10px;box-shadow:0 15px 50px rgba(0,0,0,.7)}
 #rc-root [hidden]{display:none!important}
 @media(max-width:960px){#rc-root .app{grid-template-columns:72px 1fr 210px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .selfInfo{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
 `;
@@ -154,7 +171,7 @@ const MARKUP = `
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">K</div>
-      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.2.9</span></div><div id="brandSub" class="brandSub">vault locked</div></div>
+      <div class="brandText"><div class="brandTitle">Kairo<span class="beta">v1.4.0</span></div><div id="brandSub" class="brandSub">vault locked</div></div>
       <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
     </div>
     <div class="quickHeading">Navigation</div>
@@ -174,9 +191,12 @@ const MARKUP = `
     <header class="top">
       <div class="topText"><div id="topName" class="topName">Welcome</div><div id="topStatus" class="status"></div></div>
       <input id="searchBox" class="searchInput" type="search" placeholder="Search chat (Ctrl+K)..." hidden>
+      <button id="btnCall" class="btn secondary small" title="Start WebRTC Voice Call" hidden>📞 Call</button>
       <button id="btnClear" class="btn secondary small" hidden>Clear history</button>
       <button id="btnDelete" class="btn danger small" hidden>Delete chat</button>
     </header>
+    <div id="callHeader" class="callBanner" hidden></div>
+    <div id="pinnedHeader" class="pinnedBar" hidden></div>
     <div id="updateBanner" class="banner" hidden></div>
     <div id="diag" class="diag" hidden></div>
     <section id="view" class="view"></section>
@@ -191,7 +211,10 @@ const MARKUP = `
   </aside>
 </div>
 <div id="modalHost"></div>
+<div id="lightboxHost"></div>
 <div id="toast" class="toast"></div>
+<input type="file" id="filePicker" accept="image/*" style="display:none">
+<audio id="remoteAudio" autoplay style="display:none"></audio>
 `;
 const style = document.createElement("style");
 style.id = "rc-style";
@@ -206,10 +229,10 @@ const $ = (id) => root.querySelector("#" + id);
 const SERVER = "https://ntfy.sh";
 const MAX_TEXT = 800;
 const MAX_CHATS = 20;
-const PING_EVERY = 45000;
-const PING_FLOOR = 8000;
+const PING_EVERY = 120000;
+const PING_FLOOR = 25000;
 const LS = "roomchat:";
-const VERSION = "1.2.9";
+const VERSION = "1.4.0";
 const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
 const SURVEY_TOPIC = "kairo-survey-feedback-881a";
 const ADMIN_PASSWORD = "";
@@ -233,6 +256,23 @@ let userScrolledUp = false;
 let es = null;
 let esKey = "";
 let everOpened = false;
+
+// Media recording
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+// WebRTC calling state (#21)
+let peerConn = null;
+let localStream = null;
+let activeCallTopic = null;
+let isCaller = false;
+let isMuted = false;
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+// Typing throttling state (#8)
+let lastTypingSent = 0;
+let typingTimeouts = new Map();
 
 let queue = Promise.resolve();
 let readyTimer = null;
@@ -276,7 +316,15 @@ function setDiag(text) {
   d.hidden = !text;
 }
 
-// ---------- sound & tab notifications ----------
+function openLightbox(src) {
+  const box = $("lightboxHost");
+  box.innerHTML = "";
+  const lb = el("div", { className: "lightbox", onclick: () => { box.innerHTML = ""; } },
+    el("img", { src })
+  );
+  box.append(lb);
+}
+
 function playNotifSound() {
   if (!settings.sound) return;
   try {
@@ -345,7 +393,41 @@ async function unseal(key, b64) {
   return JSON.parse(td.decode(pt));
 }
 
-// ---------- master account vault (#22) ----------
+// ---------- image compression ----------
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        const maxDim = 800;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL("image/jpeg", 0.65);
+        resolve(compressed);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- master account vault ----------
 function applyTheme(t) {
   settings.theme = t || "dark";
   if (settings.theme === "dark") root.removeAttribute("data-theme");
@@ -421,7 +503,6 @@ function promptVaultLogin() {
         closeModal();
         toast("Welcome back, " + me.name + "!");
         await unlockAllSavedRooms();
-        promptSurvey(false);
       } catch {
         err.textContent = "Incorrect Master Password.";
         unlockBtn.disabled = false;
@@ -468,7 +549,6 @@ function promptVaultLogin() {
         closeModal();
         renderSidebar();
         renderWelcome();
-        promptSurvey(false);
       } catch (ex) {
         err.textContent = ex.message || "Could not create vault.";
         createBtn.disabled = false;
@@ -481,6 +561,7 @@ function promptVaultLogin() {
 
 function lockVaultSession() {
   vaultKey = null;
+  if (peerConn) endCall();
   if (es) { es.close(); es = null; esKey = ""; }
   rooms.forEach((r) => { r.key = null; r.ready = false; });
   activeTopic = null;
@@ -532,7 +613,7 @@ function showBlockedModal() {
   showModal(box);
 }
 
-// ---------- themes & notification settings (#14 & #15) ----------
+// ---------- themes & notification settings ----------
 function showThemeSettings() {
   const box = el("form", { className: "modal" });
   box.append(
@@ -578,55 +659,6 @@ function showThemeSettings() {
     await saveVault();
     closeModal();
     toast("Preferences saved!");
-  };
-  showModal(box);
-}
-
-// ---------- survey feature ----------
-function promptSurvey(force) {
-  if (!force && lsGet(LS + "surveyAnswered_v127")) return;
-  const box = el("form", { className: "modal" });
-  box.append(
-    el("h2", { textContent: "Help Shape Kairo 🚀" }),
-    el("p", { textContent: "We are designing the next major upgrade for Kairo. Tell us what feature matters to you most!" }),
-    el("h3", { textContent: "What should we add next?" })
-  );
-  const select = el("select", {},
-    el("option", { value: "media", textContent: "Phase 3: Voice Messages, Image Sharing, GIFs & Pins" }),
-    el("option", { value: "webrtc", textContent: "Phase 4: Live Voice Calling, Typing Indicators & Read Receipts" }),
-    el("option", { value: "other", textContent: "Something else" })
-  );
-  const thoughts = el("textarea", {
-    placeholder: "Any ideas, feature requests, or notes for the developer? (optional)",
-    rows: 3,
-    maxLength: 300
-  });
-  const err = el("p", { className: "err" });
-  const sendBtn = el("button", { type: "submit", className: "btn", textContent: "Submit Feedback" });
-  const skipBtn = el("button", {
-    type: "button",
-    className: "btn secondary",
-    textContent: "Skip",
-    onclick: () => {
-      lsSet(LS + "surveyAnswered_v127", "skipped");
-      closeModal();
-    }
-  });
-  box.append(select, el("h3", { textContent: "Your Thoughts:" }), thoughts, err, el("div", { className: "row" }, sendBtn, skipBtn));
-  box.onsubmit = async (e) => {
-    e.preventDefault();
-    sendBtn.disabled = true;
-    err.textContent = "Submitting feedback...";
-    try {
-      const payload = { vote: select.value, notes: thoughts.value.trim(), user: me.name || "Anonymous", version: VERSION, time: new Date().toISOString() };
-      await fetch(SERVER + "/" + SURVEY_TOPIC, { method: "POST", body: JSON.stringify(payload) });
-      lsSet(LS + "surveyAnswered_v127", "submitted");
-      toast("Thanks! Your feedback was sent.");
-      closeModal();
-    } catch {
-      lsSet(LS + "surveyAnswered_v127", "failed");
-      closeModal();
-    }
   };
   showModal(box);
 }
@@ -698,12 +730,13 @@ function setDraft(topic, val) {
   else lsSet(LS + "draft:" + topic, val);
 }
 function makeRoom(meta) {
-  let store = { msgs: [], lastSrv: 0 };
+  let store = { msgs: [], lastSrv: 0, pinned: null };
   try { store = Object.assign(store, JSON.parse(lsGet(LS + "t:" + meta.topic) || "{}")); } catch {}
   return {
     meta, key: null, store,
     seen: new Set(store.msgs.map((m) => m.id)),
     people: new Map(), unread: 0, ready: false, helloSent: false,
+    typing: new Map()
   };
 }
 function loadLegacyChats() {
@@ -727,6 +760,156 @@ async function post(r, kind, extra) {
   const body = await seal(r.key, m);
   const resp = await fetch(SERVER + "/" + r.meta.topic, { method: "POST", body });
   if (!resp.ok) throw new Error(resp.status === 429 ? "rate limited, slow down a little" : "server said " + resp.status);
+}
+
+// ---------- WebRTC voice calling (#21) ----------
+async function initCallPeer(r) {
+  if (peerConn) endCall();
+  activeCallTopic = r.meta.topic;
+  peerConn = new RTCPeerConnection(rtcConfig);
+
+  localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  localStream.getTracks().forEach((t) => peerConn.addTrack(t, localStream));
+
+  peerConn.ontrack = (e) => {
+    const audioEl = $("remoteAudio");
+    if (audioEl && e.streams && e.streams[0]) {
+      audioEl.srcObject = e.streams[0];
+    }
+  };
+
+  peerConn.onicecandidate = (e) => {
+    if (e.candidate) {
+      post(r, "rtc_candidate", { candidate: e.candidate }).catch(() => {});
+    }
+  };
+
+  peerConn.onconnectionstatechange = () => {
+    renderCallBanner();
+    if (peerConn && (peerConn.connectionState === "disconnected" || peerConn.connectionState === "failed" || peerConn.connectionState === "closed")) {
+      endCall();
+    }
+  };
+}
+
+async function startCall() {
+  const r = rooms.get(activeTopic);
+  if (!r || !r.key) return;
+  try {
+    isCaller = true;
+    isMuted = false;
+    await initCallPeer(r);
+    const offer = await peerConn.createOffer();
+    await peerConn.setLocalDescription(offer);
+    await post(r, "rtc_offer", { sdp: offer });
+    renderCallBanner("Calling...");
+  } catch (err) {
+    toast("Could not start call: " + (err.message || "microphone permission needed"));
+    endCall();
+  }
+}
+
+async function acceptIncomingCall(r, offerSdp) {
+  try {
+    isCaller = false;
+    isMuted = false;
+    closeModal();
+    await initCallPeer(r);
+    await peerConn.setRemoteDescription(new RTCSessionDescription(offerSdp));
+    const answer = await peerConn.createAnswer();
+    await peerConn.setLocalDescription(answer);
+    await post(r, "rtc_answer", { sdp: answer });
+    renderCallBanner("Connecting audio...");
+  } catch (err) {
+    toast("Failed to connect call: " + (err.message || "error"));
+    endCall();
+  }
+}
+
+function promptIncomingCall(r, who, sdp) {
+  playNotifSound();
+  const box = el("div", { className: "modal", style: "text-align:center" },
+    el("h2", { textContent: "Incoming Voice Call 📞" }),
+    el("p", { textContent: who + " is calling you in " + (r.meta.type === "dm" ? "direct message" : r.meta.title) + "." }),
+    el("div", { className: "row", style: "justify-content:center" },
+      el("button", {
+        className: "btn",
+        textContent: "Accept",
+        onclick: () => acceptIncomingCall(r, sdp)
+      }),
+      el("button", {
+        className: "btn danger",
+        textContent: "Decline",
+        onclick: () => {
+          post(r, "rtc_hangup").catch(() => {});
+          closeModal();
+        }
+      })
+    )
+  );
+  showModal(box);
+}
+
+function toggleMute() {
+  if (!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach((track) => { track.enabled = !isMuted; });
+  renderCallBanner();
+}
+
+function endCall() {
+  if (activeCallTopic) {
+    const r = rooms.get(activeCallTopic);
+    if (r && r.key) post(r, "rtc_hangup").catch(() => {});
+  }
+  if (localStream) {
+    localStream.getTracks().forEach((t) => t.stop());
+    localStream = null;
+  }
+  if (peerConn) {
+    peerConn.close();
+    peerConn = null;
+  }
+  const audioEl = $("remoteAudio");
+  if (audioEl) audioEl.srcObject = null;
+  activeCallTopic = null;
+  isCaller = false;
+  isMuted = false;
+  $("callHeader").hidden = true;
+  $("callHeader").innerHTML = "";
+}
+
+function renderCallBanner(statusText) {
+  const bar = $("callHeader");
+  if (!peerConn || !activeCallTopic) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  bar.hidden = false;
+  bar.innerHTML = "";
+
+  const r = rooms.get(activeCallTopic);
+  const title = r ? r.meta.title : "Voice Call";
+  const state = statusText || (peerConn.connectionState === "connected" ? "Connected (P2P Audio)" : "Connecting...");
+
+  const actions = el("div", { className: "callActions" },
+    el("button", {
+      className: "btn secondary small",
+      textContent: isMuted ? "🔇 Unmute" : "🎤 Mute",
+      onclick: toggleMute
+    }),
+    el("button", {
+      className: "btn danger small",
+      textContent: "Hang Up",
+      onclick: endCall
+    })
+  );
+
+  bar.append(
+    el("span", {}, document.createTextNode("📞 " + title + " — "), el("span", { textContent: state, style: "font-weight:400" })),
+    actions
+  );
 }
 
 // ---------- sidebars ----------
@@ -811,15 +994,73 @@ function updateTop() {
     const peer = list[0];
     $("topStatus").textContent = peer ? (peer.st + (peer.bio ? " — " + peer.bio : "")) : "offline";
     $("topStatus").className = "status" + (peer ? " online" : "");
+    $("btnCall").hidden = false;
   } else {
     $("topStatus").textContent = "Online: You" + (list.length ? ", " + list.map((x) => x.name).join(", ") : "");
     $("topStatus").className = "status";
+    $("btnCall").hidden = true;
+  }
+
+  const pinBar = $("pinnedHeader");
+  if (r.store.pinned) {
+    pinBar.hidden = false;
+    pinBar.innerHTML = "";
+    pinBar.append(
+      el("div", { className: "pinnedText" },
+        el("span", { className: "pinnedIcon", textContent: "📌" }),
+        el("b", { textContent: r.store.pinned.who + ":" }),
+        document.createTextNode(r.store.pinned.text || "(Media Attachment)")
+      ),
+      el("button", {
+        type: "button",
+        className: "iconBtn",
+        title: "Unpin message",
+        textContent: "×",
+        onclick: async () => {
+          await post(r, "pin", { targetId: null });
+          r.store.pinned = null;
+          persistRoom(r);
+          updateTop();
+        }
+      })
+    );
+  } else {
+    pinBar.hidden = true;
+    pinBar.innerHTML = "";
   }
 }
 
-// ---------- chat view & interactive messages ----------
+// ---------- typing indicator UI (#8) ----------
+function updateTypingDisplay() {
+  const ind = $("typingInd");
+  if (!ind) return;
+  const r = rooms.get(activeTopic);
+  if (!r) { ind.textContent = ""; return; }
+  const typers = Array.from(r.typing.values());
+  if (!typers.length) {
+    ind.textContent = "";
+  } else if (typers.length === 1) {
+    ind.textContent = typers[0] + " is typing...";
+  } else {
+    ind.textContent = typers.join(", ") + " are typing...";
+  }
+}
+
+function handleTypingEvent(r, who) {
+  r.typing.set(who, who);
+  if (r.meta.topic === activeTopic) updateTypingDisplay();
+  const timerKey = r.meta.topic + "|" + who;
+  if (typingTimeouts.has(timerKey)) clearTimeout(typingTimeouts.get(timerKey));
+  typingTimeouts.set(timerKey, setTimeout(() => {
+    r.typing.delete(who);
+    if (r.meta.topic === activeTopic) updateTypingDisplay();
+    typingTimeouts.delete(timerKey);
+  }, 4000));
+}
+
+// ---------- interactive message rendering & link parsing ----------
 function setReply(m) {
-  replyingTo = m ? { id: m.id, who: m.who, text: String(m.text || "").slice(0, 90) } : null;
+  replyingTo = m ? { id: m.id, who: m.who, text: String(m.text || (m.img ? "Photo" : "Voice message")).slice(0, 90) } : null;
   const bar = $("replyBar");
   if (!bar) return;
   if (!replyingTo) { bar.hidden = true; bar.innerHTML = ""; return; }
@@ -876,10 +1117,55 @@ async function deleteMessage(r, m) {
     await post(r, "del", { targetId: m.id });
     m.text = "This message was deleted.";
     m.deleted = true;
+    m.img = null;
+    m.audio = null;
     m.reactions = {};
     persistRoom(r);
     renderChatLog(true);
   } catch (e) { toast("Couldn't delete: " + (e.message || "error")); }
+}
+
+async function pinMessage(r, m) {
+  try {
+    const pinPayload = { id: m.id, who: m.who, text: String(m.text || "").slice(0, 80) };
+    await post(r, "pin", { targetId: m.id, pinPayload });
+    r.store.pinned = pinPayload;
+    persistRoom(r);
+    updateTop();
+    toast("Message pinned!");
+  } catch (e) { toast("Couldn't pin: " + (e.message || "error")); }
+}
+
+function formatContent(text) {
+  const container = document.createDocumentFragment();
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = String(text || "").split(urlRegex);
+
+  parts.forEach((part) => {
+    if (urlRegex.test(part)) {
+      if (part.toLowerCase().match(/\.(gif)(\?.*)?$/i)) {
+        const gif = el("img", {
+          src: part,
+          className: "chatImg",
+          loading: "lazy",
+          onclick: () => openLightbox(part)
+        });
+        container.append(gif);
+      } else {
+        const a = el("a", {
+          href: part,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          className: "chatLink",
+          textContent: part
+        });
+        container.append(a);
+      }
+    } else if (part) {
+      container.append(document.createTextNode(part));
+    }
+  });
+  return container;
 }
 
 function buildMessage(r, m) {
@@ -887,7 +1173,18 @@ function buildMessage(r, m) {
   const who = m.who;
   const meta = el("div", { className: "meta" },
     el("b", { textContent: mine ? "You" : who }),
-    el("span", { textContent: new Date(m.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }));
+    el("span", { textContent: new Date(m.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
+  );
+
+  // Read receipt mark (#9)
+  if (mine && !m.deleted) {
+    const receipt = el("span", {
+      className: "receipt",
+      title: m.read ? "Read by peer" : "Delivered",
+      textContent: m.read ? "✓✓" : "✓"
+    });
+    meta.append(receipt);
+  }
 
   const bubble = el("div", { className: "bubble" + (m.deleted ? " deleted" : "") });
   if (m.replyTo && !m.deleted) {
@@ -905,7 +1202,27 @@ function buildMessage(r, m) {
     });
     bubble.append(q);
   }
-  bubble.append(meta, document.createTextNode(m.text));
+
+  bubble.append(meta);
+
+  if (m.text) {
+    bubble.append(formatContent(m.text));
+  }
+  if (m.img && !m.deleted) {
+    const imgEl = el("img", {
+      src: m.img,
+      className: "chatImg",
+      title: "Click to zoom",
+      onclick: () => openLightbox(m.img)
+    });
+    bubble.append(imgEl);
+  }
+  if (m.audio && !m.deleted) {
+    const audioWrap = el("div", { className: "audioPill" },
+      el("audio", { src: m.audio, controls: true })
+    );
+    bubble.append(audioWrap);
+  }
   if (m.edited && !m.deleted) bubble.append(el("span", { className: "editedTag", textContent: "(edited)" }));
 
   const actions = el("div", { className: "msgActions" });
@@ -931,16 +1248,13 @@ function buildMessage(r, m) {
       }
     });
     const replyBtn = el("button", { type: "button", className: "actBtn", title: "Reply", textContent: "↩", onclick: () => setReply(m) });
-    actions.append(reactBtn, replyBtn);
+    const pinBtn = el("button", { type: "button", className: "actBtn", title: "Pin", textContent: "📌", onclick: () => pinMessage(r, m) });
+    actions.append(reactBtn, replyBtn, pinBtn);
     if (mine) {
-      actions.append(
-        el("button", { type: "button", className: "actBtn", title: "Edit message", textContent: "✎", onclick: () => promptEditMessage(r, m) }),
-        el("button", { type: "button", className: "actBtn", title: "Delete message", textContent: "🗑", onclick: () => deleteMessage(r, m) })
-      );
+      if (m.text) actions.append(el("button", { type: "button", className: "actBtn", title: "Edit message", textContent: "✎", onclick: () => promptEditMessage(r, m) }));
+      actions.append(el("button", { type: "button", className: "actBtn", title: "Delete message", textContent: "🗑", onclick: () => deleteMessage(r, m) }));
     } else {
-      actions.append(
-        el("button", { type: "button", className: "actBtn", title: "Block " + who, textContent: "🚫", onclick: () => toggleBlockUser(who) })
-      );
+      actions.append(el("button", { type: "button", className: "actBtn", title: "Block " + who, textContent: "🚫", onclick: () => toggleBlockUser(who) }));
     }
   }
 
@@ -1019,8 +1333,8 @@ function renderChatLog(keepScroll) {
     l.append(el("div", {
       className: "system",
       textContent: isDm
-        ? "Direct message with " + r.meta.title + ". Hover any message to reply, react, edit, or delete."
-        : "Group “" + r.meta.title + "”. Hover any message to reply, react, edit, or delete."
+        ? "Direct message with " + r.meta.title + ". Photos, voice notes, calls & receipts active."
+        : "Group “" + r.meta.title + "”. Photos, voice notes & receipts active."
     }));
   } else if (!visible.length) {
     l.append(el("div", { className: "system", textContent: "No messages match “" + searchQuery + "”." }));
@@ -1041,8 +1355,10 @@ function renderWelcome() {
   $("topStatus").className = "status";
   $("searchBox").hidden = true;
   $("searchBox").value = "";
+  $("btnCall").hidden = true;
   $("btnClear").hidden = true;
   $("btnDelete").hidden = true;
+  $("pinnedHeader").hidden = true;
 
   const emblem = el("button", { type: "button", className: "emblemRing", title: "Start a chat", onclick: startAdd },
     el("div", { className: "emblemCore", textContent: "\u2709\uFE0F" }));
@@ -1062,18 +1378,18 @@ function renderWelcome() {
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
-        el("div", { className: "statLabel", textContent: "Active Chats" })
+        el("div", { className: "statLabel", textContent: "Voice & Realtime" }),
+        el("span", { className: "pulseDot", title: "WebRTC Online" })
       ),
-      el("div", { className: "statValue", textContent: unlockedChats + " / " + allChats.length }),
-      el("div", { className: "statSub", textContent: "Auto-unlocked via Vault" })
+      el("div", { className: "statValue", textContent: "P2P WebRTC" }),
+      el("div", { className: "statSub", textContent: "Direct Audio Streaming" })
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
-        el("div", { className: "statLabel", textContent: "Live Updates" }),
-        el("span", { className: "pulseDot", title: "Active live updates" })
+        el("div", { className: "statLabel", textContent: "Active Channels" })
       ),
-      el("div", { className: "statValue", textContent: "ONLINE" }),
-      el("div", { className: "statSub", textContent: "ntfy · SSE Stream" })
+      el("div", { className: "statValue", textContent: unlockedChats + " / " + allChats.length }),
+      el("div", { className: "statSub", textContent: "Auto-unlocked via Vault" })
     )
   );
 
@@ -1081,11 +1397,51 @@ function renderWelcome() {
   $("view").append(el("div", { className: "empty" },
     emblem,
     el("div", { className: "stageTitle", textContent: "Kairo" }),
-    el("p", { className: "stageSub", textContent: "Your contacts, custom profile, and chat keys are protected by your Master Vault password. Messages are encrypted before leaving your browser." }),
+    el("p", { className: "stageSub", textContent: "End-to-end encrypted messaging, media sharing, and direct WebRTC voice calling inside your browser." }),
     el("div", { className: "pillRow" }, start, help),
     stats
   ));
   renderSidebar();
+}
+
+// ---------- audio recording engine ----------
+async function toggleVoiceRecording(recBtn) {
+  if (isRecording) {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+    }
+    isRecording = false;
+    recBtn.classList.remove("rec");
+    recBtn.textContent = "🎙️";
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast("Microphone access is not supported in this browser tab.");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Audio = reader.result;
+        await dispatchMediaMessage(null, base64Audio);
+      };
+      reader.readAsDataURL(audioBlob);
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    recBtn.classList.add("rec");
+    recBtn.textContent = "⏹️";
+    toast("Recording voice note... Click again to send.");
+  } catch (err) {
+    toast("Microphone access denied: " + (err.message || "error"));
+  }
 }
 
 function openChat(id) {
@@ -1098,6 +1454,14 @@ function openChat(id) {
   $("searchBox").value = "";
   $("searchBox").hidden = false;
   r.unread = 0;
+
+  // Mark pending unread messages as read (#9)
+  const unreadMsgIds = r.store.msgs.filter((m) => !m.mine && !m.seenByMe).map((m) => { m.seenByMe = true; return m.id; });
+  if (unreadMsgIds.length) {
+    persistRoom(r);
+    post(r, "read", { ids: unreadMsgIds }).catch(() => {});
+  }
+
   const isDm = r.meta.type === "dm";
   const input = el("input", {
     id: "msg",
@@ -1105,10 +1469,35 @@ function openChat(id) {
     autocomplete: "off",
     value: getDraft(id),
     placeholder: "Message " + (isDm ? r.meta.title : "#" + r.meta.title),
-    oninput: (e) => { setDraft(id, e.target.value); renderSidebar(); }
+    oninput: (e) => {
+      setDraft(id, e.target.value);
+      renderSidebar();
+      // Throttled typing indicator broadcast (#8)
+      const now = Date.now();
+      if (now - lastTypingSent > 3500 && e.target.value.trim().length > 0) {
+        lastTypingSent = now;
+        post(r, "typing").catch(() => {});
+      }
+    }
   });
   const replyBar = el("div", { id: "replyBar", className: "replyBar", hidden: true });
-  const form = el("form", { id: "form", className: "composer" }, input, el("button", { textContent: "➤" }));
+  const photoBtn = el("button", {
+    type: "button",
+    className: "mediaBtn",
+    title: "Send photo / image",
+    textContent: "📷",
+    onclick: () => $("filePicker").click()
+  });
+  const voiceBtn = el("button", {
+    type: "button",
+    className: "mediaBtn",
+    title: "Record voice note",
+    textContent: "🎙️",
+    onclick: () => toggleVoiceRecording(voiceBtn)
+  });
+  const sendBtn = el("button", { type: "submit", className: "sendBtn", textContent: "➤" });
+  const typingBar = el("div", { id: "typingInd", className: "typingIndicator" });
+  const form = el("form", { id: "form", className: "composer" }, photoBtn, voiceBtn, input, sendBtn);
   form.onsubmit = sendMessage;
 
   const logEl = el("div", { id: "log", className: "log" });
@@ -1116,8 +1505,9 @@ function openChat(id) {
   userScrolledUp = false;
 
   $("view").innerHTML = "";
-  $("view").append(logEl, replyBar, form);
+  $("view").append(logEl, replyBar, typingBar, form);
   renderChatLog(false);
+  updateTypingDisplay();
   $("btnClear").hidden = false;
   $("btnDelete").hidden = false;
   updateTop();
@@ -1152,15 +1542,63 @@ async function onEvent(ev) {
     last: Date.now()
   });
 
+  // Real-time WebRTC Signaling (#21)
+  if (m.k === "rtc_offer" && m.sdp) {
+    promptIncomingCall(r, who, m.sdp);
+    return;
+  }
+  if (m.k === "rtc_answer" && m.sdp && peerConn && isCaller) {
+    await peerConn.setRemoteDescription(new RTCSessionDescription(m.sdp));
+    renderCallBanner("Audio connected");
+    return;
+  }
+  if (m.k === "rtc_candidate" && m.candidate && peerConn) {
+    try { await peerConn.addIceCandidate(new RTCIceCandidate(m.candidate)); } catch {}
+    return;
+  }
+  if (m.k === "rtc_hangup") {
+    toast("Call ended by " + who);
+    endCall();
+    return;
+  }
+
+  // Real-time typing indicators (#8)
+  if (m.k === "typing") {
+    handleTypingEvent(r, who);
+    return;
+  }
+
+  // Real-time read receipts (#9)
+  if (m.k === "read" && Array.isArray(m.ids)) {
+    let changed = false;
+    m.ids.forEach((targetId) => {
+      const target = r.store.msgs.find((x) => x.id === targetId);
+      if (target && target.mine && !target.read) {
+        target.read = true;
+        changed = true;
+      }
+    });
+    if (changed) {
+      persistRoom(r);
+      if (isActive) renderChatLog(true);
+    }
+    return;
+  }
+
   if (m.k === "m") {
     if (!m.id || r.seen.has(m.id)) return;
     r.seen.add(m.id);
     const rec = {
       id: m.id,
       who,
+      authorId: m.i,
       av: String(m.av || "").slice(0, 4),
-      text: String(m.text || "").slice(0, MAX_TEXT),
+      text: m.text ? String(m.text).slice(0, MAX_TEXT) : "",
+      img: m.img || null,
+      audio: m.audio || null,
       mine: false,
+      read: false,
+      seenByMe: isActive,
       time: m.t || Date.now(),
       replyTo: m.replyTo || null,
       reactions: {}
@@ -1169,16 +1607,30 @@ async function onEvent(ev) {
     if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
     persistRoom(r);
     playNotifSound();
-    if (isActive) renderChatLog(true); else { r.unread++; renderSidebar(); }
+
+    // If chat is open, immediately send read receipt back
+    if (isActive) {
+      post(r, "read", { ids: [m.id] }).catch(() => {});
+      renderChatLog(true);
+    } else {
+      r.unread++;
+      renderSidebar();
+    }
     return;
   }
   if (m.k === "react" && m.targetId && m.emoji) {
     applyReaction(r, m.targetId, String(m.emoji).slice(0, 8), who);
     return;
   }
+  if (m.k === "pin") {
+    r.store.pinned = m.pinPayload || null;
+    persistRoom(r);
+    if (isActive) updateTop();
+    return;
+  }
   if (m.k === "edit" && m.targetId) {
     const target = r.store.msgs.find((x) => x.id === m.targetId);
-    if (target && !target.mine && !target.deleted) {
+    if (target && target.authorId === m.i && !target.deleted) {
       target.text = String(m.text || "").slice(0, MAX_TEXT);
       target.edited = true;
       persistRoom(r);
@@ -1188,9 +1640,11 @@ async function onEvent(ev) {
   }
   if (m.k === "del" && m.targetId) {
     const target = r.store.msgs.find((x) => x.id === m.targetId);
-    if (target && !target.mine) {
+    if (target && target.authorId === m.i) {
       target.text = "This message was deleted.";
       target.deleted = true;
+      target.img = null;
+      target.audio = null;
       target.reactions = {};
       persistRoom(r);
       if (isActive) renderChatLog(true);
@@ -1237,7 +1691,7 @@ function resubscribe() {
   es.onerror = () => {
     setStatus("reconnecting…", "bad");
     if (!everOpened) {
-      setDiag("Can't reach the relay (" + SERVER.replace("https://", "") + "). Check you're online and that the school hasn't blocked it. If you pasted this on a busy website (like YouTube or Google), that site may block it: use https://example.com instead.");
+      setDiag("Can't reach the relay (" + SERVER.replace("https://", "") + "). Check your connection.");
     }
   };
   es.onmessage = (e) => {
@@ -1284,21 +1738,23 @@ function modal(title, hint, fields, okText, onOk) {
 
 function checkSecure() {
   if (!window.crypto || !crypto.subtle) {
-    throw new Error("This tab blocks encryption. Close it, open https://example.com in a new tab (not a blank tab), and paste the script into the Console there.");
+    throw new Error("This tab blocks encryption. Open https://example.com in a new tab and paste the script there.");
   }
 }
 
 function showHelp() {
   const steps = [
     "Your Account Vault encrypts your profile, contacts, and room passwords with one Master Password.",
-    "Hover any message in chat to Reply (↩), React (😀), Edit (✎), Delete (🗑), or Block (🚫).",
-    "Change your online status, avatar emoji, or color theme anytime from the left sidebar.",
+    "Click 📞 Call in any DM to start a direct, encrypted peer-to-peer audio call.",
+    "Typing indicators and read receipts (✓ / ✓✓) keep you in sync in real time.",
+    "Share photos (📷), voice notes (🎙️), and animated GIFs (.gif links).",
+    "Hover any message to Reply (↩), React (😀), Pin (📌), Edit (✎), Delete (🗑), or Block (🚫)."
   ];
   const shortcuts = [
     ["Alt + N", "Start a new Direct Message"],
     ["Alt + G", "Create or join a Group"],
     ["Ctrl + K", "Focus chat search box"],
-    ["Esc", "Close dialog / cancel reply / clear search"],
+    ["Esc", "Close dialog / cancel reply / clear search"]
   ];
   const scList = el("div", { style: "display:grid;gap:6px;margin-top:8px" },
     ...shortcuts.map(([k, desc]) => el("div", { style: "display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted)" },
@@ -1307,18 +1763,17 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.2.9 Guide" }),
+    el("h2", { textContent: "Kairo v1.4.0 Guide" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
     el("div", { className: "row" },
-      el("button", { className: "btn secondary", textContent: "Take Survey", onclick: () => promptSurvey(true) }),
       el("button", { className: "btn", textContent: "Got it", onclick: closeModal })
     ));
   showModal(box);
 }
 
-// ---------- rich profile & status modal (#6 & #7) ----------
+// ---------- rich profile & status modal ----------
 function profile() {
   if (!vaultKey) return promptVaultLogin();
   const box = el("form", { className: "modal" });
@@ -1333,7 +1788,7 @@ function profile() {
     el("option", { value: "online", textContent: "🟢 Online" }),
     el("option", { value: "idle", textContent: "🌙 Idle / Away" }),
     el("option", { value: "dnd", textContent: "⛔ Do Not Disturb" }),
-    el("option", { value: "invisible", textContent: "👻 Invisible (Appear Offline)" })
+    el("option", { value: "invisible", textContent: "👻 Invisible (Pauses pings, saves daily quota)" })
   );
   stSel.value = me.status || "online";
 
@@ -1432,7 +1887,30 @@ function startGroup() {
     (v) => createChat("group", v.f, v.p, v.i));
 }
 
-// ---------- actions ----------
+// ---------- actions & media sending ----------
+async function dispatchMediaMessage(imgBase64, audioBase64) {
+  const r = rooms.get(activeTopic);
+  if (!r || !r.key) return;
+  const id = rnd();
+  const replyPayload = replyingTo ? Object.assign({}, replyingTo) : null;
+  try {
+    await post(r, "m", { id, text: "", img: imgBase64, audio: audioBase64, replyTo: replyPayload });
+  } catch (err) {
+    addSystem("Couldn't send media: " + (err && err.message ? err.message : "network error"));
+    return;
+  }
+  r.seen.add(id);
+  const rec = { id, who: me.name, authorId: me.id, av: me.avatar || "", text: "", img: imgBase64, audio: audioBase64, mine: true, read: false, time: Date.now(), replyTo: replyPayload, reactions: {} };
+  r.store.msgs.push(rec);
+  if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
+  persistRoom(r);
+  setReply(null);
+  userScrolledUp = false;
+  renderChatLog(false);
+  scrollToBottom(true);
+  renderSidebar();
+}
+
 async function sendMessage(e) {
   e.preventDefault();
   const r = rooms.get(activeTopic);
@@ -1448,7 +1926,7 @@ async function sendMessage(e) {
     return;
   }
   r.seen.add(id);
-  const rec = { id, who: me.name, av: me.avatar || "", text, mine: true, time: Date.now(), replyTo: replyPayload, reactions: {} };
+  const rec = { id, who: me.name, authorId: me.id, av: me.avatar || "", text, mine: true, read: false, time: Date.now(), replyTo: replyPayload, reactions: {} };
   r.store.msgs.push(rec);
   if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
   persistRoom(r);
@@ -1460,6 +1938,22 @@ async function sendMessage(e) {
   scrollToBottom(true);
   renderSidebar();
 }
+
+$("btnCall").onclick = startCall;
+
+$("filePicker").onchange = async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    toast("Compressing photo...");
+    const compressed = await compressImage(file);
+    await dispatchMediaMessage(compressed, null);
+  } catch (ex) {
+    toast("Failed to load photo: " + (ex.message || "error"));
+  } finally {
+    e.target.value = "";
+  }
+};
 
 $("searchBox").oninput = (e) => {
   searchQuery = e.target.value;
@@ -1498,6 +1992,7 @@ $("selfCard").onclick = profile;
 function onKeyDown(e) {
   if (!document.getElementById("rc-root")) return;
   if (e.key === "Escape") {
+    if ($("lightboxHost").innerHTML) { $("lightboxHost").innerHTML = ""; return; }
     if ($("modalHost").innerHTML && vaultKey) { closeModal(); return; }
     if (replyingTo) { setReply(null); return; }
     if (searchQuery) { $("searchBox").value = ""; searchQuery = ""; renderChatLog(true); return; }
@@ -1518,6 +2013,7 @@ root.addEventListener("click", () => {
 
 $("exit").onclick = () => {
   document.title = origTitle;
+  if (peerConn) endCall();
   window.removeEventListener("keydown", onKeyDown);
   timers.forEach(clearInterval);
   clearTimeout(readyTimer);
