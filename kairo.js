@@ -1,5 +1,5 @@
-// Kairo v1.5.3 (Render Cloud Integration & Zero Limits)
-// Paste this entire script into your browser's Developer Tools Console.
+// Kairo v1.5.5 (Reactive Relay Indicator & Connection Sync)
+// Paste this into your console or replace C:\DeviceLock\kairo\kairo.js
 
 (() => {
 "use strict";
@@ -41,6 +41,7 @@ const CSS = `
 #rc-root .beta{font-family:var(--font-mono);font-size:.6rem;font-weight:600;color:var(--accent);background:rgba(88,101,242,.14);border:1px solid rgba(88,101,242,.4);border-radius:6px;padding:1px 6px}
 #rc-root .brandSub{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 #rc-root .brandSub.ok{color:var(--green);font-weight:600}
+#rc-root .brandSub.warn{color:var(--amber);font-weight:600}
 #rc-root .brandSub.bad{color:var(--red)}
 #rc-root .iconBtn{flex:none;border:0;background:transparent;color:var(--muted);font-size:16px;border-radius:8px;width:30px;height:30px;display:grid;place-items:center;transition:background .15s,color .15s}
 #rc-root .iconBtn:hover{background:var(--panel);color:var(--text)}
@@ -142,7 +143,12 @@ const CSS = `
 #rc-root .statLabel{font-family:var(--font-brand);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 #rc-root .statValue{font-family:var(--font-brand);font-size:1.12rem;font-weight:800;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px;line-height:1.2}
 #rc-root .statSub{font-size:.72rem;color:var(--muted);font-weight:500}
-#rc-root .pulseDot{position:relative;width:10px;height:10px;flex:none;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:kairoBlink 1.6s infinite ease-in-out}
+
+/* REAL-TIME RELAY GLOW PULSE */
+#rc-root .pulseDot{position:relative;width:10px;height:10px;flex:none;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber);animation:kairoBlink 1.6s infinite ease-in-out;transition:background .25s ease,box-shadow .25s ease}
+#rc-root .pulseDot.connected{background:var(--green);box-shadow:0 0 10px var(--green)}
+#rc-root .pulseDot.paused{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+#rc-root .pulseDot.error{background:var(--red);box-shadow:0 0 10px var(--red);animation:none}
 @keyframes kairoBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.88)}}
 
 #rc-root .log{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px;display:flex;flex-direction:column;gap:10px;background:var(--chat);scroll-behavior:auto}
@@ -235,7 +241,7 @@ const MARKUP = `
     <div class="brand">
       <div class="logo">k.</div>
       <div class="brandText">
-        <div class="brandTitle">Kairo<span class="beta">Render Cloud</span></div>
+        <div class="brandTitle">Kairo<span class="beta">v1.5.5</span></div>
         <div id="brandSub" class="brandSub">vault locked</div>
       </div>
     </div>
@@ -246,6 +252,7 @@ const MARKUP = `
       <button id="addBtn" class="quickAction"><span class="quickIcon">＋</span><span class="quickLabel">New Chat (DM)</span></button>
       <button id="groupBtn" class="quickAction"><span class="quickIcon">＃</span><span class="quickLabel">New Group</span></button>
       <button id="themeBtn" class="quickAction"><span class="quickIcon">🎨</span><span class="quickLabel">Themes & Colors</span></button>
+      <button id="cloudSyncBtn" class="quickAction"><span class="quickIcon">☁️</span><span class="quickLabel">Sync Cloud Vault</span></button>
       <button id="exportVaultBtn" class="quickAction"><span class="quickIcon">📤</span><span class="quickLabel">Export Vault</span></button>
       <button id="blockedBtn" class="quickAction"><span class="quickIcon">🚫</span><span class="quickLabel">Blocked Users</span></button>
       <button id="lockVaultBtn" class="quickAction"><span class="quickIcon">🔐</span><span class="quickLabel">Lock Vault</span></button>
@@ -310,6 +317,8 @@ const CLOAK_PRESETS = {
 };
 
 let vaultKey = null;
+let currentSessionPassword = "";
+let relayStatusState = "paused"; // "connected" | "paused" | "error"
 const te = new TextEncoder();
 const td = new TextDecoder();
 const me = { id: rnd(), userKey: "", name: "", avatar: "", bio: "", status: "online" };
@@ -387,6 +396,20 @@ function toast(text, ms) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => x.classList.remove("show"), ms || 1800);
 }
+
+function setRelayState(st) {
+  relayStatusState = st;
+  const dot = $("relayDot");
+  const val = $("relayStatVal");
+  if (dot) {
+    dot.className = "pulseDot " + st;
+    dot.title = st === "connected" ? "Relay Connected" : (st === "paused" ? "Relay Paused / Connecting" : "Relay Unreachable");
+  }
+  if (val) {
+    val.textContent = st === "connected" ? "ACTIVE" : (st === "paused" ? "CONNECTING" : "OFFLINE");
+  }
+}
+
 function setStatus(text, cls) {
   const s = $("brandSub");
   s.textContent = text;
@@ -513,7 +536,7 @@ function compressImage(file) {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.65));
+        resolve(canvas.toDataURL("image/jpeg", 0.6));
       };
       img.src = reader.result;
     };
@@ -546,6 +569,44 @@ function applyTheme(t) {
   }
 }
 
+async function getCloudVaultTopic(userKey, password) {
+  return "kairo_vlt_" + (await sha256Hex("cloud_vault|" + sanitizeKey(userKey) + "|" + password)).slice(0, 24);
+}
+
+async function syncVaultToCloud(password) {
+  if (!vaultKey || !me.userKey || !password) return;
+  try {
+    const topic = await getCloudVaultTopic(me.userKey, password);
+    const rawVault = lsGet(LS + "vault_data");
+    if (!rawVault) return;
+    await fetch(SERVER + "/" + topic, {
+      method: "POST",
+      body: rawVault,
+      headers: { "Title": "Vault Backup", "Tags": "lock" }
+    });
+  } catch (err) {
+    console.warn("[Kairo] Cloud backup failed:", err);
+  }
+}
+
+async function fetchVaultFromCloud(userKey, password) {
+  try {
+    const topic = await getCloudVaultTopic(userKey, password);
+    const resp = await fetch(SERVER + "/" + topic + "/json?poll=1&since=all");
+    if (!resp.ok) return null;
+    const text = (await resp.text()).trim();
+    if (!text) return null;
+    const lines = text.split("\n").filter(Boolean);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const parsed = JSON.parse(lines[i]);
+        if (parsed.message) return parsed.message;
+      } catch {}
+    }
+  } catch {}
+  return null;
+}
+
 async function saveVault() {
   if (!vaultKey) return;
   const payload = {
@@ -557,6 +618,9 @@ async function saveVault() {
   try {
     const enc = await seal(vaultKey, payload);
     lsSet(LS + "vault_data", enc);
+    if (currentSessionPassword) {
+      syncVaultToCloud(currentSessionPassword);
+    }
   } catch {}
 }
 
@@ -588,7 +652,6 @@ async function unlockAllSavedRooms() {
       try { r.key = await deriveKey(r.meta.room, r.meta.pw); } catch {}
     }
   }
-  setStatus("connected · zero limits", "ok");
   resubscribe();
   renderSidebar();
   if (!activeTopic) renderWelcome();
@@ -597,53 +660,86 @@ async function unlockAllSavedRooms() {
 function promptVaultLogin() {
   checkSecure();
   const rawVault = lsGet(LS + "vault_data");
-  if (rawVault) {
+  const lastKey = lsGet(LS + "last_key") || "";
+
+  if (rawVault || lastKey) {
     const box = el("form", { className: "modal" });
     box.append(
       el("div", { className: "modalHeader" },
         el("div", { className: "modalBadge", textContent: "k." }),
         el("div", {},
           el("h2", { textContent: "Unlock Kairo Vault" }),
-          el("p", { textContent: "AES-256 local encrypted session" })
+          el("p", { textContent: "Zero-knowledge session restore" })
         )
       ),
-      el("p", { textContent: "Enter your Master Password to decrypt your User Key, contacts, and chat keys." }),
-      el("h3", { textContent: "Master Password" })
+      el("p", { textContent: "Enter your User Key and Master Password. If your device was cleared, Kairo will restore your channels automatically." })
     );
+
+    const keyInp = el("input", { type: "text", placeholder: "Your User Key (e.g. arvi)", value: lastKey, maxLength: 20 });
     const pwInp = el("input", { type: "password", placeholder: "Enter master password...", maxLength: 80 });
     const err = el("p", { className: "err" });
-    const unlockBtn = el("button", { type: "submit", className: "btn", textContent: "Unlock Vault" });
+    const unlockBtn = el("button", { type: "submit", className: "btn", textContent: "Unlock & Sync" });
 
     const subRow = el("div", { className: "subRow" },
       el("button", {
         type: "button",
         className: "linkBtn",
-        textContent: "📥 Import Vault String",
+        textContent: "📥 Paste Backup String",
         onclick: promptImportVault
       }),
       el("button", {
         type: "button",
         className: "linkBtn danger",
-        textContent: "Reset Local Vault",
+        textContent: "New Account",
         onclick: () => {
-          if (!confirm("Wipe your saved vault on this browser and start fresh?")) return;
           lsDel(LS + "vault_data");
+          lsDel(LS + "last_key");
           rooms.clear();
           promptVaultLogin();
         }
       })
     );
 
-    box.append(pwInp, err, el("div", { className: "row" }, unlockBtn), subRow);
+    box.append(
+      el("h3", { textContent: "User Key" }), keyInp,
+      el("h3", { textContent: "Master Password" }), pwInp,
+      err,
+      el("div", { className: "row" }, unlockBtn),
+      subRow
+    );
+
     box.onsubmit = async (e) => {
       e.preventDefault();
       unlockBtn.disabled = true;
-      err.textContent = "Decrypting vault...";
+      const uKey = sanitizeKey(keyInp.value);
+      const pw = pwInp.value;
+      if (!uKey) { err.textContent = "Enter your User Key."; unlockBtn.disabled = false; return; }
+      if (!pw) { err.textContent = "Enter your Master Password."; unlockBtn.disabled = false; return; }
+
+      err.textContent = "Locating vault snapshot...";
+      let currentVault = lsGet(LS + "vault_data");
+
+      if (!currentVault) {
+        err.textContent = "Fetching backup from Render relay...";
+        currentVault = await fetchVaultFromCloud(uKey, pw);
+        if (currentVault) lsSet(LS + "vault_data", currentVault);
+      }
+
+      if (!currentVault) {
+        err.textContent = "No vault found locally or on the relay for @" + uKey;
+        unlockBtn.disabled = false;
+        return;
+      }
+
       try {
-        const k = await deriveKey("kairo-master-vault", pwInp.value);
-        const data = await unseal(k, rawVault);
+        const k = await deriveKey("kairo-master-vault", pw);
+        const data = await unseal(k, currentVault);
         vaultKey = k;
+        currentSessionPassword = pw;
+        lsSet(LS + "last_key", uKey);
+
         Object.assign(me, data.me || {});
+        if (!me.userKey) me.userKey = uKey;
         Object.assign(settings, data.settings || {});
         applyTheme(settings.theme);
         applyCloak(settings.cloak);
@@ -652,11 +748,12 @@ function promptVaultLogin() {
         (data.chats || []).forEach((meta) => {
           if (meta && meta.topic) rooms.set(meta.topic, makeRoom(meta));
         });
+
         closeModal();
         toast("Welcome back, @" + (me.userKey || me.name) + "!");
         await unlockAllSavedRooms();
       } catch {
-        err.textContent = "Incorrect Master Password.";
+        err.textContent = "Incorrect password or corrupted vault.";
         unlockBtn.disabled = false;
       }
     };
@@ -669,10 +766,10 @@ function promptVaultLogin() {
         el("div", { className: "modalBadge", textContent: "k." }),
         el("div", {},
           el("h2", { textContent: "Initialize Kairo Vault" }),
-          el("p", { textContent: "Zero-knowledge local account" })
+          el("p", { textContent: "Persistent encrypted account" })
         )
       ),
-      el("p", { textContent: "Set a unique User Key (lowercase handle) and Master Password. All keys stay inside your browser." })
+      el("p", { textContent: "Set a unique User Key (lowercase handle) and Master Password. Your vault syncs encrypted snapshots to Render automatically." })
     );
     const keyInp = el("input", { type: "text", placeholder: "Permanent Key (e.g. arvi, user_1)", maxLength: 20 });
     const nameInp = el("input", { type: "text", placeholder: "Display Name (e.g. Arvi)", maxLength: 20 });
@@ -683,11 +780,11 @@ function promptVaultLogin() {
     const createBtn = el("button", { type: "submit", className: "btn", textContent: "Create Encrypted Vault" });
 
     const subRow = el("div", { className: "subRow" },
-      el("span", { style: "font-size:.74rem;color:var(--muted)", textContent: "Already have a backup?" }),
+      el("span", { style: "font-size:.74rem;color:var(--muted)", textContent: "Already have a vault?" }),
       el("button", {
         type: "button",
         className: "linkBtn",
-        textContent: "📥 Import Existing Vault",
+        textContent: "📥 Restore Existing Vault",
         onclick: promptImportVault
       })
     );
@@ -713,15 +810,17 @@ function promptVaultLogin() {
       createBtn.disabled = true;
       try {
         vaultKey = await deriveKey("kairo-master-vault", pw);
+        currentSessionPassword = pw;
         me.userKey = uKey;
         me.name = disp || uKey;
         me.avatar = avInp.value.trim().slice(0, 4);
         me.bio = bioInp.value.trim().slice(0, 50);
+        lsSet(LS + "last_key", uKey);
         await saveVault();
-        setStatus("connected · zero limits", "ok");
         closeModal();
         renderSidebar();
         renderWelcome();
+        resubscribe();
       } catch (ex) {
         err.textContent = ex.message || "Could not create vault.";
         createBtn.disabled = false;
@@ -734,10 +833,12 @@ function promptVaultLogin() {
 
 function lockVaultSession() {
   vaultKey = null;
+  currentSessionPassword = "";
   if (peerConn) endCall();
   if (es) { es.close(); es = null; esKey = ""; }
   rooms.forEach((r) => { r.key = null; r.ready = false; });
   activeTopic = null;
+  setRelayState("paused");
   setStatus("vault locked");
   renderWelcome();
   promptVaultLogin();
@@ -885,7 +986,6 @@ function showThemeSettings() {
 }
 
 function persistRoom(r) { lsSet(LS + "t:" + r.meta.topic, JSON.stringify(r.store)); }
-function saveChats() { saveVault(); }
 function getDraft(topic) { return lsGet(LS + "draft:" + topic) || ""; }
 function setDraft(topic, val) {
   if (!val) lsDel(LS + "draft:" + topic);
@@ -1672,8 +1772,8 @@ function renderChatLog(keepScroll) {
     l.append(el("div", {
       className: "system",
       textContent: isDm
-        ? "Direct message with @" + r.meta.title + ". AES-256 cloud encrypted, voice calls & zero rate limits."
-        : "Group “" + r.meta.title + "”. AES-256 cloud encrypted & zero rate limits."
+        ? "Direct message with @" + r.meta.title + ". End-to-end encrypted, zero rate limits."
+        : "Group “" + r.meta.title + "”. End-to-end encrypted, zero rate limits."
     }));
   } else if (!visible.length) {
     l.append(el("div", { className: "system", textContent: "No messages match “" + searchQuery + "”." }));
@@ -1708,20 +1808,31 @@ function renderWelcome() {
   const allChats = Array.from(rooms.values());
   const unlockedChats = allChats.filter((r) => r.key).length;
 
+  const dot = el("span", {
+    id: "relayDot",
+    className: "pulseDot " + relayStatusState,
+    title: relayStatusState === "connected" ? "Relay Connected" : (relayStatusState === "paused" ? "Relay Paused" : "Relay Unreachable")
+  });
+  const relayVal = el("div", {
+    id: "relayStatVal",
+    className: "statValue",
+    textContent: relayStatusState === "connected" ? "ACTIVE" : (relayStatusState === "paused" ? "CONNECTING" : "OFFLINE")
+  });
+
   const stats = el("div", { className: "statsGrid" },
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
         el("div", { className: "statLabel", textContent: "Account Vault" })
       ),
-      el("div", { className: "statValue", textContent: vaultKey ? "UNLOCKED" : "LOCKED" }),
-      el("div", { className: "statSub", textContent: "AES-256 · Portable Vault" })
+      el("div", { className: "statValue", textContent: vaultKey ? "SYNCED" : "LOCKED" }),
+      el("div", { className: "statSub", textContent: "AES-256 · Auto Cloud Backup" })
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
         el("div", { className: "statLabel", textContent: "Cloud Relay" }),
-        el("span", { className: "pulseDot", title: "Render Instance Live" })
+        dot
       ),
-      el("div", { className: "statValue", textContent: "ACTIVE" }),
+      relayVal,
       el("div", { className: "statSub", textContent: "Private Relay (Zero Limits)" })
     ),
     el("div", { className: "statCard" },
@@ -1737,7 +1848,7 @@ function renderWelcome() {
   $("view").append(el("div", { className: "empty" },
     emblem,
     el("div", { className: "stageTitle", textContent: "Kairo" }),
-    el("p", { className: "stageSub", textContent: "End-to-end encrypted messaging, Markdown code blocks, WebRTC voice calls, and private Render relay." }),
+    el("p", { className: "stageSub", textContent: "Encrypted messaging, Markdown code blocks, WebRTC voice calls, and automatic cloud vault synchronization." }),
     el("div", { className: "pillRow" }, start, help),
     stats
   ));
@@ -2006,25 +2117,36 @@ async function onEvent(ev) {
 
 function resubscribe() {
   const open = Array.from(rooms.values()).filter((r) => r.key);
-  const k = open.map((r) => r.meta.topic).join(",");
-  if (k === esKey) {
-    if (!open.length) setStatus(vaultKey ? "vault unlocked" : "vault locked", vaultKey ? "ok" : "");
+  
+  // Use a heartbeat topic to keep the connection hot even before rooms are made
+  const k = open.length ? open.map((r) => r.meta.topic).join(",") : "kairo_hb_" + (me.userKey || "guest");
+  
+  if (k === esKey && es && es.readyState === EventSource.OPEN) {
     return;
   }
+  
   if (es) { es.close(); es = null; }
   esKey = k;
   open.forEach((r) => { r.ready = false; });
-  if (!open.length) {
-    setStatus(vaultKey ? "vault unlocked" : "vault locked", vaultKey ? "ok" : "");
+  
+  const mins = open.map((r) => r.store.lastSrv);
+  const since = (open.length && mins.every((x) => x > 0)) ? Math.min.apply(null, mins) : "6h";
+  
+  everOpened = false;
+  setRelayState("paused");
+  setStatus("connecting…", "warn");
+  
+  try {
+    es = new EventSource(SERVER + "/" + k + "/sse?since=" + since);
+  } catch (err) {
+    setRelayState("error");
+    setStatus("offline · relay error", "bad");
     return;
   }
-  const mins = open.map((r) => r.store.lastSrv);
-  const since = mins.every((x) => x > 0) ? Math.min.apply(null, mins) : "6h";
-  everOpened = false;
-  setStatus("connecting…");
-  es = new EventSource(SERVER + "/" + k + "/sse?since=" + since);
+
   es.onopen = () => {
     everOpened = true;
+    setRelayState("connected");
     setStatus("connected · zero limits", "ok");
     setDiag("");
     clearTimeout(readyTimer);
@@ -2034,14 +2156,17 @@ function resubscribe() {
         r.ready = true;
         if (!r.helloSent) { r.helloSent = true; post(r, "h").catch(() => {}); }
       });
-    }, 2000);
+    }, 1500);
   };
+
   es.onerror = () => {
+    setRelayState("error");
     setStatus("reconnecting…", "bad");
     if (!everOpened) {
-      setDiag("Can't reach relay (" + SERVER.replace("https://", "") + "). Retrying...");
+      setDiag("Cannot reach relay (" + SERVER.replace("https://", "") + "). Service may be sleeping.");
     }
   };
+
   es.onmessage = (e) => {
     let ev;
     try { ev = JSON.parse(e.data); } catch { return; }
@@ -2091,10 +2216,10 @@ function checkSecure() {
 
 function showHelp() {
   const steps = [
-    "Your Account Vault stores your permanent User Key, display name, and chat keys with one Master Password.",
-    "Click 'Export Vault' (📤) to backup your encrypted session to transfer to another device.",
-    "Messages and calls route through your dedicated private Render relay without rate limits.",
-    "Use **bold**, *italic*, ~strike~, `inline code`, or ```code blocks``` in messages.",
+    "Your User Key (@handle) and Master Password automatically sync your channels to the cloud.",
+    "The pulse dot on the Overview card shows live relay health: Green = Active, Yellow = Connecting/Paused, Red = Error.",
+    "If your browser cache is wiped, enter your handle and password to restore all channels instantly.",
+    "Use 'Sync Cloud Vault' (☁️) in navigation to force an instant backup.",
     "Click 📞 Call in any DM to start an animated WebRTC voice call."
   ];
   const shortcuts = [
@@ -2110,7 +2235,7 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.5.3 Guide", style: "margin-bottom:8px" }),
+    el("h2", { textContent: "Kairo v1.5.5 Guide", style: "margin-bottom:8px" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
@@ -2125,7 +2250,7 @@ function profile() {
   const box = el("form", { className: "modal" });
   box.append(
     el("h2", { textContent: "Your Profile & Presence ◉", style: "margin-bottom:6px" }),
-    el("p", { textContent: "Permanent User Key: @" + (me.userKey || me.name) + ". You can update your display name and status anytime." })
+    el("p", { textContent: "Permanent User Key: @" + (me.userKey || me.name) + ". Changes sync to your cloud vault automatically." })
   );
   const nameInp = el("input", { type: "text", value: me.name, maxLength: 20 });
   const avInp = el("input", { type: "text", value: me.avatar || "", placeholder: "Emoji or initials (e.g. ⚡, AK)", maxLength: 4 });
@@ -2164,7 +2289,7 @@ function profile() {
     if (activeTopic) renderChatLog(true);
     else renderWelcome();
     closeModal();
-    toast("Profile updated!");
+    toast("Profile updated and synced!");
   };
   showModal(box);
 }
@@ -2285,7 +2410,7 @@ async function sendMessage(e) {
   try {
     await post(r, "m", { id, text, replyTo: replyPayload });
   } catch (err) {
-    addSystem("Failed to deliver message to cloud relay: " + (err && err.message ? err.message : "error"));
+    addSystem("Failed to deliver message: " + (err && err.message ? err.message : "error"));
   }
 }
 
@@ -2330,6 +2455,11 @@ $("btnDelete").onclick = async () => {
 };
 
 $("themeBtn").onclick = showThemeSettings;
+$("cloudSyncBtn").onclick = () => {
+  if (!currentSessionPassword) return toast("Unlock your vault first.");
+  syncVaultToCloud(currentSessionPassword);
+  toast("Vault backed up to cloud!");
+};
 $("exportVaultBtn").onclick = exportVaultString;
 $("overviewBtn").onclick = renderWelcome;
 $("addBtn").onclick = startAdd;
@@ -2387,4 +2517,5 @@ timers.push(setInterval(() => { renderSidebar(); updateTop(); }, 5000));
 
 renderWelcome();
 promptVaultLogin();
+resubscribe();
 })();
