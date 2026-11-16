@@ -2482,5 +2482,179 @@ renderWelcome();
 promptVaultLogin();
 checkForUpdate();
 startAdminFeed();
+// --- INFRASTRUCTURE BRIEFING MODAL STYLES ---
+if (!document.getElementById("kairo-infra-style")) {
+  const infraStyle = document.createElement("style");
+  infraStyle.id = "kairo-infra-style";
+  infraStyle.textContent = `
+    #rc-root .infraModal{width:min(580px,94vw);max-height:92vh;overflow-y:auto;background:radial-gradient(circle at top left,rgba(88,101,242,.12),transparent 60%),#141519;color:var(--text);border:1px solid rgba(88,101,242,.35);border-radius:22px;padding:28px;box-shadow:0 28px 80px rgba(0,0,0,.75),0 0 35px rgba(88,101,242,.15)}
+    #rc-root .infraHeader{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    #rc-root .infraLogo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#2e389e);display:grid;place-items:center;font-family:var(--font-brand);font-weight:800;font-size:20px;color:#fff;box-shadow:0 8px 24px rgba(88,101,242,.4)}
+    #rc-root .infraTitle{font-family:var(--font-brand);font-size:1.15rem;font-weight:800;letter-spacing:-.02em;color:#fff}
+    #rc-root .infraSub{font-family:var(--font-mono);font-size:.7rem;color:var(--accent);letter-spacing:.04em;text-transform:uppercase}
+    #rc-root .infraDesc{font-size:.86rem;color:var(--muted);line-height:1.55;margin-bottom:18px}
+    #rc-root .infraDiagram{background:rgba(0,0,0,.35);border:1px dashed var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;font-family:var(--font-mono);font-size:.74rem}
+    #rc-root .infraNode{display:flex;flex-direction:column;align-items:center;gap:4px}
+    #rc-root .infraArrow{color:var(--red);font-weight:800;font-size:.9rem}
+    #rc-root .infraGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+    #rc-root .infraCard{background:#1a1c22;border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+    #rc-root .infraCard.danger{border-color:rgba(239,68,68,.3);background:linear-gradient(180deg,rgba(239,68,68,.06),transparent)}
+    #rc-root .infraCard.success{border-color:rgba(35,165,90,.3);background:linear-gradient(180deg,rgba(35,165,90,.06),transparent)}
+    #rc-root .infraTag{font-family:var(--font-brand);font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    #rc-root .infraTag.red{color:var(--red)}
+    #rc-root .infraTag.green{color:var(--green)}
+    #rc-root .infraCardText{font-size:.76rem;color:var(--text);line-height:1.45}
+    #rc-root .infraProgressBar{height:5px;width:100%;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:4px}
+    #rc-root .infraProgressFill{height:100%;width:78%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:999px;animation:kairoProgress 2s infinite ease-in-out}
+    @keyframes kairoProgress{0%,100%{opacity:.6;transform:scaleX(.95)}50%{opacity:1;transform:scaleX(1)}}
+  `;
+  (document.head || document.documentElement).appendChild(infraStyle);
+}
 
+// --- MINIMALIST FLOATING NOTICE & BRIEFING ---
+if (!document.getElementById("kairo-notice-style")) {
+  const noticeStyle = document.createElement("style");
+  noticeStyle.id = "kairo-notice-style";
+  noticeStyle.textContent = `
+    #rc-root .floatingNoticeWindow {
+      position: absolute;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      background: rgba(22, 23, 27, 0.92);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      font-size: 0.82rem;
+      user-select: none;
+      max-width: min(740px, 92%);
+      white-space: nowrap;
+    }
+    #rc-root .floatingNoticeWindow b {
+      color: #fff;
+      font-family: var(--font-brand);
+      font-size: 0.76rem;
+    }
+    #rc-root .noticePillBtn {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-family: var(--font-brand);
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    #rc-root .noticePillBtn:hover {
+      background: var(--input);
+      border-color: var(--accent);
+    }
+    #rc-root .miniBriefingModal {
+      width: min(440px, 92vw);
+      background: var(--side);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    #rc-root .miniBriefingHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #rc-root .miniBriefingHeader h2 {
+      font-family: var(--font-brand);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+    }
+    #rc-root .miniBriefingBody {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.55;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #rc-root .miniBriefingCard {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.76rem;
+      color: var(--text);
+    }
+  `;
+  (document.head || document.documentElement).appendChild(noticeStyle);
+}
+
+function showMiniBriefing() {
+  const box = el("div", { className: "miniBriefingModal" });
+  
+  const header = el("div", { className: "miniBriefingHeader" },
+    el("h2", { textContent: "Relay Migration Status" }),
+    el("button", {
+      type: "button",
+      className: "iconBtn",
+      textContent: "×",
+      onclick: closeModal
+    })
+  );
+
+  const body = el("div", { className: "miniBriefingBody" },
+    el("p", { textContent: "Public relays enforce a 250-message daily cap per public IP. Because local Wi-Fi networks share one IP address, multiple active users exhaust this limit quickly." }),
+    el("div", { className: "miniBriefingCard" },
+      el("b", { style: "color: var(--accent); display: block; margin-bottom: 2px;", textContent: "Active Solution:" }),
+      document.createTextNode("Deploying a dedicated, free cloud relay instance to lift network rate limits permanently.")
+    )
+  );
+
+  const footer = el("div", { className: "row", style: "margin-top: 4px;" },
+    el("button", {
+      type: "button",
+      className: "btn",
+      style: "border-radius: 8px; padding: 8px 12px; font-size: 0.76rem;",
+      textContent: "Dismiss",
+      onclick: closeModal
+    })
+  );
+
+  box.append(header, body, footer);
+  showModal(box);
+}
+
+function showFloatingNotice() {
+  const existing = root.querySelector(".floatingNoticeWindow");
+  if (existing) existing.remove();
+
+  const notice = el("div", { className: "floatingNoticeWindow" },
+    el("span", {}, document.createTextNode("📡 ")),
+    el("b", { textContent: "Notice: " }),
+    document.createTextNode("Shared Wi-Fi rate limits active. Dedicated relay deployment in progress."),
+    el("button", {
+      type: "button",
+      className: "noticePillBtn",
+      textContent: "View",
+      onclick: showMiniBriefing
+    })
+  );
+
+  const main = root.querySelector(".main");
+  if (main) main.append(notice);
+}
+
+showFloatingNotice();
 })();
