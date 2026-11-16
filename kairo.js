@@ -1,9 +1,9 @@
-// Kairo LOG 1.5.2 (UI Polish, Layout Isolation & Modal Fix)
+// Kairo v1.5.3 (Render Cloud Integration & Zero Limits)
+// Paste this entire script into your browser's Developer Tools Console.
 
-// Kairo - paste this whole file into your browser's Console and press Enter.
-// Best on https://example.com (open it in a new tab first). Blank tabs block encryption.
 (() => {
 "use strict";
+
 const prev = document.getElementById("rc-root");
 if (prev) prev.remove();
 const prevStyle = document.getElementById("rc-style");
@@ -16,7 +16,6 @@ if (!document.getElementById("kairo-fonts")) {
   (document.head || document.documentElement).appendChild(fontLink);
 }
 
-// Lock host page scrollbars so no ugly white scrollbar appears on the right
 const origBodyOverflow = document.body ? document.body.style.overflow : "";
 const origHtmlOverflow = document.documentElement ? document.documentElement.style.overflow : "";
 if (document.body) document.body.style.overflow = "hidden";
@@ -89,13 +88,10 @@ const CSS = `
 #rc-root .searchInput{width:170px;border:1px solid var(--border);border-radius:8px;padding:6px 11px;background:var(--input);color:var(--text);font-size:.78rem;outline:0;transition:border-color .15s,width .2s}
 #rc-root .searchInput:focus{border-color:var(--accent);width:215px}
 #rc-root .diag{padding:9px 20px;background:var(--panel);color:var(--text);font-size:.78rem;border-bottom:1px solid var(--border)}
-#rc-root .banner{padding:9px 20px;background:rgba(88,101,242,.14);color:var(--text);font-size:.78rem;border-bottom:1px solid var(--accent);display:flex;align-items:center;justify-content:space-between;gap:10px}
-#rc-root .banner button{flex:none}
 #rc-root .pinnedBar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.76rem;color:var(--text)}
 #rc-root .pinnedText{display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
 #rc-root .pinnedIcon{color:var(--accent);font-size:.88rem}
 
-/* --- CALL PANEL --- */
 #rc-root .callPanel{position:relative;background:linear-gradient(160deg,rgba(22,23,26,.98),rgba(34,36,41,.94));backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;margin:16px 20px;padding:24px 28px;box-shadow:0 20px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;gap:20px;overflow:hidden;transition:all .35s cubic-bezier(.16,1,.3,1)}
 #rc-root .callPanel.endedState{opacity:0;transform:scale(.94)}
 #rc-root .callStage{width:100%;max-width:520px;display:flex;align-items:center;justify-content:space-around;position:relative}
@@ -126,9 +122,6 @@ const CSS = `
 @keyframes callWavePulse{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.45);opacity:0}}
 @keyframes callSpeakerPulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(1.35);opacity:0}}
 @keyframes callBeamTravel{0%{background-position:-200px 0}100%{background-position:200px 0}}
-@media (prefers-reduced-motion: reduce){
-  #rc-root .callPulseRing,#rc-root .callWaves,#rc-root .callAvatarWrap.speaking .callAvatar{animation:none!important}
-}
 
 #rc-root .view{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #rc-root .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;overflow-y:auto}
@@ -151,6 +144,7 @@ const CSS = `
 #rc-root .statSub{font-size:.72rem;color:var(--muted);font-weight:500}
 #rc-root .pulseDot{position:relative;width:10px;height:10px;flex:none;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:kairoBlink 1.6s infinite ease-in-out}
 @keyframes kairoBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.88)}}
+
 #rc-root .log{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px 20px;display:flex;flex-direction:column;gap:10px;background:var(--chat);scroll-behavior:auto}
 #rc-root .message{position:relative;display:flex;gap:10px;max-width:78%}
 #rc-root .message.mine{align-self:flex-end;flex-direction:row-reverse}
@@ -184,7 +178,6 @@ const CSS = `
 #rc-root .audioPill audio{height:30px;max-width:220px}
 #rc-root .chatLink{color:#79b8ff;text-decoration:underline;text-underline-offset:2px}
 
-/* --- MARKDOWN & CODE BLOCKS --- */
 #rc-root .codeBlockWrap{position:relative;background:#0d1117;border:1px solid var(--border);border-radius:8px;margin:6px 0;overflow:hidden}
 #rc-root .codeBlockHeader{display:flex;align-items:center;justify-content:space-between;padding:4px 10px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--font-mono);font-size:.66rem;color:var(--muted)}
 #rc-root .copyCodeBtn{border:0;background:transparent;color:var(--muted);font-size:.66rem;cursor:pointer;padding:2px 6px;border-radius:4px}
@@ -197,7 +190,6 @@ const CSS = `
 #rc-root .replyBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 20px;background:var(--panel);border-top:1px solid var(--border);font-size:.76rem;color:var(--muted)}
 #rc-root .replyBar b{color:var(--text)}
 
-/* --- COMPOSER & COUNTER --- */
 #rc-root .composerArea{display:flex;flex-direction:column;background:var(--side);border-top:1px solid var(--border)}
 #rc-root .composer{display:flex;gap:8px;align-items:center;padding:10px 18px 4px}
 #rc-root .composerFooter{display:flex;align-items:center;justify-content:flex-end;padding:0 20px 8px;font-family:var(--font-mono);font-size:.66rem;color:var(--muted)}
@@ -208,7 +200,6 @@ const CSS = `
 #rc-root .composer input:focus{border-color:var(--accent)}
 #rc-root .composer button.sendBtn{flex:none;width:44px;height:38px;border:0;border-radius:10px;background:var(--accent);color:white;font-size:17px;display:grid;place-items:center}
 
-/* --- CLEAN, TRUSTWORTHY MODALS & LOGIN SCREEN --- */
 #rc-root .modalLayer{position:fixed;inset:0;background:rgba(7,8,10,.82);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;z-index:9999}
 #rc-root .modal{width:min(440px,100%);max-height:90vh;overflow-y:auto;background:var(--side);color:var(--text);border:1px solid var(--border);border-radius:18px;padding:26px;box-shadow:0 24px 64px rgba(0,0,0,.65)}
 #rc-root .modalHeader{display:flex;align-items:center;gap:12px;margin-bottom:12px}
@@ -237,16 +228,16 @@ const CSS = `
 #rc-root [hidden]{display:none!important}
 @media(max-width:960px){#rc-root .app{grid-template-columns:68px 1fr 220px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .selfInfo{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
 `;
+
 const MARKUP = `
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">k.</div>
       <div class="brandText">
-        <div class="brandTitle">Kairo<span class="beta">v1.5.2</span></div>
+        <div class="brandTitle">Kairo<span class="beta">Render Cloud</span></div>
         <div id="brandSub" class="brandSub">vault locked</div>
       </div>
-      <button id="adminBtn" class="iconBtn" title="Admin login" style="display:none">🔒</button>
     </div>
     <div class="quickHeading">Navigation</div>
     <div class="sideActions">
@@ -272,7 +263,6 @@ const MARKUP = `
     </header>
     <div id="callHost"></div>
     <div id="pinnedHeader" class="pinnedBar" hidden></div>
-    <div id="updateBanner" class="banner" hidden></div>
     <div id="diag" class="diag" hidden></div>
     <section id="view" class="view"></section>
   </main>
@@ -291,6 +281,7 @@ const MARKUP = `
 <input type="file" id="filePicker" accept="image/*" style="display:none">
 <audio id="remoteAudio" autoplay style="display:none"></audio>
 `;
+
 const style = document.createElement("style");
 style.id = "rc-style";
 style.textContent = CSS;
@@ -301,16 +292,12 @@ root.innerHTML = MARKUP;
 (document.body || document.documentElement).appendChild(root);
 const $ = (id) => root.querySelector("#" + id);
 
-const SERVER = "https://ntfy.sh";
-const MAX_TEXT = 800;
-const MAX_CHATS = 20;
-const PING_EVERY = 120000;
-const PING_FLOOR = 25000;
-const LS = "roomchat:";
-const VERSION = "1.5.2";
-const ADMIN_TOPIC = "kairo-admin-control-6d2c9a81f4b7";
-const SURVEY_TOPIC = "kairo-survey-feedback-881a";
-const ADMIN_PASSWORD = "";
+const SERVER = "https://kairo-ejra.onrender.com";
+const MAX_TEXT = 1200;
+const MAX_CHATS = 50;
+const PING_EVERY = 60000;
+const PING_FLOOR = 15000;
+const LS = "roomchat:v2:";
 const EMOJIS = ["👍", "❤️", "😂", "🔥", "👀"];
 const origTitle = document.title;
 
@@ -322,13 +309,10 @@ const CLOAK_PRESETS = {
   canvas: { title: "Dashboard - Canvas", icon: "https://du11hjcvx0uqb.cloudfront.net/dist/images/favicon-e10d657a73.ico" }
 };
 
-let isAdmin = false;
-let adminFeed = null;
 let vaultKey = null;
-
 const te = new TextEncoder();
 const td = new TextDecoder();
-const me = { id: rnd(), name: "", avatar: "", bio: "", status: "online" };
+const me = { id: rnd(), userKey: "", name: "", avatar: "", bio: "", status: "online" };
 const settings = {
   theme: "dark",
   sound: true,
@@ -337,6 +321,7 @@ const settings = {
   sendOnEnter: true,
   customColors: { bg: "#0f1012", side: "#16171a", accent: "#5865f2" }
 };
+
 const rooms = new Map();
 let blockedUsers = new Set();
 let activeTopic = null;
@@ -347,12 +332,10 @@ let es = null;
 let esKey = "";
 let everOpened = false;
 
-// Media recording
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 
-// WebRTC Voice Call Engine
 let peerConn = null;
 let localStream = null;
 let activeCallTopic = null;
@@ -367,7 +350,6 @@ let analyserNode = null;
 let remoteAudioCheckTimer = null;
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-// Typing throttling state
 let lastTypingSent = 0;
 let typingTimeouts = new Map();
 
@@ -381,6 +363,9 @@ const timers = [];
 function rnd() {
   const a = crypto.getRandomValues(new Uint8Array(8));
   return Array.from(a, (x) => x.toString(16).padStart(2, "0")).join("");
+}
+function sanitizeKey(raw) {
+  return String(raw || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
 }
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { } }
@@ -462,7 +447,6 @@ function updateDocTitle() {
   document.title = totalUnread > 0 ? "(" + totalUnread + ") Kairo" : origTitle;
 }
 
-// ---------- encryption ----------
 function toB64(bytes) {
   let s = "";
   for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192));
@@ -481,7 +465,7 @@ async function sha256Hex(str) {
 async function deriveKey(room, pw) {
   const base = await crypto.subtle.importKey("raw", te.encode(pw + "|" + room), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: te.encode("roomchat-v1|" + room), iterations: 150000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: te.encode("kairo-v2|" + room), iterations: 120000, hash: "SHA-256" },
     base,
     { name: "AES-GCM", length: 256 },
     false,
@@ -489,7 +473,7 @@ async function deriveKey(room, pw) {
   );
 }
 async function topicFor(room, pw) {
-  return "rc" + (await sha256Hex("topic|" + room + "|" + pw)).slice(0, 40);
+  return "kairo_" + (await sha256Hex("topic|" + room + "|" + pw)).slice(0, 32);
 }
 async function seal(key, obj) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -529,8 +513,7 @@ function compressImage(file) {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL("image/jpeg", 0.65);
-        resolve(compressed);
+        resolve(canvas.toDataURL("image/jpeg", 0.65));
       };
       img.src = reader.result;
     };
@@ -573,13 +556,12 @@ async function saveVault() {
   };
   try {
     const enc = await seal(vaultKey, payload);
-    lsSet(LS + "vault_v129", enc);
+    lsSet(LS + "vault_data", enc);
   } catch {}
 }
 
-// ---------- VAULT EXPORT & IMPORT ----------
 function exportVaultString() {
-  const enc = lsGet(LS + "vault_v129");
+  const enc = lsGet(LS + "vault_data");
   if (!enc) return toast("No encrypted vault found on this device.");
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(enc).then(() => {
@@ -595,7 +577,7 @@ function exportVaultString() {
 function promptImportVault() {
   const raw = prompt("Paste your encrypted vault string here to restore your account:");
   if (!raw || !raw.trim()) return;
-  lsSet(LS + "vault_v129", raw.trim());
+  lsSet(LS + "vault_data", raw.trim());
   toast("Vault imported! Enter your Master Password to unlock.");
   promptVaultLogin();
 }
@@ -606,7 +588,7 @@ async function unlockAllSavedRooms() {
       try { r.key = await deriveKey(r.meta.room, r.meta.pw); } catch {}
     }
   }
-  setStatus("vault unlocked", "ok");
+  setStatus("connected · zero limits", "ok");
   resubscribe();
   renderSidebar();
   if (!activeTopic) renderWelcome();
@@ -614,7 +596,7 @@ async function unlockAllSavedRooms() {
 
 function promptVaultLogin() {
   checkSecure();
-  const rawVault = lsGet(LS + "vault_v129");
+  const rawVault = lsGet(LS + "vault_data");
   if (rawVault) {
     const box = el("form", { className: "modal" });
     box.append(
@@ -622,10 +604,10 @@ function promptVaultLogin() {
         el("div", { className: "modalBadge", textContent: "k." }),
         el("div", {},
           el("h2", { textContent: "Unlock Kairo Vault" }),
-          el("p", { textContent: "AES-256 local encryption" })
+          el("p", { textContent: "AES-256 local encrypted session" })
         )
       ),
-      el("p", { textContent: "Enter your Master Password to decrypt your profile, saved contacts, and room keys." }),
+      el("p", { textContent: "Enter your Master Password to decrypt your User Key, contacts, and chat keys." }),
       el("h3", { textContent: "Master Password" })
     );
     const pwInp = el("input", { type: "password", placeholder: "Enter master password...", maxLength: 80 });
@@ -645,7 +627,7 @@ function promptVaultLogin() {
         textContent: "Reset Local Vault",
         onclick: () => {
           if (!confirm("Wipe your saved vault on this browser and start fresh?")) return;
-          lsDel(LS + "vault_v129");
+          lsDel(LS + "vault_data");
           rooms.clear();
           promptVaultLogin();
         }
@@ -671,7 +653,7 @@ function promptVaultLogin() {
           if (meta && meta.topic) rooms.set(meta.topic, makeRoom(meta));
         });
         closeModal();
-        toast("Welcome back, " + me.name + "!");
+        toast("Welcome back, @" + (me.userKey || me.name) + "!");
         await unlockAllSavedRooms();
       } catch {
         err.textContent = "Incorrect Master Password.";
@@ -681,7 +663,6 @@ function promptVaultLogin() {
     showModal(box);
     pwInp.focus();
   } else {
-    const legacyName = lsGet(LS + "name") || "";
     const box = el("form", { className: "modal" });
     box.append(
       el("div", { className: "modalHeader" },
@@ -691,10 +672,11 @@ function promptVaultLogin() {
           el("p", { textContent: "Zero-knowledge local account" })
         )
       ),
-      el("p", { textContent: "Choose a display name and Master Password. Your contacts and chat keys are encrypted inside your browser." })
+      el("p", { textContent: "Set a unique User Key (lowercase handle) and Master Password. All keys stay inside your browser." })
     );
-    const nameInp = el("input", { type: "text", placeholder: "e.g. arviyarrrr", value: legacyName, maxLength: 20 });
-    const avInp = el("input", { type: "text", placeholder: "Emoji or initials (e.g. ⚡, AR)", maxLength: 4 });
+    const keyInp = el("input", { type: "text", placeholder: "Permanent Key (e.g. arvi, user_1)", maxLength: 20 });
+    const nameInp = el("input", { type: "text", placeholder: "Display Name (e.g. Arvi)", maxLength: 20 });
+    const avInp = el("input", { type: "text", placeholder: "Avatar Emoji / Initials (e.g. ⚡, AR)", maxLength: 4 });
     const bioInp = el("input", { type: "text", placeholder: "Status bio (optional)", maxLength: 50 });
     const pwInp = el("input", { type: "password", placeholder: "Create Master Password (4+ chars)", maxLength: 80 });
     const err = el("p", { className: "err" });
@@ -711,6 +693,7 @@ function promptVaultLogin() {
     );
 
     box.append(
+      el("h3", { textContent: "User Key (@handle for DMs)" }), keyInp,
       el("h3", { textContent: "Display Name" }), nameInp,
       el("h3", { textContent: "Avatar Emoji / Initials (Optional)" }), avInp,
       el("h3", { textContent: "Status Bio (Optional)" }), bioInp,
@@ -719,21 +702,23 @@ function promptVaultLogin() {
       el("div", { className: "row" }, createBtn),
       subRow
     );
+
     box.onsubmit = async (e) => {
       e.preventDefault();
-      const n = nameInp.value.trim();
+      const uKey = sanitizeKey(keyInp.value);
+      const disp = nameInp.value.trim();
       const pw = pwInp.value;
-      if (!n) { err.textContent = "Enter a display name."; return; }
+      if (!uKey) { err.textContent = "User Key is required (lowercase letters/numbers)."; return; }
       if (pw.length < 4) { err.textContent = "Use a Master Password with at least 4 characters."; return; }
       createBtn.disabled = true;
       try {
         vaultKey = await deriveKey("kairo-master-vault", pw);
-        me.name = n.slice(0, 20);
+        me.userKey = uKey;
+        me.name = disp || uKey;
         me.avatar = avInp.value.trim().slice(0, 4);
         me.bio = bioInp.value.trim().slice(0, 50);
-        loadLegacyChats();
         await saveVault();
-        setStatus("vault unlocked", "ok");
+        setStatus("connected · zero limits", "ok");
         closeModal();
         renderSidebar();
         renderWelcome();
@@ -743,7 +728,7 @@ function promptVaultLogin() {
       }
     };
     showModal(box);
-    nameInp.focus();
+    keyInp.focus();
   }
 }
 
@@ -778,7 +763,7 @@ function showBlockedModal() {
   const list = Array.from(blockedUsers);
   const box = el("div", { className: "modal" },
     el("h2", { textContent: "Blocked Users" }),
-    el("p", { textContent: list.length ? "Messages from these display names are hidden:" : "You haven't blocked anyone yet." })
+    el("p", { textContent: list.length ? "Messages from these users are hidden:" : "You haven't blocked anyone yet." })
   );
   if (list.length) {
     const ul = el("div", { style: "display:flex;flex-direction:column;gap:6px;margin-top:10px" });
@@ -800,12 +785,11 @@ function showBlockedModal() {
   showModal(box);
 }
 
-// ---------- THEME & COLOR PICKER STUDIO ----------
 function showThemeSettings() {
   const box = el("form", { className: "modal" });
   box.append(
     el("h2", { textContent: "Themes & Color Studio 🎨" }),
-    el("p", { textContent: "Customize your theme, pick custom colors, and set your tab disguise." }),
+    el("p", { textContent: "Customize your theme, pick custom colors, and set your disguise." }),
     el("h3", { textContent: "Color Theme Preset" })
   );
   const themeSel = el("select", {},
@@ -900,63 +884,6 @@ function showThemeSettings() {
   showModal(box);
 }
 
-async function getAdminKey() {
-  return deriveKey("admin|" + ADMIN_TOPIC, ADMIN_PASSWORD);
-}
-async function verifyAdminPacket(raw) {
-  try {
-    if (!raw || !ADMIN_PASSWORD) return null;
-    const key = await getAdminKey();
-    return await unseal(key, typeof raw === "string" ? raw : JSON.stringify(raw));
-  } catch { return null; }
-}
-function handleAdminCommand(payload) {
-  if (!payload || !payload.type) return;
-  if (payload.type === "release") {
-    const version = String(payload.version || "").slice(0, 24);
-    if (version && version !== VERSION && lsGet(LS + "dismissedUpdate") !== version) showUpdateBanner(version, String(payload.notes || "").slice(0, 500));
-  } else if (payload.type === "announcement") {
-    const message = String(payload.message || "").slice(0, 300);
-    if (message) toast("Kairo admin: " + message, 5000);
-  }
-}
-async function checkForUpdate() {
-  if (!ADMIN_PASSWORD) return;
-  try {
-    const resp = await fetch(SERVER + "/" + ADMIN_TOPIC + "/json?poll=1&since=all");
-    if (!resp.ok) return;
-    const lines = (await resp.text()).trim().split("\n").filter(Boolean);
-    for (const line of lines.slice(-40)) {
-      let msg; try { msg = JSON.parse(line).message; } catch { continue; }
-      const payload = await verifyAdminPacket(msg);
-      if (payload) handleAdminCommand(payload);
-    }
-  } catch { }
-}
-function startAdminFeed() {
-  if (!ADMIN_PASSWORD) return;
-  if (adminFeed) adminFeed.close();
-  adminFeed = new EventSource(SERVER + "/" + ADMIN_TOPIC + "/sse");
-  adminFeed.onmessage = async (e) => {
-    try {
-      const ev = JSON.parse(e.data);
-      if (ev.event !== "message") return;
-      const payload = await verifyAdminPacket(ev.message || "");
-      if (payload) handleAdminCommand(payload);
-    } catch {}
-  };
-}
-function showUpdateBanner(latest, notes) {
-  const b = $("updateBanner");
-  b.innerHTML = "";
-  const copy = "A Kairo update is available: v" + latest + " (you have v" + VERSION + ")." + (notes ? " " + notes : " Get the updated script from the admin.");
-  b.append(
-    el("span", { textContent: copy }),
-    el("button", { className: "btn secondary small", textContent: "Dismiss", onclick: () => { b.hidden = true; lsSet(LS + "dismissedUpdate", latest); } })
-  );
-  b.hidden = false;
-}
-
 function persistRoom(r) { lsSet(LS + "t:" + r.meta.topic, JSON.stringify(r.store)); }
 function saveChats() { saveVault(); }
 function getDraft(topic) { return lsGet(LS + "draft:" + topic) || ""; }
@@ -974,16 +901,12 @@ function makeRoom(meta) {
     typing: new Map()
   };
 }
-function loadLegacyChats() {
-  let list = [];
-  try { list = JSON.parse(lsGet(LS + "chats") || "[]"); } catch {}
-  list.forEach((meta) => { if (meta && meta.topic && !rooms.has(meta.topic)) rooms.set(meta.topic, makeRoom(meta)); });
-}
 
 async function post(r, kind, extra) {
   if ((kind === "h" || kind === "p") && me.status === "invisible") return;
   const m = Object.assign({
     i: me.id,
+    uk: me.userKey || me.name,
     k: kind,
     name: me.name,
     av: me.avatar || "",
@@ -993,10 +916,9 @@ async function post(r, kind, extra) {
   }, extra || {});
   const body = await seal(r.key, m);
   const resp = await fetch(SERVER + "/" + r.meta.topic, { method: "POST", body });
-  if (!resp.ok) throw new Error(resp.status === 429 ? "rate limited, slow down a little" : "server said " + resp.status);
+  if (!resp.ok) throw new Error("Relay error " + resp.status);
 }
 
-// ---------- CALL DURATION & VOICE ACTIVITY ----------
 function formatDuration(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
@@ -1278,7 +1200,6 @@ function endCall(msg) {
   }
 }
 
-// ---------- sidebars ----------
 function pingGap() {
   const n = Math.max(1, Array.from(rooms.values()).filter((r) => r.key).length);
   return Math.max(PING_FLOOR, PING_EVERY / n);
@@ -1344,7 +1265,7 @@ function renderSidebar() {
   sc.append(
     myAv,
     el("div", { className: "selfInfo" },
-      el("div", { className: "selfName", textContent: me.name || "Set up profile" }),
+      el("div", { className: "selfName", textContent: me.name + " (@" + (me.userKey || me.name) + ")" }),
       el("div", { className: "selfBio", textContent: me.bio || (me.status + " · " + all.length + "/" + MAX_CHATS + " chats") })
     )
   );
@@ -1396,7 +1317,6 @@ function updateTop() {
   }
 }
 
-// ---------- typing indicator UI ----------
 function updateTypingDisplay() {
   const ind = $("typingInd");
   if (!ind) return;
@@ -1424,7 +1344,6 @@ function handleTypingEvent(r, who) {
   }, 4000));
 }
 
-// ---------- MARKDOWN FORMATTING & CODE BLOCKS ----------
 function parseInlineMarkdown(text) {
   const frag = document.createDocumentFragment();
   const tokens = [];
@@ -1508,7 +1427,6 @@ function formatMessageContent(rawText) {
   return container;
 }
 
-// ---------- interactive message rendering ----------
 function setReply(m) {
   replyingTo = m ? { id: m.id, who: m.who, text: String(m.text || (m.img ? "Photo" : "Voice message")).slice(0, 90) } : null;
   const bar = $("replyBar");
@@ -1712,7 +1630,6 @@ function buildMessage(r, m) {
   return row;
 }
 
-// ---------- smart auto-scroll & manual scroll ----------
 function handleLogScroll(e) {
   const l = e.target;
   const atBottom = (l.scrollHeight - l.scrollTop - l.clientHeight) < 60;
@@ -1727,10 +1644,6 @@ function scrollToBottom(force = false) {
       l.scrollTop = l.scrollHeight;
     });
   }
-}
-
-function scrollLog() {
-  scrollToBottom(false);
 }
 
 function addSystem(text) {
@@ -1759,8 +1672,8 @@ function renderChatLog(keepScroll) {
     l.append(el("div", {
       className: "system",
       textContent: isDm
-        ? "Direct message with " + r.meta.title + ". Markdown, code blocks, photos, voice notes & calls active."
-        : "Group “" + r.meta.title + "”. Markdown, code blocks, photos & voice notes active."
+        ? "Direct message with @" + r.meta.title + ". AES-256 cloud encrypted, voice calls & zero rate limits."
+        : "Group “" + r.meta.title + "”. AES-256 cloud encrypted & zero rate limits."
     }));
   } else if (!visible.length) {
     l.append(el("div", { className: "system", textContent: "No messages match “" + searchQuery + "”." }));
@@ -1805,11 +1718,11 @@ function renderWelcome() {
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
-        el("div", { className: "statLabel", textContent: "Color Studio" }),
-        el("span", { className: "pulseDot", title: "Color Engine Ready" })
+        el("div", { className: "statLabel", textContent: "Cloud Relay" }),
+        el("span", { className: "pulseDot", title: "Render Instance Live" })
       ),
-      el("div", { className: "statValue", textContent: "v1.5.2" }),
-      el("div", { className: "statSub", textContent: "Custom Colors & Unbounded" })
+      el("div", { className: "statValue", textContent: "ACTIVE" }),
+      el("div", { className: "statSub", textContent: "Private Relay (Zero Limits)" })
     ),
     el("div", { className: "statCard" },
       el("div", { className: "statTop" },
@@ -1824,7 +1737,7 @@ function renderWelcome() {
   $("view").append(el("div", { className: "empty" },
     emblem,
     el("div", { className: "stageTitle", textContent: "Kairo" }),
-    el("p", { className: "stageSub", textContent: "End-to-end encrypted messaging, Markdown code blocks, custom color palette studio, and portable vault export." }),
+    el("p", { className: "stageSub", textContent: "End-to-end encrypted messaging, Markdown code blocks, WebRTC voice calls, and private Render relay." }),
     el("div", { className: "pillRow" }, start, help),
     stats
   ));
@@ -1896,7 +1809,7 @@ function openChat(id) {
     maxLength: MAX_TEXT,
     autocomplete: "off",
     value: draftVal,
-    placeholder: "Message " + (isDm ? r.meta.title : "#" + r.meta.title),
+    placeholder: "Message " + (isDm ? "@" + r.meta.title : "#" + r.meta.title),
     oninput: (e) => {
       const len = e.target.value.length;
       charCounter.textContent = len + "/" + MAX_TEXT;
@@ -1964,13 +1877,6 @@ async function onEvent(ev) {
   const who = String(m.name || "Someone").slice(0, 20);
   if (isBlocked(who)) return;
   const isActive = r.meta.topic === activeTopic;
-
-  if (r.meta.type === "dm" && who.toLowerCase() !== me.name.toLowerCase() && r.meta.title !== who) {
-    r.meta.title = who;
-    saveChats();
-    if (isActive) updateTop();
-    renderSidebar();
-  }
 
   r.people.set(m.i, {
     name: who,
@@ -2119,7 +2025,7 @@ function resubscribe() {
   es = new EventSource(SERVER + "/" + k + "/sse?since=" + since);
   es.onopen = () => {
     everOpened = true;
-    setStatus("connected", "ok");
+    setStatus("connected · zero limits", "ok");
     setDiag("");
     clearTimeout(readyTimer);
     readyTimer = setTimeout(() => {
@@ -2133,7 +2039,7 @@ function resubscribe() {
   es.onerror = () => {
     setStatus("reconnecting…", "bad");
     if (!everOpened) {
-      setDiag("Can't reach the relay (" + SERVER.replace("https://", "") + "). Check your connection.");
+      setDiag("Can't reach relay (" + SERVER.replace("https://", "") + "). Retrying...");
     }
   };
   es.onmessage = (e) => {
@@ -2179,17 +2085,17 @@ function modal(title, hint, fields, okText, onOk) {
 
 function checkSecure() {
   if (!window.crypto || !crypto.subtle) {
-    throw new Error("This tab blocks encryption. Open https://example.com in a new tab and paste the script there.");
+    throw new Error("This tab blocks Web Crypto. Open https://example.com in a new tab and paste the script there.");
   }
 }
 
 function showHelp() {
   const steps = [
-    "Your Account Vault encrypts your profile, contacts, and room passwords with one Master Password.",
-    "Click 'Export Vault' (📤) to copy your encrypted profile string and import it onto any other device.",
-    "Customize your workspace palette using the Custom Studio color pickers under Themes & Colors (🎨).",
-    "Use **bold**, *italic*, ~strike~, `inline code`, or ```code blocks``` in your messages.",
-    "Click 📞 Call in any DM to start an animated, high-fidelity WebRTC voice call."
+    "Your Account Vault stores your permanent User Key, display name, and chat keys with one Master Password.",
+    "Click 'Export Vault' (📤) to backup your encrypted session to transfer to another device.",
+    "Messages and calls route through your dedicated private Render relay without rate limits.",
+    "Use **bold**, *italic*, ~strike~, `inline code`, or ```code blocks``` in messages.",
+    "Click 📞 Call in any DM to start an animated WebRTC voice call."
   ];
   const shortcuts = [
     ["Alt + N", "Start a new Direct Message"],
@@ -2204,7 +2110,7 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.5.2 Guide", style: "margin-bottom:8px" }),
+    el("h2", { textContent: "Kairo v1.5.3 Guide", style: "margin-bottom:8px" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
@@ -2219,16 +2125,16 @@ function profile() {
   const box = el("form", { className: "modal" });
   box.append(
     el("h2", { textContent: "Your Profile & Presence ◉", style: "margin-bottom:6px" }),
-    el("p", { textContent: "Customize how others see you in chats. Saved inside your encrypted vault." })
+    el("p", { textContent: "Permanent User Key: @" + (me.userKey || me.name) + ". You can update your display name and status anytime." })
   );
   const nameInp = el("input", { type: "text", value: me.name, maxLength: 20 });
-  const avInp = el("input", { type: "text", value: me.avatar || "", placeholder: "Emoji or initials (e.g. ⚡, 🐉, AK)", maxLength: 4 });
+  const avInp = el("input", { type: "text", value: me.avatar || "", placeholder: "Emoji or initials (e.g. ⚡, AK)", maxLength: 4 });
   const bioInp = el("input", { type: "text", value: me.bio || "", placeholder: "What are you up to?", maxLength: 50 });
   const stSel = el("select", {},
     el("option", { value: "online", textContent: "🟢 Online" }),
     el("option", { value: "idle", textContent: "🌙 Idle / Away" }),
     el("option", { value: "dnd", textContent: "⛔ Do Not Disturb" }),
-    el("option", { value: "invisible", textContent: "👻 Invisible (Pauses pings, saves daily quota)" })
+    el("option", { value: "invisible", textContent: "👻 Invisible (Pauses pings)" })
   );
   stSel.value = me.status || "online";
 
@@ -2265,20 +2171,20 @@ function profile() {
 
 async function createChat(type, label, pw, icon) {
   checkSecure();
-  label = label.trim();
-  if (!label) throw new Error(type === "dm" ? "Enter their name." : "Enter a group name.");
+  label = sanitizeKey(label);
+  if (!label) throw new Error(type === "dm" ? "Enter their User Key." : "Enter a group ID.");
   if (pw.length < 4) throw new Error("Use a password with at least 4 characters.");
   let room, title;
   if (type === "dm") {
     title = label.slice(0, 20);
-    room = "dm|" + [me.name.toLowerCase(), label.toLowerCase()].sort().join("|");
+    room = "dm|" + [sanitizeKey(me.userKey || me.name), label].sort().join("|");
   } else {
     title = label.slice(0, 40);
-    room = "group|" + label.toLowerCase();
+    room = "group|" + label;
   }
   const topic = await topicFor(room, pw);
   let r = rooms.get(topic);
-  if (!r && rooms.size >= MAX_CHATS) throw new Error("You can have up to " + MAX_CHATS + " chats. Delete one first.");
+  if (!r && rooms.size >= MAX_CHATS) throw new Error("Maximum " + MAX_CHATS + " chats reached. Delete one first.");
   const key = await deriveKey(room, pw);
   if (!r) {
     r = makeRoom({ topic, type, title, room, pw, icon: (icon || "").trim().slice(0, 4) });
@@ -2311,16 +2217,16 @@ function askUnlock(r) {
 function startAdd() {
   if (!vaultKey) return promptVaultLogin();
   modal("New Direct Message",
-    "Type their name and agree on a shared password. Your Vault will remember this chat and its key.",
-    [{ id: "f", label: "Their name", max: 20 }, { id: "p", label: "Shared password", type: "password" }], "Start DM",
+    "Enter their lowercase User Key (e.g. bob) and your shared secret.",
+    [{ id: "f", label: "Their User Key (@handle)", max: 20 }, { id: "p", label: "Shared password", type: "password" }], "Start DM",
     (v) => createChat("dm", v.f, v.p));
 }
 function startGroup() {
   if (!vaultKey) return promptVaultLogin();
   modal("New or Existing Group",
-    "Pick a group name, optional group emoji avatar, and shared password.",
+    "Pick a group ID, optional group emoji, and shared password.",
     [
-      { id: "f", label: "Group name", max: 40 },
+      { id: "f", label: "Group ID", max: 40 },
       { id: "i", label: "Group Avatar Emoji (optional, e.g. 🎮, 🔥)", max: 4 },
       { id: "p", label: "Group password", type: "password" }
     ], "Create / Join",
@@ -2332,14 +2238,9 @@ async function dispatchMediaMessage(imgBase64, audioBase64) {
   if (!r || !r.key) return;
   const id = rnd();
   const replyPayload = replyingTo ? Object.assign({}, replyingTo) : null;
-  try {
-    await post(r, "m", { id, text: "", img: imgBase64, audio: audioBase64, replyTo: replyPayload });
-  } catch (err) {
-    addSystem("Couldn't send media: " + (err && err.message ? err.message : "network error"));
-    return;
-  }
-  r.seen.add(id);
+  
   const rec = { id, who: me.name, authorId: me.id, av: me.avatar || "", text: "", img: imgBase64, audio: audioBase64, mine: true, read: false, time: Date.now(), replyTo: replyPayload, reactions: {} };
+  r.seen.add(id);
   r.store.msgs.push(rec);
   if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
   persistRoom(r);
@@ -2348,6 +2249,12 @@ async function dispatchMediaMessage(imgBase64, audioBase64) {
   renderChatLog(false);
   scrollToBottom(true);
   renderSidebar();
+
+  try {
+    await post(r, "m", { id, text: "", img: imgBase64, audio: audioBase64, replyTo: replyPayload });
+  } catch (err) {
+    addSystem("Couldn't send media to relay: " + (err && err.message ? err.message : "network error"));
+  }
 }
 
 async function sendMessage(e) {
@@ -2359,12 +2266,7 @@ async function sendMessage(e) {
   if (!r || !r.key || !text) return;
   const id = rnd();
   const replyPayload = replyingTo ? Object.assign({}, replyingTo) : null;
-  try {
-    await post(r, "m", { id, text, replyTo: replyPayload });
-  } catch (err) {
-    addSystem("Couldn't send: " + (err && err.message ? err.message : "network error") + ". Your text is still in the box.");
-    return;
-  }
+
   r.seen.add(id);
   const rec = { id, who: me.name, authorId: me.id, av: me.avatar || "", text, mine: true, read: false, time: Date.now(), replyTo: replyPayload, reactions: {} };
   r.store.msgs.push(rec);
@@ -2379,6 +2281,12 @@ async function sendMessage(e) {
   renderChatLog(false);
   scrollToBottom(true);
   renderSidebar();
+
+  try {
+    await post(r, "m", { id, text, replyTo: replyPayload });
+  } catch (err) {
+    addSystem("Failed to deliver message to cloud relay: " + (err && err.message ? err.message : "error"));
+  }
 }
 
 $("btnCall").onclick = startCall;
@@ -2464,7 +2372,6 @@ $("exit").onclick = () => {
   clearTimeout(readyTimer);
   clearTimeout(pingTimer);
   if (es) { es.close(); es = null; }
-  if (adminFeed) { adminFeed.close(); adminFeed = null; }
   const st = document.getElementById("rc-style");
   if (st) st.remove();
   root.remove();
@@ -2480,181 +2387,4 @@ timers.push(setInterval(() => { renderSidebar(); updateTop(); }, 5000));
 
 renderWelcome();
 promptVaultLogin();
-checkForUpdate();
-startAdminFeed();
-// --- INFRASTRUCTURE BRIEFING MODAL STYLES ---
-if (!document.getElementById("kairo-infra-style")) {
-  const infraStyle = document.createElement("style");
-  infraStyle.id = "kairo-infra-style";
-  infraStyle.textContent = `
-    #rc-root .infraModal{width:min(580px,94vw);max-height:92vh;overflow-y:auto;background:radial-gradient(circle at top left,rgba(88,101,242,.12),transparent 60%),#141519;color:var(--text);border:1px solid rgba(88,101,242,.35);border-radius:22px;padding:28px;box-shadow:0 28px 80px rgba(0,0,0,.75),0 0 35px rgba(88,101,242,.15)}
-    #rc-root .infraHeader{display:flex;align-items:center;gap:14px;margin-bottom:18px}
-    #rc-root .infraLogo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#2e389e);display:grid;place-items:center;font-family:var(--font-brand);font-weight:800;font-size:20px;color:#fff;box-shadow:0 8px 24px rgba(88,101,242,.4)}
-    #rc-root .infraTitle{font-family:var(--font-brand);font-size:1.15rem;font-weight:800;letter-spacing:-.02em;color:#fff}
-    #rc-root .infraSub{font-family:var(--font-mono);font-size:.7rem;color:var(--accent);letter-spacing:.04em;text-transform:uppercase}
-    #rc-root .infraDesc{font-size:.86rem;color:var(--muted);line-height:1.55;margin-bottom:18px}
-    #rc-root .infraDiagram{background:rgba(0,0,0,.35);border:1px dashed var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;font-family:var(--font-mono);font-size:.74rem}
-    #rc-root .infraNode{display:flex;flex-direction:column;align-items:center;gap:4px}
-    #rc-root .infraArrow{color:var(--red);font-weight:800;font-size:.9rem}
-    #rc-root .infraGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
-    #rc-root .infraCard{background:#1a1c22;border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
-    #rc-root .infraCard.danger{border-color:rgba(239,68,68,.3);background:linear-gradient(180deg,rgba(239,68,68,.06),transparent)}
-    #rc-root .infraCard.success{border-color:rgba(35,165,90,.3);background:linear-gradient(180deg,rgba(35,165,90,.06),transparent)}
-    #rc-root .infraTag{font-family:var(--font-brand);font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-    #rc-root .infraTag.red{color:var(--red)}
-    #rc-root .infraTag.green{color:var(--green)}
-    #rc-root .infraCardText{font-size:.76rem;color:var(--text);line-height:1.45}
-    #rc-root .infraProgressBar{height:5px;width:100%;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:4px}
-    #rc-root .infraProgressFill{height:100%;width:78%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:999px;animation:kairoProgress 2s infinite ease-in-out}
-    @keyframes kairoProgress{0%,100%{opacity:.6;transform:scaleX(.95)}50%{opacity:1;transform:scaleX(1)}}
-  `;
-  (document.head || document.documentElement).appendChild(infraStyle);
-}
-
-// --- MINIMALIST FLOATING NOTICE & BRIEFING ---
-if (!document.getElementById("kairo-notice-style")) {
-  const noticeStyle = document.createElement("style");
-  noticeStyle.id = "kairo-notice-style";
-  noticeStyle.textContent = `
-    #rc-root .floatingNoticeWindow {
-      position: absolute;
-      top: 76px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 50;
-      background: rgba(22, 23, 27, 0.92);
-      backdrop-filter: blur(14px);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 10px 18px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: var(--text);
-      font-size: 0.82rem;
-      user-select: none;
-      max-width: min(740px, 92%);
-      white-space: nowrap;
-    }
-    #rc-root .floatingNoticeWindow b {
-      color: #fff;
-      font-family: var(--font-brand);
-      font-size: 0.76rem;
-    }
-    #rc-root .noticePillBtn {
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-family: var(--font-brand);
-      font-size: 0.68rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    #rc-root .noticePillBtn:hover {
-      background: var(--input);
-      border-color: var(--accent);
-    }
-    #rc-root .miniBriefingModal {
-      width: min(440px, 92vw);
-      background: var(--side);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    #rc-root .miniBriefingHeader {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    #rc-root .miniBriefingHeader h2 {
-      font-family: var(--font-brand);
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #fff;
-      margin: 0;
-    }
-    #rc-root .miniBriefingBody {
-      font-size: 0.8rem;
-      color: var(--muted);
-      line-height: 1.55;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    #rc-root .miniBriefingCard {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 0.76rem;
-      color: var(--text);
-    }
-  `;
-  (document.head || document.documentElement).appendChild(noticeStyle);
-}
-
-function showMiniBriefing() {
-  const box = el("div", { className: "miniBriefingModal" });
-  
-  const header = el("div", { className: "miniBriefingHeader" },
-    el("h2", { textContent: "Relay Migration Status" }),
-    el("button", {
-      type: "button",
-      className: "iconBtn",
-      textContent: "×",
-      onclick: closeModal
-    })
-  );
-
-  const body = el("div", { className: "miniBriefingBody" },
-    el("p", { textContent: "Public relays enforce a 250-message daily cap per public IP. Because local Wi-Fi networks share one IP address, multiple active users exhaust this limit quickly." }),
-    el("div", { className: "miniBriefingCard" },
-      el("b", { style: "color: var(--accent); display: block; margin-bottom: 2px;", textContent: "Active Solution:" }),
-      document.createTextNode("Deploying a dedicated, free cloud relay instance to lift network rate limits permanently.")
-    )
-  );
-
-  const footer = el("div", { className: "row", style: "margin-top: 4px;" },
-    el("button", {
-      type: "button",
-      className: "btn",
-      style: "border-radius: 8px; padding: 8px 12px; font-size: 0.76rem;",
-      textContent: "Dismiss",
-      onclick: closeModal
-    })
-  );
-
-  box.append(header, body, footer);
-  showModal(box);
-}
-
-function showFloatingNotice() {
-  const existing = root.querySelector(".floatingNoticeWindow");
-  if (existing) existing.remove();
-
-  const notice = el("div", { className: "floatingNoticeWindow" },
-    el("span", {}, document.createTextNode("📡 ")),
-    el("b", { textContent: "Notice: " }),
-    document.createTextNode("Shared Wi-Fi rate limits active. Dedicated relay deployment in progress."),
-    el("button", {
-      type: "button",
-      className: "noticePillBtn",
-      textContent: "View",
-      onclick: showMiniBriefing
-    })
-  );
-
-  const main = root.querySelector(".main");
-  if (main) main.append(notice);
-}
-
-showFloatingNotice();
 })();
