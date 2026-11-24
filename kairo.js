@@ -1,5 +1,5 @@
-// Kairo v1.5.5 (Reactive Relay Indicator & Connection Sync)
-// Paste this into your console or replace C:\DeviceLock\kairo\kairo.js
+// Kairo v1.6.4 (Custom Studio Explicit Text Picker)
+// Paste into your browser console or update kairo.js
 
 (() => {
 "use strict";
@@ -12,7 +12,7 @@ if (!document.getElementById("kairo-fonts")) {
   const fontLink = document.createElement("link");
   fontLink.id = "kairo-fonts";
   fontLink.rel = "stylesheet";
-  fontLink.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Unbounded:wght@500;600;700;800&display=swap";
+  fontLink.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Unbounded:wght@500;600;700;800;900&display=swap";
   (document.head || document.documentElement).appendChild(fontLink);
 }
 
@@ -27,22 +27,38 @@ const CSS = `
 #rc-root[data-theme="cyberpunk"]{--bg:#090614;--side:#120d24;--panel:#1e1638;--chat:#16102b;--input:#251b45;--text:#f8f0ff;--muted:#a38ec4;--accent:#ff2a85;--accent2:#d91b6b;--border:#34265c;--green:#00f5d4;--amber:#fee440;--red:#ff3864}
 #rc-root[data-theme="emerald"]{--bg:#091410;--side:#10211b;--panel:#183028;--chat:#132820;--input:#1e3b30;--text:#ecfdf5;--muted:#84b59f;--accent:#10b981;--accent2:#059669;--border:#234739;--green:#34d399;--amber:#fbbf24;--red:#f87171}
 #rc-root[data-theme="crimson"]{--bg:#14080a;--side:#210e12;--panel:#33161c;--chat:#281116;--input:#3d1a22;--text:#fff1f2;--muted:#fda4af;--accent:#e11d48;--accent2:#be123c;--border:#4c1d26;--green:#22c55e;--amber:#f59e0b;--red:#ef4444}
+#rc-root[data-theme="channel_zero"]{--bg:#050505;--side:#0a0a0c;--panel:#121215;--chat:#08080a;--input:#16161a;--text:#d1d5db;--muted:#6b7280;--accent:#9ca3af;--accent2:#6b7280;--border:#26262a;--green:#9ca3af;--amber:#9ca3af;--red:#ef4444;--font-sans:var(--font-mono)}
+
+/* Konami Legacy CRT Theme */
+#rc-root.kairo-classic{--bg:#020a04;--side:#041408;--panel:#08210e;--chat:#030f06;--input:#0a2a12;--text:#38ef7d;--muted:#11998e;--accent:#00ff87;--accent2:#00b862;--border:#0e401c;--green:#38ef7d;--amber:#facc15;--red:#ef4444;font-family:var(--font-mono)}
+#rc-root.kairo-classic::before{content:" ";position:fixed;inset:0;background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.3) 50%),linear-gradient(90deg,rgba(0,255,100,0.03),rgba(0,0,0,0.02),rgba(0,255,100,0.03));background-size:100% 3px,6px 100%;z-index:99999;pointer-events:none}
+
+/* Futuristic /kairo 3000 */
+#rc-root.kairo-3000{--accent:#00f2fe;--accent2:#4facfe;--border:#00f2fe;box-shadow:inset 0 0 40px rgba(0,242,254,0.25)}
+#rc-root.kairo-3000 .logo{box-shadow:0 0 25px #00f2fe;animation:pulseKairo3k 1.5s infinite alternate}
+@keyframes pulseKairo3k{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(90deg)}}
+
 #rc-root *,#rc-root *::before,#rc-root *::after{box-sizing:border-box;margin:0;padding:0}
 #rc-root button,#rc-root input,#rc-root textarea,#rc-root select{font:inherit;color:inherit}
 #rc-root button{cursor:pointer;user-select:none}
 #rc-root .app{width:100%;height:100%;display:grid;grid-template-columns:268px 1fr 272px;background:var(--bg)}
 #rc-root .sidebar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--border)}
 #rc-root .rightbar{min-width:0;background:var(--side);display:flex;flex-direction:column;border-left:1px solid var(--border)}
-#rc-root .brand{height:64px;display:flex;align-items:center;gap:11px;padding:0 16px;border-bottom:1px solid var(--border)}
+#rc-root .brand{height:64px;display:flex;align-items:center;gap:11px;padding:0 16px;border-bottom:1px solid var(--border);position:relative}
 #rc-root .rightTop{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);font-family:var(--font-brand);font-size:.82rem;font-weight:700;color:var(--text)}
-#rc-root .logo{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:var(--font-brand);font-weight:800;font-size:15px;box-shadow:0 6px 16px rgba(88,101,242,.32);letter-spacing:-.03em}
+#rc-root .logo{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:var(--font-brand);font-weight:800;font-size:15px;box-shadow:0 6px 16px rgba(88,101,242,.32);letter-spacing:-.03em;cursor:pointer;transition:transform .2s ease}
+#rc-root .logo.glitchSpin{animation:logoGlitch .65s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes logoGlitch{0%{transform:rotate(0deg) scale(1)}30%{transform:rotate(140deg) scale(1.15) skewX(10deg)}70%{transform:rotate(280deg) scale(.9) skewX(-10deg)}100%{transform:rotate(360deg) scale(1)}}
+
 #rc-root .brandText{min-width:0;flex:1}
 #rc-root .brandTitle{font-family:var(--font-brand);font-weight:700;font-size:.94rem;letter-spacing:-.02em;display:flex;align-items:center;gap:7px;color:var(--text)}
-#rc-root .beta{font-family:var(--font-mono);font-size:.6rem;font-weight:600;color:var(--accent);background:rgba(88,101,242,.14);border:1px solid rgba(88,101,242,.4);border-radius:6px;padding:1px 6px}
+#rc-root .beta{font-family:var(--font-mono);font-size:.62rem;font-weight:700;color:var(--accent);background:rgba(88,101,242,.14);border:1px solid rgba(88,101,242,.4);border-radius:6px;padding:1px 6px;cursor:pointer;user-select:none;transition:background .15s}
+#rc-root .beta:hover{background:rgba(88,101,242,.28)}
 #rc-root .brandSub{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 #rc-root .brandSub.ok{color:var(--green);font-weight:600}
 #rc-root .brandSub.warn{color:var(--amber);font-weight:600}
 #rc-root .brandSub.bad{color:var(--red)}
+#rc-root .brandSub.haunted{color:#c084fc!important;font-family:var(--font-mono);font-weight:700}
 #rc-root .iconBtn{flex:none;border:0;background:transparent;color:var(--muted);font-size:16px;border-radius:8px;width:30px;height:30px;display:grid;place-items:center;transition:background .15s,color .15s}
 #rc-root .iconBtn:hover{background:var(--panel);color:var(--text)}
 #rc-root .iconBtn.close:hover{background:var(--red);color:white}
@@ -65,7 +81,7 @@ const CSS = `
 #rc-root .list{overflow-y:auto;flex:1;padding:0 8px 12px}
 #rc-root .item{width:100%;display:flex;align-items:center;gap:10px;border:0;border-radius:10px;padding:8px 10px;background:transparent;color:var(--muted);text-align:left;margin:2px 0;transition:background .15s,color .15s}
 #rc-root .item:hover,#rc-root .item.active{background:var(--panel);color:var(--text)}
-#rc-root .avatar{position:relative;width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:var(--font-brand);font-weight:700;font-size:12px;overflow:visible}
+#rc-root .avatar{position:relative;width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:var(--font-brand);font-weight:700;font-size:12px;overflow:visible;background-size:cover;background-position:center}
 #rc-root .presence{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border:2.5px solid var(--side);border-radius:50%;background:#747f8d}
 #rc-root .presence.online{background:var(--green)}
 #rc-root .presence.idle{background:var(--amber)}
@@ -96,9 +112,9 @@ const CSS = `
 #rc-root .callPanel{position:relative;background:linear-gradient(160deg,rgba(22,23,26,.98),rgba(34,36,41,.94));backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;margin:16px 20px;padding:24px 28px;box-shadow:0 20px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;gap:20px;overflow:hidden;transition:all .35s cubic-bezier(.16,1,.3,1)}
 #rc-root .callPanel.endedState{opacity:0;transform:scale(.94)}
 #rc-root .callStage{width:100%;max-width:520px;display:flex;align-items:center;justify-content:space-around;position:relative}
-#rc-root .callParticipant{display:flex;flex-direction:column;align-items:center;gap:9px;z-index:2;transition:transform .3s cubic-bezier(.16,1,.3,1)}
+#rc-root .callParticipant{display:flex;flex-direction:column;align-items:center;gap:9px;z-index:2}
 #rc-root .callAvatarWrap{position:relative;width:96px;height:96px;border-radius:50%;display:grid;place-items:center}
-#rc-root .callAvatar{width:86px;height:86px;border-radius:50%;background:linear-gradient(145deg,var(--panel),var(--input));border:2px solid var(--border);color:var(--text);font-family:var(--font-brand);font-size:28px;font-weight:800;display:grid;place-items:center;box-shadow:0 12px 28px rgba(0,0,0,.35);transition:all .3s ease;z-index:2}
+#rc-root .callAvatar{width:86px;height:86px;border-radius:50%;background:linear-gradient(145deg,var(--panel),var(--input));border:2px solid var(--border);color:var(--text);font-family:var(--font-brand);font-size:28px;font-weight:800;display:grid;place-items:center;box-shadow:0 12px 28px rgba(0,0,0,.35);transition:all .3s ease;z-index:2;background-size:cover;background-position:center}
 #rc-root .callAvatarWrap.speaking .callAvatar{border-color:var(--green);box-shadow:0 0 24px rgba(35,165,90,.65);transform:scale(1.04)}
 #rc-root .callPulseRing{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;pointer-events:none}
 #rc-root .callAvatarWrap.pulsing .callPulseRing{animation:callWavePulse 2s infinite cubic-bezier(.2,.6,.35,1)}
@@ -136,15 +152,19 @@ const CSS = `
 #rc-root .pillBtn:hover{background:var(--accent2);transform:translateY(-1px)}
 #rc-root .pillBtn.ghost{background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:none}
 #rc-root .pillBtn.ghost:hover{background:var(--input)}
+
+/* Interactive Clickable Info Cards */
 #rc-root .statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:min(740px,100%);margin-top:20px}
-#rc-root .statCard{position:relative;overflow:hidden;background:var(--side);border:1px solid var(--border);border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;text-align:left;box-shadow:0 10px 24px rgba(0,0,0,.2);transition:transform .2s ease,border-color .2s ease}
-#rc-root .statCard:hover{transform:translateY(-2px);border-color:var(--accent)}
+#rc-root .statCard{position:relative;overflow:hidden;background:var(--side);border:1px solid var(--border);border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;text-align:left;box-shadow:0 10px 24px rgba(0,0,0,.2);cursor:pointer;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+#rc-root .statCard:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 14px 30px rgba(88,101,242,.2)}
 #rc-root .statTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #rc-root .statLabel{font-family:var(--font-brand);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 #rc-root .statValue{font-family:var(--font-brand);font-size:1.12rem;font-weight:800;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px;line-height:1.2}
-#rc-root .statSub{font-size:.72rem;color:var(--muted);font-weight:500}
 
-/* REAL-TIME RELAY GLOW PULSE */
+/* Sub-text ticker: small, Unbounded, quiet palette, wraps naturally */
+#rc-root .statSub{font-family:var(--font-sans);font-size:.72rem;color:var(--muted);font-weight:500;line-height:1.4}
+#rc-root .statSub.subtle-strategy{font-family:var(--font-brand);font-size:.62rem;font-weight:600;letter-spacing:-.01em;color:var(--muted);opacity:.75;text-transform:lowercase;white-space:normal;overflow:visible;word-break:break-word}
+
 #rc-root .pulseDot{position:relative;width:10px;height:10px;flex:none;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber);animation:kairoBlink 1.6s infinite ease-in-out;transition:background .25s ease,box-shadow .25s ease}
 #rc-root .pulseDot.connected{background:var(--green);box-shadow:0 0 10px var(--green)}
 #rc-root .pulseDot.paused{background:var(--amber);box-shadow:0 0 10px var(--amber)}
@@ -158,7 +178,7 @@ const CSS = `
 #rc-root .mine .msgCol{align-items:flex-end}
 #rc-root .bubbleWrap{position:relative;display:flex;align-items:center;gap:6px}
 #rc-root .mine .bubbleWrap{flex-direction:row-reverse}
-#rc-root .bubble{padding:10px 13px;border-radius:14px;background:var(--side);color:var(--text);border:1px solid var(--border);white-space:pre-wrap;overflow-wrap:anywhere;transition:box-shadow .2s;font-size:.86rem;line-height:1.45}
+#rc-root .bubble{padding:10px 13px;border-radius:14px;background:var(--side);color:var(--text);border:1px solid var(--border);white-space:pre-wrap;overflow-wrap:anywhere;transition:box-shadow .2s;font-size:.86rem;line-height:1.45;position:relative}
 #rc-root .mine .bubble{background:var(--accent);color:white;border-color:transparent;border-bottom-right-radius:4px}
 #rc-root .theirs .bubble{border-bottom-left-radius:4px}
 #rc-root .bubble.deleted{opacity:.6;font-style:italic}
@@ -191,6 +211,17 @@ const CSS = `
 #rc-root pre.codeContent{margin:0;padding:10px;font-family:var(--font-mono);font-size:.76rem;line-height:1.45;overflow-x:auto;color:#c9d1d9}
 #rc-root code.inlineCode{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:.82em}
 
+/* Easter Egg Local FX */
+.ee-confetti{position:absolute;top:-12px;right:0;font-size:16px;pointer-events:none;animation:eeBurst .8s ease-out forwards}
+@keyframes eeBurst{0%{transform:scale(0) translateY(10px);opacity:1}100%{transform:scale(1.4) translateY(-14px);opacity:0}}
+.ee-stars{position:absolute;inset:-4px;border:1px dashed #facc15;border-radius:18px;pointer-events:none;animation:eeTwinkle 1.5s ease-out forwards}
+@keyframes eeTwinkle{0%{opacity:0;transform:scale(.97)}50%{opacity:1;transform:scale(1.02)}100%{opacity:0;transform:scale(1)}}
+.ee-depth-pill{display:inline-block;font-size:.62rem;font-family:var(--font-mono);font-weight:700;color:#f59e0b;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);padding:1px 6px;border-radius:4px;margin-bottom:4px}
+.ee-dots span{animation:dotPulse 1.2s infinite;opacity:.3}
+.ee-dots span:nth-child(2){animation-delay:.2s}
+.ee-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dotPulse{0%,100%{opacity:.3}50%{opacity:1}}
+
 #rc-root .system{align-self:center;color:var(--muted);font-size:.72rem;background:var(--side);padding:4px 12px;border-radius:999px;border:1px solid var(--border);text-align:center}
 #rc-root .typingIndicator{padding:2px 20px;font-size:.72rem;color:var(--muted);font-style:italic;min-height:18px}
 #rc-root .replyBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 20px;background:var(--panel);border-top:1px solid var(--border);font-size:.76rem;color:var(--muted)}
@@ -212,13 +243,13 @@ const CSS = `
 #rc-root .modalBadge{width:40px;height:40px;border-radius:11px;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:var(--font-brand);font-weight:800;font-size:16px;display:grid;place-items:center;flex:none;box-shadow:0 6px 16px rgba(88,101,242,.3)}
 #rc-root .modal h2{font-family:var(--font-brand);font-size:1.05rem;font-weight:700;letter-spacing:-.02em;color:var(--text);margin:0}
 #rc-root .modal h3{font-family:var(--font-brand);font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px;color:var(--muted)}
-#rc-root .modal p,#rc-root .modal li{color:var(--muted);font-size:.82rem;line-height:1.5}
+#rc-root .modal p,#rc-root .modal li{color:var(--muted);font-size:.82rem;line-height:1.5;overflow-wrap:break-word}
 #rc-root .modal ol{padding-left:18px;display:grid;gap:6px;margin:10px 0}
 #rc-root .modal input,#rc-root .modal select,#rc-root .modal textarea{width:100%;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);padding:10px 13px;outline:0;font-size:.85rem;transition:border-color .15s,box-shadow .15s}
 #rc-root .modal input:focus,#rc-root .modal select:focus,#rc-root .modal textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(88,101,242,.18)}
 #rc-root .modal input[type="color"]{height:42px;padding:3px 5px;border-radius:10px;cursor:pointer}
 #rc-root .modal .err{color:var(--red);min-height:1.2em;margin:10px 0 0;font-size:.78rem;font-weight:600}
-#rc-root .colorRow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+#rc-root .colorRow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
 #rc-root .colorField{display:flex;flex-direction:column;gap:5px;font-size:.72rem;color:var(--muted)}
 #rc-root .row{display:flex;gap:10px;margin-top:18px}
 #rc-root .row .btn{flex:1}
@@ -227,10 +258,20 @@ const CSS = `
 #rc-root .linkBtn:hover{color:var(--text);text-decoration:underline}
 #rc-root .linkBtn.danger:hover{color:var(--red)}
 #rc-root .kbd{font-family:var(--font-mono);font-size:.7rem;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:2px 6px;color:var(--text)}
-#rc-root .toast{position:fixed;left:50%;bottom:24px;z-index:99999;transform:translate(-50%,15px);background:#09090b;color:white;border:1px solid var(--border);padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;max-width:min(520px,92vw);font-size:.8rem;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+
+/* Toast: Unbounded font, wraps naturally, no cutoff */
+#rc-root .toast{position:fixed;left:50%;bottom:24px;z-index:99999;transform:translate(-50%,15px);background:#09090b;color:white;border:1px solid var(--border);padding:10px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;max-width:min(540px,94vw);font-family:var(--font-brand);font-size:.72rem;font-weight:600;line-height:1.45;box-shadow:0 12px 30px rgba(0,0,0,.5);white-space:normal;overflow-wrap:break-word}
 #rc-root .toast.show{opacity:1;transform:translate(-50%,0)}
 #rc-root .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999999;display:grid;place-items:center;padding:20px;cursor:zoom-out}
 #rc-root .lightbox img{max-width:92vw;max-height:92vh;border-radius:10px;box-shadow:0 15px 50px rgba(0,0,0,.7)}
+
+/* Prototype Layout Overlay */
+#rc-root .protoLayer{position:fixed;inset:0;background:#dcdfe4;color:#1e293b;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;font-family:sans-serif}
+#rc-root .protoCard{background:#ffffff;border:2px solid #000;border-radius:6px;width:min(440px,94vw);padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:6px 6px 0 #000}
+#rc-root .protoCard h2{font-size:1.15rem;font-weight:800;margin:0;letter-spacing:-.02em}
+#rc-root .protoBtn{background:#000;color:#fff;border:0;padding:10px;font-weight:700;font-size:.82rem;cursor:pointer}
+#rc-root .protoBtn.ghost{background:#fff;color:#000;border:2px solid #000}
+
 #rc-root [hidden]{display:none!important}
 @media(max-width:960px){#rc-root .app{grid-template-columns:68px 1fr 220px}#rc-root .brand{justify-content:center;padding:8px 4px}#rc-root .brandText,#rc-root .quickLabel,#rc-root .quickHeading,#rc-root .selfInfo{display:none}#rc-root .quickAction{justify-content:center;padding:10px 4px}#rc-root .statsGrid{grid-template-columns:1fr}}
 `;
@@ -239,9 +280,9 @@ const MARKUP = `
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="logo">k.</div>
+      <div id="kairoLogo" class="logo" title="Kairo">k.</div>
       <div class="brandText">
-        <div class="brandTitle">Kairo<span class="beta">v1.5.5</span></div>
+        <div class="brandTitle">Kairo<span id="betaPill" class="beta" title="Release Notes">BETA</span></div>
         <div id="brandSub" class="brandSub">vault locked</div>
       </div>
     </div>
@@ -252,6 +293,7 @@ const MARKUP = `
       <button id="addBtn" class="quickAction"><span class="quickIcon">＋</span><span class="quickLabel">New Chat (DM)</span></button>
       <button id="groupBtn" class="quickAction"><span class="quickIcon">＃</span><span class="quickLabel">New Group</span></button>
       <button id="themeBtn" class="quickAction"><span class="quickIcon">🎨</span><span class="quickLabel">Themes & Colors</span></button>
+      <button id="eeSettingsBtn" class="quickAction"><span class="quickIcon">✨</span><span class="quickLabel">Easter Eggs & Lore</span></button>
       <button id="cloudSyncBtn" class="quickAction"><span class="quickIcon">☁️</span><span class="quickLabel">Sync Cloud Vault</span></button>
       <button id="exportVaultBtn" class="quickAction"><span class="quickIcon">📤</span><span class="quickLabel">Export Vault</span></button>
       <button id="blockedBtn" class="quickAction"><span class="quickIcon">🚫</span><span class="quickLabel">Blocked Users</span></button>
@@ -286,6 +328,7 @@ const MARKUP = `
 <div id="lightboxHost"></div>
 <div id="toast" class="toast"></div>
 <input type="file" id="filePicker" accept="image/*" style="display:none">
+<input type="file" id="avatarPicker" accept="image/*" style="display:none">
 <audio id="remoteAudio" autoplay style="display:none"></audio>
 `;
 
@@ -318,17 +361,18 @@ const CLOAK_PRESETS = {
 
 let vaultKey = null;
 let currentSessionPassword = "";
-let relayStatusState = "paused"; // "connected" | "paused" | "error"
+let relayStatusState = "paused";
+let activeRelayPun = "asking the firewall nicely";
 const te = new TextEncoder();
 const td = new TextDecoder();
-const me = { id: rnd(), userKey: "", name: "", avatar: "", bio: "", status: "online" };
+const me = { id: rnd(), userKey: "", name: "", avatar: "", avatarImg: null, bio: "", status: "online" };
 const settings = {
   theme: "dark",
   sound: true,
   titleAlert: true,
   cloak: "kairo",
   sendOnEnter: true,
-  customColors: { bg: "#0f1012", side: "#16171a", accent: "#5865f2" }
+  customColors: { bg: "#0f1012", side: "#16171a", accent: "#5865f2", text: "#f3f4f6" }
 };
 
 const rooms = new Map();
@@ -369,6 +413,85 @@ let pingTimer = null;
 let pingIdx = 0;
 const timers = [];
 
+/* -------------------------------------------------------------
+   CENTRAL EASTER EGG & ACHIEVEMENTS MANAGER
+------------------------------------------------------------- */
+const EE = {
+  LS_KEY: "kairo:ee:v1",
+  data: {
+    cfg: { fx: true, toasts: true, rare: true },
+    achievements: {},
+    fragments: {},
+    channelZero: false,
+    sentCount: 0
+  },
+  logoClicks: [],
+  logoCooldown: false,
+  konamiIdx: 0,
+  konamiSeq: ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"],
+  konamiTimeout: null,
+  bruhStreak: 0,
+  dupBuffer: [],
+  muteToggles: [],
+
+  // Pure uninterrupted lowercase strategies without "strategy 01" or emojis
+  strategies: [
+    "asking the firewall nicely",
+    "waking the server up with milk and cookies",
+    "bribing the packets with chocolate",
+    "checking under the router",
+    "convincing the packets to cooperate",
+    "untangling the ethernet cables",
+    "negotiating with webrtc",
+    "opening a tiny internet tunnel",
+    "feeding the server hamsters",
+    "locating the networking gremlin"
+  ],
+
+  oracleList: [
+    "the relay says: ask again after lunch",
+    "the packets remain undecided",
+    "channel zero recommends absolutely nothing",
+    "the firewall has declined to comment"
+  ],
+
+  init() {
+    try {
+      const stored = lsGet(this.LS_KEY);
+      if (stored) this.data = Object.assign(this.data, JSON.parse(stored));
+    } catch {}
+  },
+  save() {
+    lsSet(this.LS_KEY, JSON.stringify(this.data));
+  },
+  getNextStrategy() {
+    return this.strategies[Math.floor(Math.random() * this.strategies.length)];
+  },
+  unlock(id, name) {
+    if (this.data.achievements[id]) return;
+    this.data.achievements[id] = true;
+    this.save();
+    if (this.data.cfg.toasts) toast("Achievement Unlocked: " + name, 2800);
+  },
+  unlockFrag(id, quote) {
+    if (this.data.fragments[id]) return;
+    this.data.fragments[id] = quote;
+    this.save();
+    if (this.data.cfg.toasts) toast("Lore Fragment Discovered", 2800);
+  },
+  reset() {
+    this.data.achievements = {};
+    this.data.fragments = {};
+    this.data.channelZero = false;
+    this.data.sentCount = 0;
+    this.save();
+    root.removeAttribute("data-theme");
+    root.classList.remove("kairo-classic", "kairo-3000");
+    toast("Easter egg progress reset.");
+  }
+};
+EE.init();
+
 function rnd() {
   const a = crypto.getRandomValues(new Uint8Array(8));
   return Array.from(a, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -394,24 +517,40 @@ function toast(text, ms) {
   x.textContent = text;
   x.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => x.classList.remove("show"), ms || 1800);
+  toastTimer = setTimeout(() => x.classList.remove("show"), ms || 2200);
 }
 
 function setRelayState(st) {
   relayStatusState = st;
   const dot = $("relayDot");
   const val = $("relayStatVal");
+  const sub = $("relayStatSub");
+
+  if (st !== "connected") {
+    activeRelayPun = EE.getNextStrategy();
+  }
+
   if (dot) {
     dot.className = "pulseDot " + st;
-    dot.title = st === "connected" ? "Relay Connected" : (st === "paused" ? "Relay Paused / Connecting" : "Relay Unreachable");
+    dot.title = st === "connected" ? "Relay Connected" : (st === "paused" ? "Relay Connecting" : "Relay Unreachable");
   }
   if (val) {
     val.textContent = st === "connected" ? "ACTIVE" : (st === "paused" ? "CONNECTING" : "OFFLINE");
+  }
+  if (sub) {
+    if (st === "connected") {
+      sub.textContent = "Private Relay (Zero Limits)";
+      sub.className = "statSub";
+    } else {
+      sub.textContent = activeRelayPun;
+      sub.className = "statSub subtle-strategy";
+    }
   }
 }
 
 function setStatus(text, cls) {
   const s = $("brandSub");
+  if (s.classList.contains("haunted")) return;
   s.textContent = text;
   s.className = "brandSub" + (cls ? " " + cls : "");
 }
@@ -430,8 +569,43 @@ function openLightbox(src) {
   box.append(lb);
 }
 
+function getThemeAccentColor() {
+  const t = settings.theme || "dark";
+  if (t === "cyberpunk") return "#ff2a85";
+  if (t === "emerald") return "#10b981";
+  if (t === "crimson") return "#e11d48";
+  if (t === "channel_zero") return "#9ca3af";
+  if (t === "custom" && settings.customColors && settings.customColors.accent) {
+    return settings.customColors.accent;
+  }
+  return "#7c3aed";
+}
+
+function setKairoFavicon(hasUnread) {
+  const accent = getThemeAccentColor();
+  const pingDot = hasUnread ? `<circle cx="26" cy="6" r="4.5" fill="#ef4444" stroke="#0e121d" stroke-width="1.8"/>` : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+    <rect width="32" height="32" rx="8" fill="#0e121d"/>
+    <text x="5" y="23" font-family="'Unbounded', sans-serif" font-weight="900" font-size="20" fill="${accent}">k.</text>
+    ${pingDot}
+  </svg>`;
+  const faviconUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg.trim())}`;
+  document.querySelectorAll("link[rel*='icon']").forEach(e => e.remove());
+  const link = document.createElement("link");
+  link.rel = "icon";
+  link.type = "image/svg+xml";
+  link.href = `${faviconUrl}#${Date.now()}`;
+  document.head.appendChild(link);
+}
+
 function applyCloak(key) {
   settings.cloak = key || "kairo";
+  if (settings.cloak === "kairo") {
+    document.title = "Kairo";
+    const totalUnread = Array.from(rooms.values()).reduce((sum, r) => sum + (r.unread || 0), 0);
+    setKairoFavicon(totalUnread > 0);
+    return;
+  }
   const p = CLOAK_PRESETS[settings.cloak] || CLOAK_PRESETS.kairo;
   document.title = p.title;
   document.querySelectorAll("link[rel*='icon']").forEach((e) => e.remove());
@@ -464,10 +638,14 @@ function playNotifSound() {
 }
 
 function updateDocTitle() {
-  if (settings.cloak && settings.cloak !== "kairo") return;
-  if (!settings.titleAlert) { document.title = origTitle; return; }
   const totalUnread = Array.from(rooms.values()).reduce((sum, r) => sum + (r.unread || 0), 0);
-  document.title = totalUnread > 0 ? "(" + totalUnread + ") Kairo" : origTitle;
+  if (settings.cloak === "kairo") {
+    setKairoFavicon(totalUnread > 0);
+    document.title = totalUnread > 0 ? "(" + totalUnread + ") Kairo" : "Kairo";
+    return;
+  }
+  if (!settings.titleAlert) { document.title = origTitle; return; }
+  document.title = totalUnread > 0 ? "(" + totalUnread + ") " + (CLOAK_PRESETS[settings.cloak] || {}).title : (CLOAK_PRESETS[settings.cloak] || {}).title || origTitle;
 }
 
 function toB64(bytes) {
@@ -512,7 +690,7 @@ async function unseal(key, b64) {
   return JSON.parse(td.decode(pt));
 }
 
-function compressImage(file) {
+function compressImage(file, maxDim = 800, quality = 0.6) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -521,7 +699,6 @@ function compressImage(file) {
       img.onerror = reject;
       img.onload = () => {
         let { width, height } = img;
-        const maxDim = 800;
         if (width > maxDim || height > maxDim) {
           if (width > height) {
             height = Math.round((height * maxDim) / width);
@@ -536,7 +713,7 @@ function compressImage(file) {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.6));
+        resolve(canvas.toDataURL("image/jpeg", quality));
       };
       img.src = reader.result;
     };
@@ -546,9 +723,10 @@ function compressImage(file) {
 
 function applyTheme(t) {
   settings.theme = t || "dark";
+  root.classList.remove("kairo-classic", "kairo-3000");
   if (settings.theme === "custom") {
     root.setAttribute("data-theme", "custom");
-    const c = settings.customColors || { bg: "#0f1012", side: "#16171a", accent: "#5865f2" };
+    const c = settings.customColors || { bg: "#0f1012", side: "#16171a", accent: "#5865f2", text: "#f3f4f6" };
     root.style.setProperty("--bg", c.bg);
     root.style.setProperty("--chat", c.bg);
     root.style.setProperty("--side", c.side);
@@ -556,6 +734,7 @@ function applyTheme(t) {
     root.style.setProperty("--input", c.side);
     root.style.setProperty("--accent", c.accent);
     root.style.setProperty("--accent2", c.accent);
+    root.style.setProperty("--text", c.text || "#f3f4f6");
   } else {
     root.style.removeProperty("--bg");
     root.style.removeProperty("--chat");
@@ -564,9 +743,11 @@ function applyTheme(t) {
     root.style.removeProperty("--input");
     root.style.removeProperty("--accent");
     root.style.removeProperty("--accent2");
+    root.style.removeProperty("--text");
     if (settings.theme === "dark") root.removeAttribute("data-theme");
     else root.setAttribute("data-theme", settings.theme);
   }
+  if (settings.cloak === "kairo") updateDocTitle();
 }
 
 async function getCloudVaultTopic(userKey, password) {
@@ -625,6 +806,7 @@ async function saveVault() {
 }
 
 function exportVaultString() {
+  EE.unlockFrag("frag_04", "the relay keeps no memories. supposedly.");
   const enc = lsGet(LS + "vault_data");
   if (!enc) return toast("No encrypted vault found on this device.");
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -642,7 +824,7 @@ function promptImportVault() {
   const raw = prompt("Paste your encrypted vault string here to restore your account:");
   if (!raw || !raw.trim()) return;
   lsSet(LS + "vault_data", raw.trim());
-  toast("Vault imported! Enter your Master Password to unlock.");
+  toast("Vault imported. Enter your Master Password to unlock.");
   promptVaultLogin();
 }
 
@@ -684,7 +866,7 @@ function promptVaultLogin() {
       el("button", {
         type: "button",
         className: "linkBtn",
-        textContent: "📥 Paste Backup String",
+        textContent: "Paste Backup String",
         onclick: promptImportVault
       }),
       el("button", {
@@ -773,7 +955,7 @@ function promptVaultLogin() {
     );
     const keyInp = el("input", { type: "text", placeholder: "Permanent Key (e.g. arvi, user_1)", maxLength: 20 });
     const nameInp = el("input", { type: "text", placeholder: "Display Name (e.g. Arvi)", maxLength: 20 });
-    const avInp = el("input", { type: "text", placeholder: "Avatar Emoji / Initials (e.g. ⚡, AR)", maxLength: 4 });
+    const avInp = el("input", { type: "text", placeholder: "Avatar Initials (e.g. AR)", maxLength: 4 });
     const bioInp = el("input", { type: "text", placeholder: "Status bio (optional)", maxLength: 50 });
     const pwInp = el("input", { type: "password", placeholder: "Create Master Password (4+ chars)", maxLength: 80 });
     const err = el("p", { className: "err" });
@@ -784,7 +966,7 @@ function promptVaultLogin() {
       el("button", {
         type: "button",
         className: "linkBtn",
-        textContent: "📥 Restore Existing Vault",
+        textContent: "Restore Existing Vault",
         onclick: promptImportVault
       })
     );
@@ -792,7 +974,7 @@ function promptVaultLogin() {
     box.append(
       el("h3", { textContent: "User Key (@handle for DMs)" }), keyInp,
       el("h3", { textContent: "Display Name" }), nameInp,
-      el("h3", { textContent: "Avatar Emoji / Initials (Optional)" }), avInp,
+      el("h3", { textContent: "Avatar Initials (Optional)" }), avInp,
       el("h3", { textContent: "Status Bio (Optional)" }), bioInp,
       el("h3", { textContent: "Master Password" }), pwInp,
       err,
@@ -889,7 +1071,7 @@ function showBlockedModal() {
 function showThemeSettings() {
   const box = el("form", { className: "modal" });
   box.append(
-    el("h2", { textContent: "Themes & Color Studio 🎨" }),
+    el("h2", { textContent: "Themes & Color Studio" }),
     el("p", { textContent: "Customize your theme, pick custom colors, and set your disguise." }),
     el("h3", { textContent: "Color Theme Preset" })
   );
@@ -901,25 +1083,35 @@ function showThemeSettings() {
     el("option", { value: "light", textContent: "Daylight Mode" }),
     el("option", { value: "custom", textContent: "Custom Studio (Pick Your Own)" })
   );
+  if (EE.data.channelZero) {
+    themeSel.append(el("option", { value: "channel_zero", textContent: "Channel Zero (Unlocked)" }));
+  }
   themeSel.value = settings.theme || "dark";
 
-  const customColors = settings.customColors || { bg: "#0f1012", side: "#16171a", accent: "#5865f2" };
+  const customColors = settings.customColors || { bg: "#0f1012", side: "#16171a", accent: "#5865f2", text: "#f3f4f6" };
   const bgInput = el("input", { type: "color", value: customColors.bg });
   const sideInput = el("input", { type: "color", value: customColors.side });
   const accentInput = el("input", { type: "color", value: customColors.accent });
+  const textInput = el("input", { type: "color", value: customColors.text || "#f3f4f6" });
 
   const colorStudioDiv = el("div", { id: "colorStudioDiv", hidden: themeSel.value !== "custom" },
     el("h3", { textContent: "Custom Palette Studio" }),
     el("div", { className: "colorRow" },
-      el("div", { className: "colorField" }, el("span", { textContent: "Primary (Chat)" }), bgInput),
-      el("div", { className: "colorField" }, el("span", { textContent: "Secondary (Side)" }), sideInput),
-      el("div", { className: "colorField" }, el("span", { textContent: "Accent (Buttons)" }), accentInput)
+      el("div", { className: "colorField" }, el("span", { textContent: "Chat" }), bgInput),
+      el("div", { className: "colorField" }, el("span", { textContent: "Side" }), sideInput),
+      el("div", { className: "colorField" }, el("span", { textContent: "Accent" }), accentInput),
+      el("div", { className: "colorField" }, el("span", { textContent: "Text" }), textInput)
     )
   );
 
   const previewUpdate = () => {
     if (themeSel.value === "custom") {
-      settings.customColors = { bg: bgInput.value, side: sideInput.value, accent: accentInput.value };
+      settings.customColors = { 
+        bg: bgInput.value, 
+        side: sideInput.value, 
+        accent: accentInput.value,
+        text: textInput.value
+      };
       applyTheme("custom");
     } else {
       applyTheme(themeSel.value);
@@ -933,9 +1125,10 @@ function showThemeSettings() {
   bgInput.oninput = previewUpdate;
   sideInput.oninput = previewUpdate;
   accentInput.oninput = previewUpdate;
+  textInput.oninput = previewUpdate;
 
   const cloakSel = el("select", {},
-    el("option", { value: "kairo", textContent: "Default (Kairo)" }),
+    el("option", { value: "kairo", textContent: "Default (Kairo Signature k.)" }),
     el("option", { value: "drive", textContent: "Google Drive" }),
     el("option", { value: "docs", textContent: "Google Docs" }),
     el("option", { value: "classroom", textContent: "Google Classroom" }),
@@ -969,7 +1162,12 @@ function showThemeSettings() {
   box.onsubmit = async (e) => {
     e.preventDefault();
     if (themeSel.value === "custom") {
-      settings.customColors = { bg: bgInput.value, side: sideInput.value, accent: accentInput.value };
+      settings.customColors = { 
+        bg: bgInput.value, 
+        side: sideInput.value, 
+        accent: accentInput.value,
+        text: textInput.value
+      };
       applyTheme("custom");
     } else {
       applyTheme(themeSel.value);
@@ -982,6 +1180,173 @@ function showThemeSettings() {
     closeModal();
     toast("Preferences saved!");
   };
+  showModal(box);
+}
+
+function showEasterEggSettings() {
+  const box = el("div", { className: "modal", style: "width:min(520px,100%)" });
+  box.append(
+    el("h2", { textContent: "Easter Eggs & Lore Archives" }),
+    el("p", { textContent: "Manage playful local secrets, achievements, and lore discoveries." }),
+    el("h3", { textContent: "Preferences" })
+  );
+
+  const chkFx = el("input", { type: "checkbox", checked: EE.data.cfg.fx });
+  const chkToast = el("input", { type: "checkbox", checked: EE.data.cfg.toasts });
+  const chkRare = el("input", { type: "checkbox", checked: EE.data.cfg.rare });
+
+  const labelRow = (input, text) => el("label", { style: "display:flex;align-items:center;gap:10px;font-size:.78rem;cursor:pointer;margin:4px 0" }, input, el("span", { textContent: text }));
+
+  box.append(
+    labelRow(chkFx, "Enable visual easter eggs (confetti, stars, glow)"),
+    labelRow(chkToast, "Enable achievement toasts"),
+    labelRow(chkRare, "Enable subtle strategy ticker on overview card")
+  );
+
+  chkFx.onchange = () => { EE.data.cfg.fx = chkFx.checked; EE.save(); };
+  chkToast.onchange = () => { EE.data.cfg.toasts = chkToast.checked; EE.save(); };
+  chkRare.onchange = () => { EE.data.cfg.rare = chkRare.checked; EE.save(); };
+
+  box.append(el("h3", { textContent: "Unlocked Achievements" }));
+  const achList = [
+    { id: "first_msg", title: "signal acquired", desc: "First successfully sent message" },
+    { id: "first_img", title: "visual evidence", desc: "First successfully sent image" },
+    { id: "yapper_100", title: "professional yapper", desc: "100 successfully sent messages" },
+    { id: "bandwidth_1000", title: "bandwidth enthusiast", desc: "1,000 successfully sent messages" },
+    { id: "outlook_1200", title: "outlook email", desc: "Message containing exactly 1,200 chars" },
+    { id: "sleep_3am", title: "sleep schedule disconnected", desc: "Message sent between 3:00 AM & 3:59 AM" },
+    { id: "first_group", title: "the council has assembled", desc: "Created your first group" },
+    { id: "call_404", title: "call not found", desc: "Call duration reached 4m 04s" },
+    { id: "call_10m", title: "ten-minute transmission", desc: "Call duration reached 10m" },
+    { id: "call_mute_spam", title: "indecision detected", desc: "Muted & unmuted 5 times in 10s" }
+  ];
+
+  const achGrid = el("div", { style: "display:grid;gap:8px;max-height:180px;overflow-y:auto;margin:6px 0;padding-right:4px" });
+  achList.forEach((a) => {
+    const unlocked = !!EE.data.achievements[a.id];
+    achGrid.append(el("div", {
+      style: "display:flex;justify-content:space-between;align-items:flex-start;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.74rem;gap:8px"
+    },
+      el("div", { style: "flex:1;min-width:0" },
+        el("div", { style: "font-weight:700;color:" + (unlocked ? "var(--green)" : "var(--muted)") + ";word-break:break-word" }, (unlocked ? "[UNLOCKED] " : "[LOCKED] ") + a.title),
+        el("div", { style: "font-size:.68rem;color:var(--muted);word-break:break-word;margin-top:2px" }, a.desc)
+      ),
+      el("span", { className: "kbd", textContent: unlocked ? "DONE" : "LOCK" })
+    ));
+  });
+  box.append(achGrid);
+
+  const hasFrags = Object.keys(EE.data.fragments).length > 0;
+  if (hasFrags) {
+    box.append(el("h3", { textContent: "Kairo Lore Fragments" }));
+    const frags = [
+      { id: "frag_01", num: "01", quote: "the first channel opened before kairo had a name." },
+      { id: "frag_02", num: "02", quote: "nobody remembers creating channel zero." },
+      { id: "frag_03", num: "03", quote: "some messages arrive before the typing indicator." },
+      { id: "frag_04", num: "04", quote: "the relay keeps no memories. supposedly." }
+    ];
+    const fragWrap = el("div", { style: "display:grid;gap:8px;max-height:160px;overflow-y:auto" });
+    frags.forEach((f) => {
+      const discovered = !!EE.data.fragments[f.id];
+      fragWrap.append(el("div", { style: "background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:.74rem;overflow-wrap:break-word" },
+        el("div", { style: "font-family:var(--font-mono);font-size:.65rem;color:var(--accent);font-weight:700" }, "FRAGMENT " + f.num),
+        el("div", { style: "font-style:italic;color:" + (discovered ? "var(--text)" : "var(--muted)") + ";word-break:break-word;margin-top:2px;line-height:1.4" }, discovered ? "“" + f.quote + "”" : "undiscovered")
+      ));
+    });
+    box.append(fragWrap);
+  }
+
+  const subRow = el("div", { className: "subRow" },
+    el("button", {
+      type: "button",
+      className: "linkBtn danger",
+      textContent: "Reset Easter Egg Progress",
+      onclick: () => {
+        if (confirm("Reset achievements and discoveries? Your messages, vault, and contacts will NOT be altered.")) {
+          EE.reset();
+          closeModal();
+        }
+      }
+    }),
+    el("button", { type: "button", className: "btn secondary small", textContent: "Done", onclick: closeModal })
+  );
+
+  box.append(subRow);
+  showModal(box);
+}
+
+/* Modals for Interactive Dashboard Info Cards (NO EMOJIS) */
+function showVaultInfoModal() {
+  const box = el("div", { className: "modal" },
+    el("div", { className: "modalHeader" },
+      el("div", { className: "modalBadge", textContent: "V" }),
+      el("div", {},
+        el("h2", { textContent: "Account Vault Architecture" }),
+        el("p", { textContent: "AES-GCM-256 with Zero-Knowledge Local Derivation" })
+      )
+    ),
+    el("p", { textContent: "Your vault is encrypted directly in browser memory using AES-256-GCM. Your Master Password is used with PBKDF2 (120,000 iterations) to derive your private key." }),
+    el("h3", { textContent: "Security Safeguards" }),
+    el("ol", {},
+      el("li", { textContent: "Your password is never sent to the Render relay or stored in plaintext." }),
+      el("li", { textContent: "Encrypted snapshots sync to your private cloud topic whenever you save changes." }),
+      el("li", { textContent: "Vault Status: " + (vaultKey ? "Unlocked & Active" : "Locked") })
+    ),
+    el("div", { className: "row" },
+      el("button", { className: "btn", textContent: "Close", onclick: closeModal })
+    )
+  );
+  showModal(box);
+}
+
+function showRelayInfoModal() {
+  const box = el("div", { className: "modal" },
+    el("div", { className: "modalHeader" },
+      el("div", { className: "modalBadge", textContent: "R" }),
+      el("div", {},
+        el("h2", { textContent: "Cloud Relay & WebRTC Transit" }),
+        el("p", { textContent: "Server-Sent Events (SSE) + Direct Audio Traversal" })
+      )
+    ),
+    el("p", { textContent: "Kairo routes encrypted packets through an ephemeral Render relay (" + SERVER.replace("https://", "") + ") without logging conversation metadata or message text." }),
+    el("h3", { textContent: "Live Connection Diagnostics" }),
+    el("ol", {},
+      el("li", { textContent: "Relay State: " + relayStatusState.toUpperCase() }),
+      el("li", { textContent: "SSE Channel Key: " + (esKey ? esKey.slice(0, 30) + "..." : "none") }),
+      el("li", { textContent: "WebRTC Audio ICE Servers: stun.l.google.com:19302" }),
+      el("li", { textContent: "Current Strategy: " + activeRelayPun })
+    ),
+    el("div", { className: "row" },
+      el("button", { className: "btn secondary", textContent: "Wake & Reconnect", onclick: () => { closeModal(); resubscribe(); } }),
+      el("button", { className: "btn", textContent: "Close", onclick: closeModal })
+    )
+  );
+  showModal(box);
+}
+
+function showChannelsInfoModal() {
+  const allChats = Array.from(rooms.values());
+  const unlocked = allChats.filter((r) => r.key);
+  const box = el("div", { className: "modal" },
+    el("div", { className: "modalHeader" },
+      el("div", { className: "modalBadge", textContent: "#" }),
+      el("div", {},
+        el("h2", { textContent: "Channel & Room Status" }),
+        el("p", { textContent: "Zero-Knowledge Per-Room Key Derivation" })
+      )
+    ),
+    el("p", { textContent: "Each direct message and group channel operates under its own unique AES-256 session key derived from its room name and secret password." }),
+    el("h3", { textContent: "Summary" }),
+    el("ol", {},
+      el("li", { textContent: "Total Stored Channels: " + allChats.length + " / " + MAX_CHATS }),
+      el("li", { textContent: "Unlocked & Hot: " + unlocked.length }),
+      el("li", { textContent: "Direct Messages: " + allChats.filter(r => r.meta.type === 'dm').length }),
+      el("li", { textContent: "Groups: " + allChats.filter(r => r.meta.type !== 'dm').length })
+    ),
+    el("div", { className: "row" },
+      el("button", { className: "btn", textContent: "Done", onclick: closeModal })
+    )
+  );
   showModal(box);
 }
 
@@ -1010,6 +1375,7 @@ async function post(r, kind, extra) {
     k: kind,
     name: me.name,
     av: me.avatar || "",
+    avi: me.avatarImg || null,
     bio: me.bio || "",
     st: me.status || "online",
     t: Date.now()
@@ -1033,6 +1399,9 @@ function startCallDuration() {
     if (durEl && callStartTime > 0) {
       const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
       durEl.textContent = formatDuration(elapsed);
+
+      if (elapsed === 244) EE.unlock("call_404", "call not found");
+      if (elapsed === 600) EE.unlock("call_10m", "ten-minute transmission");
     }
   }, 1000);
 }
@@ -1085,15 +1454,29 @@ function renderCallPanel() {
   const panel = el("div", { id: "callPanel", className: "callPanel" });
   if (callState === "ended") panel.classList.add("endedState");
 
+  const myAvatarEl = el("div", { className: "callAvatar" });
+  if (me.avatarImg) {
+    myAvatarEl.style.backgroundImage = `url(${me.avatarImg})`;
+  } else {
+    myAvatarEl.textContent = myAv;
+  }
+
   const myWrap = el("div", { className: "callAvatarWrap" + (callState === "calling" ? " pulsing" : "") },
     el("div", { className: "callPulseRing" }),
-    el("div", { className: "callAvatar", textContent: myAv })
+    myAvatarEl
   );
   const mySide = el("div", { className: "callParticipant" }, myWrap, el("div", { className: "callParticipantName", textContent: "You (" + me.name + ")" }));
 
+  const remoteAvatarEl = el("div", { className: "callAvatar" });
+  if (peer && peer.avi) {
+    remoteAvatarEl.style.backgroundImage = `url(${peer.avi})`;
+  } else {
+    remoteAvatarEl.textContent = peerAv;
+  }
+
   const remoteWrap = el("div", { id: "remoteAvatarWrap", className: "callAvatarWrap" + (callState === "ringing" || callState === "incoming" ? " pulsing" : "") },
     el("div", { className: "callPulseRing" }),
-    el("div", { className: "callAvatar", textContent: peerAv })
+    remoteAvatarEl
   );
   const remoteSide = el("div", { className: "callParticipant" }, remoteWrap, el("div", { className: "callParticipantName", textContent: peerName }));
 
@@ -1257,6 +1640,13 @@ function toggleMute() {
   isMuted = !isMuted;
   localStream.getAudioTracks().forEach((track) => { track.enabled = !isMuted; });
   renderCallPanel();
+
+  const now = Date.now();
+  EE.muteToggles.push(now);
+  EE.muteToggles = EE.muteToggles.filter(t => now - t <= 10000);
+  if (EE.muteToggles.length >= 5) {
+    EE.unlock("call_mute_spam", "indecision detected");
+  }
 }
 
 function toggleDeafen() {
@@ -1326,7 +1716,14 @@ function chatItem(r) {
     : isDm ? (peer ? (peer.bio ? peer.st + " · " + peer.bio : peer.st) : "offline")
     : (onlineList.length ? onlineList.length + " online" : "just you");
   const avText = isDm ? (peer && peer.av ? peer.av : initials(r.meta.title)) : (r.meta.icon || "#");
-  const avatar = el("div", { className: "avatar", textContent: avText });
+  
+  const avatar = el("div", { className: "avatar" });
+  if (isDm && peer && peer.avi) {
+    avatar.style.backgroundImage = `url(${peer.avi})`;
+  } else {
+    avatar.textContent = avText;
+  }
+
   if (isDm) {
     const pState = peer ? (peer.st || "online") : "";
     avatar.append(el("span", { className: "presence" + (pState ? " " + pState : "") }));
@@ -1360,7 +1757,12 @@ function renderSidebar() {
 
   const sc = $("selfCard");
   sc.innerHTML = "";
-  const myAv = el("div", { className: "avatar", textContent: me.avatar || initials(me.name || "?") });
+  const myAv = el("div", { className: "avatar" });
+  if (me.avatarImg) {
+    myAv.style.backgroundImage = `url(${me.avatarImg})`;
+  } else {
+    myAv.textContent = me.avatar || initials(me.name || "?");
+  }
   myAv.append(el("span", { className: "presence " + (me.status === "invisible" ? "" : (me.status || "online")) }));
   sc.append(
     myAv,
@@ -1528,7 +1930,7 @@ function formatMessageContent(rawText) {
 }
 
 function setReply(m) {
-  replyingTo = m ? { id: m.id, who: m.who, text: String(m.text || (m.img ? "Photo" : "Voice message")).slice(0, 90) } : null;
+  replyingTo = m ? { id: m.id, who: m.who, depth: (m.depth || 0) + 1, text: String(m.text || (m.img ? "Photo" : "Voice message")).slice(0, 90) } : null;
   const bar = $("replyBar");
   if (!bar) return;
   if (!replyingTo) { bar.hidden = true; bar.innerHTML = ""; return; }
@@ -1638,11 +2040,32 @@ function buildMessage(r, m) {
     bubble.append(q);
   }
 
+  if (m.depth && m.depth >= 10 && !m.deleted) {
+    const depthTag = el("div", {
+      className: "ee-depth-pill",
+      textContent: m.depth >= 20 ? "please start a new conversation" : "thread depth: the abyss"
+    });
+    bubble.append(depthTag);
+  }
+
   bubble.append(meta);
 
   if (m.text) {
-    bubble.append(formatMessageContent(m.text));
+    if (m.text === "...") {
+      const dotSpan = el("span", { className: "ee-dots" }, el("span", { textContent: "•" }), el("span", { textContent: "•" }), el("span", { textContent: "•" }));
+      bubble.append(dotSpan);
+    } else {
+      bubble.append(formatMessageContent(m.text));
+    }
   }
+
+  // Visual local FX
+  if (m.fx === "confetti" && EE.data.cfg.fx) {
+    bubble.append(el("span", { className: "ee-confetti", textContent: "🎉🎊✨" }));
+  } else if (m.fx === "stars" && EE.data.cfg.fx) {
+    bubble.append(el("span", { className: "ee-stars" }));
+  }
+
   if (m.img && !m.deleted) {
     const imgEl = el("img", {
       src: m.img,
@@ -1722,8 +2145,17 @@ function buildMessage(r, m) {
   }
 
   const avText = mine ? (me.avatar || initials(me.name)) : (m.av || initials(who));
+  const avatarEl = el("div", { className: "avatar", title: who });
+  if (mine && me.avatarImg) {
+    avatarEl.style.backgroundImage = `url(${me.avatarImg})`;
+  } else if (!mine && m.avi) {
+    avatarEl.style.backgroundImage = `url(${m.avi})`;
+  } else {
+    avatarEl.textContent = avText;
+  }
+
   const row = el("div", { className: "message " + (mine ? "mine" : "theirs") },
-    el("div", { className: "avatar", textContent: avText, title: who }),
+    avatarEl,
     col
   );
   row.setAttribute("data-mid", m.id);
@@ -1811,7 +2243,7 @@ function renderWelcome() {
   const dot = el("span", {
     id: "relayDot",
     className: "pulseDot " + relayStatusState,
-    title: relayStatusState === "connected" ? "Relay Connected" : (relayStatusState === "paused" ? "Relay Paused" : "Relay Unreachable")
+    title: relayStatusState === "connected" ? "Relay Connected" : (relayStatusState === "paused" ? "Relay Connecting" : "Relay Unreachable")
   });
   const relayVal = el("div", {
     id: "relayStatVal",
@@ -1819,23 +2251,30 @@ function renderWelcome() {
     textContent: relayStatusState === "connected" ? "ACTIVE" : (relayStatusState === "paused" ? "CONNECTING" : "OFFLINE")
   });
 
+  const relaySub = el("div", {
+    id: "relayStatSub",
+    className: "statSub" + (relayStatusState !== "connected" ? " subtle-strategy" : ""),
+    textContent: relayStatusState === "connected" ? "Private Relay (Zero Limits)" : activeRelayPun
+  });
+
+  // Interactive Info Cards (NO EMOJIS, CLEAN WRAP)
   const stats = el("div", { className: "statsGrid" },
-    el("div", { className: "statCard" },
+    el("div", { className: "statCard", title: "Click for Vault encryption details", onclick: showVaultInfoModal },
       el("div", { className: "statTop" },
         el("div", { className: "statLabel", textContent: "Account Vault" })
       ),
       el("div", { className: "statValue", textContent: vaultKey ? "SYNCED" : "LOCKED" }),
       el("div", { className: "statSub", textContent: "AES-256 · Auto Cloud Backup" })
     ),
-    el("div", { className: "statCard" },
+    el("div", { className: "statCard", title: "Click for live Relay & WebRTC transit diagnostics", onclick: showRelayInfoModal },
       el("div", { className: "statTop" },
         el("div", { className: "statLabel", textContent: "Cloud Relay" }),
         dot
       ),
       relayVal,
-      el("div", { className: "statSub", textContent: "Private Relay (Zero Limits)" })
+      relaySub
     ),
-    el("div", { className: "statCard" },
+    el("div", { className: "statCard", title: "Click for active channels breakdown", onclick: showChannelsInfoModal },
       el("div", { className: "statTop" },
         el("div", { className: "statLabel", textContent: "Active Channels" })
       ),
@@ -1920,7 +2359,7 @@ function openChat(id) {
     maxLength: MAX_TEXT,
     autocomplete: "off",
     value: draftVal,
-    placeholder: "Message " + (isDm ? "@" + r.meta.title : "#" + r.meta.title),
+    placeholder: "Message " + (isDm ? "@" + r.meta.title : "#" + r.meta.title) + " (Try /flip, /oracle)",
     oninput: (e) => {
       const len = e.target.value.length;
       charCounter.textContent = len + "/" + MAX_TEXT;
@@ -1992,6 +2431,7 @@ async function onEvent(ev) {
   r.people.set(m.i, {
     name: who,
     av: String(m.av || "").slice(0, 4),
+    avi: m.avi || null,
     bio: String(m.bio || "").slice(0, 50),
     st: String(m.st || "online"),
     last: Date.now()
@@ -2047,6 +2487,7 @@ async function onEvent(ev) {
       who,
       authorId: m.i,
       av: String(m.av || "").slice(0, 4),
+      avi: m.avi || null,
       text: m.text ? String(m.text).slice(0, MAX_TEXT) : "",
       img: m.img || null,
       audio: m.audio || null,
@@ -2055,6 +2496,8 @@ async function onEvent(ev) {
       seenByMe: isActive,
       time: m.t || Date.now(),
       replyTo: m.replyTo || null,
+      depth: m.depth || 0,
+      fx: m.fx || null,
       reactions: {}
     };
     r.store.msgs.push(rec);
@@ -2115,10 +2558,8 @@ async function onEvent(ev) {
   renderSidebar();
 }
 
-function resubscribe() {
+async function resubscribe() {
   const open = Array.from(rooms.values()).filter((r) => r.key);
-  
-  // Use a heartbeat topic to keep the connection hot even before rooms are made
   const k = open.length ? open.map((r) => r.meta.topic).join(",") : "kairo_hb_" + (me.userKey || "guest");
   
   if (k === esKey && es && es.readyState === EventSource.OPEN) {
@@ -2134,7 +2575,12 @@ function resubscribe() {
   
   everOpened = false;
   setRelayState("paused");
-  setStatus("connecting…", "warn");
+  setStatus(activeRelayPun, "warn");
+
+  // Preflight warm-up ping for Render cold start
+  try {
+    fetch(SERVER + "/healthz", { mode: "no-cors" }).catch(() => {});
+  } catch {}
   
   try {
     es = new EventSource(SERVER + "/" + k + "/sse?since=" + since);
@@ -2217,16 +2663,17 @@ function checkSecure() {
 function showHelp() {
   const steps = [
     "Your User Key (@handle) and Master Password automatically sync your channels to the cloud.",
-    "The pulse dot on the Overview card shows live relay health: Green = Active, Yellow = Connecting/Paused, Red = Error.",
-    "If your browser cache is wiped, enter your handle and password to restore all channels instantly.",
-    "Use 'Sync Cloud Vault' (☁️) in navigation to force an instant backup.",
-    "Click 📞 Call in any DM to start an animated WebRTC voice call."
+    "Click the live cards on Overview (Account Vault, Cloud Relay, Active Channels) to inspect technical details and diagnostics.",
+    "If the relay is connecting, look closely at the Cloud Relay card for subtle connection strategy updates.",
+    "Use 'Sync Cloud Vault' in navigation to force an instant backup.",
+    "Click Call in any DM to start an animated WebRTC voice call."
   ];
   const shortcuts = [
     ["Alt + N", "Start a new Direct Message"],
     ["Alt + G", "Create or join a Group"],
     ["Ctrl + K", "Focus chat search box"],
-    ["Esc", "Close dialog / cancel reply / clear search"]
+    ["Esc", "Close dialog / cancel reply / clear search / exit CRT mode"],
+    ["Konami Code", "↑ ↑ ↓ ↓ ← → ← → B A for Kairo Classic CRT mode"]
   ];
   const scList = el("div", { style: "display:grid;gap:6px;margin-top:8px" },
     ...shortcuts.map(([k, desc]) => el("div", { style: "display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)" },
@@ -2235,7 +2682,7 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.5.5 Guide", style: "margin-bottom:8px" }),
+    el("h2", { textContent: "Kairo v1.6.4 Guide", style: "margin-bottom:8px" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
@@ -2249,17 +2696,30 @@ function profile() {
   if (!vaultKey) return promptVaultLogin();
   const box = el("form", { className: "modal" });
   box.append(
-    el("h2", { textContent: "Your Profile & Presence ◉", style: "margin-bottom:6px" }),
+    el("h2", { textContent: "Your Profile & Presence", style: "margin-bottom:6px" }),
     el("p", { textContent: "Permanent User Key: @" + (me.userKey || me.name) + ". Changes sync to your cloud vault automatically." })
   );
+
+  const previewAvatar = el("div", { className: "avatar", style: "width:64px;height:64px;margin:12px auto;font-size:20px" });
+  if (me.avatarImg) previewAvatar.style.backgroundImage = `url(${me.avatarImg})`;
+  else previewAvatar.textContent = me.avatar || initials(me.name);
+
+  const uploadBtn = el("button", {
+    type: "button",
+    className: "btn secondary small",
+    style: "display:block;margin:0 auto 14px",
+    textContent: "Upload Custom Image",
+    onclick: () => $("avatarPicker").click()
+  });
+
   const nameInp = el("input", { type: "text", value: me.name, maxLength: 20 });
-  const avInp = el("input", { type: "text", value: me.avatar || "", placeholder: "Emoji or initials (e.g. ⚡, AK)", maxLength: 4 });
+  const avInp = el("input", { type: "text", value: me.avatar || "", placeholder: "Initials fallback (e.g. AR)", maxLength: 4 });
   const bioInp = el("input", { type: "text", value: me.bio || "", placeholder: "What are you up to?", maxLength: 50 });
   const stSel = el("select", {},
-    el("option", { value: "online", textContent: "🟢 Online" }),
-    el("option", { value: "idle", textContent: "🌙 Idle / Away" }),
-    el("option", { value: "dnd", textContent: "⛔ Do Not Disturb" }),
-    el("option", { value: "invisible", textContent: "👻 Invisible (Pauses pings)" })
+    el("option", { value: "online", textContent: "Online" }),
+    el("option", { value: "idle", textContent: "Idle / Away" }),
+    el("option", { value: "dnd", textContent: "Do Not Disturb" }),
+    el("option", { value: "invisible", textContent: "Invisible (Pauses pings)" })
   );
   stSel.value = me.status || "online";
 
@@ -2268,13 +2728,32 @@ function profile() {
   const cancelBtn = el("button", { type: "button", className: "btn secondary", textContent: "Cancel", onclick: closeModal });
 
   box.append(
+    previewAvatar,
+    uploadBtn,
     el("h3", { textContent: "Display Name" }), nameInp,
-    el("h3", { textContent: "Custom Avatar Emoji / Icon" }), avInp,
+    el("h3", { textContent: "Avatar Text Fallback" }), avInp,
     el("h3", { textContent: "Bio / Status Note" }), bioInp,
     el("h3", { textContent: "Online Presence" }), stSel,
     err,
     el("div", { className: "row" }, saveBtn, cancelBtn)
   );
+
+  $("avatarPicker").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      toast("Optimizing avatar image...");
+      const compressed = await compressImage(file, 256, 0.7);
+      me.avatarImg = compressed;
+      previewAvatar.textContent = "";
+      previewAvatar.style.backgroundImage = `url(${compressed})`;
+      toast("Custom avatar applied. Click Save.");
+    } catch {
+      toast("Failed to process image.");
+    } finally {
+      e.target.value = "";
+    }
+  };
 
   box.onsubmit = async (e) => {
     e.preventDefault();
@@ -2319,6 +2798,12 @@ async function createChat(type, label, pw, icon) {
     if (icon) r.meta.icon = icon.trim().slice(0, 4);
   }
   r.key = key;
+
+  if (type === "group") {
+    EE.unlock("first_group", "the council has assembled");
+    EE.unlockFrag("frag_03", "some messages arrive before the typing indicator.");
+  }
+
   await saveVault();
   resubscribe();
   openChat(topic);
@@ -2349,10 +2834,10 @@ function startAdd() {
 function startGroup() {
   if (!vaultKey) return promptVaultLogin();
   modal("New or Existing Group",
-    "Pick a group ID, optional group emoji, and shared password.",
+    "Pick a group ID, optional group tag, and shared password.",
     [
       { id: "f", label: "Group ID", max: 40 },
-      { id: "i", label: "Group Avatar Emoji (optional, e.g. 🎮, 🔥)", max: 4 },
+      { id: "i", label: "Group Avatar Tag (optional)", max: 4 },
       { id: "p", label: "Group password", type: "password" }
     ], "Create / Join",
     (v) => createChat("group", v.f, v.p, v.i));
@@ -2364,7 +2849,7 @@ async function dispatchMediaMessage(imgBase64, audioBase64) {
   const id = rnd();
   const replyPayload = replyingTo ? Object.assign({}, replyingTo) : null;
   
-  const rec = { id, who: me.name, authorId: me.id, av: me.avatar || "", text: "", img: imgBase64, audio: audioBase64, mine: true, read: false, time: Date.now(), replyTo: replyPayload, reactions: {} };
+  const rec = { id, who: me.name, authorId: me.id, av: me.avatar || "", avi: me.avatarImg || null, text: "", img: imgBase64, audio: audioBase64, mine: true, read: false, time: Date.now(), replyTo: replyPayload, reactions: {} };
   r.seen.add(id);
   r.store.msgs.push(rec);
   if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
@@ -2375,6 +2860,8 @@ async function dispatchMediaMessage(imgBase64, audioBase64) {
   scrollToBottom(true);
   renderSidebar();
 
+  if (imgBase64) EE.unlock("first_img", "visual evidence");
+
   try {
     await post(r, "m", { id, text: "", img: imgBase64, audio: audioBase64, replyTo: replyPayload });
   } catch (err) {
@@ -2382,18 +2869,125 @@ async function dispatchMediaMessage(imgBase64, audioBase64) {
   }
 }
 
+function showPrototypeMode() {
+  const layer = el("div", { className: "protoLayer" },
+    el("div", { className: "protoCard" },
+      el("h2", { textContent: "Kairo P2P Prototype (v0.1a)" }),
+      el("p", { style: "font-size:.78rem;color:#475569" }, "Recreation of early visual prototype. Modern encryption and network routing active underneath."),
+      el("div", { style: "display:flex;flex-direction:column;gap:6px" },
+        el("label", { style: "font-size:.7rem;font-weight:700" }, "Identity Name"),
+        el("input", { value: me.name + " (@" + (me.userKey || me.name) + ")", readonly: true, style: "padding:8px;border:1px solid #000;background:#f8fafc" })
+      ),
+      el("div", { style: "display:flex;gap:8px" },
+        el("button", { className: "protoBtn", style: "flex:1", textContent: "Start DM", onclick: () => { layer.remove(); startAdd(); } }),
+        el("button", { className: "protoBtn ghost", style: "flex:1", textContent: "Join Group", onclick: () => { layer.remove(); startGroup(); } })
+      ),
+      el("button", { className: "protoBtn", textContent: "Return to Modern Kairo", onclick: () => layer.remove() })
+    )
+  );
+  root.append(layer);
+}
+
 async function sendMessage(e) {
   if (e) e.preventDefault();
   const r = rooms.get(activeTopic);
   const input = $("msg");
   if (!input) return;
-  const text = input.value.trim().slice(0, MAX_TEXT);
+  let text = input.value.trim().slice(0, MAX_TEXT);
   if (!r || !r.key || !text) return;
+
+  // Slash commands
+  if (text.startsWith("/")) {
+    const cmd = text.toLowerCase().trim();
+    if (cmd === "/flip") {
+      text = "(╯°□°)╯︵ ┻━┻";
+    } else if (cmd === "/unflip") {
+      text = "┬─┬ ノ( ゜-゜ノ)";
+    } else if (cmd === "/shrug") {
+      text = "¯\\_(ツ)_/¯";
+    } else if (cmd === "/oracle") {
+      input.value = "";
+      const reply = EE.oracleList[Math.floor(Math.random() * EE.oracleList.length)];
+      addSystem(reply);
+      return;
+    } else if (cmd === "/prototype") {
+      input.value = "";
+      showPrototypeMode();
+      return;
+    } else if (cmd === "/kairo 3000") {
+      input.value = "";
+      root.classList.add("kairo-3000");
+      toast("Quantum Relay Stable · Kairo 3000 Synchronised", 3000);
+      setTimeout(() => root.classList.remove("kairo-3000"), 30000);
+      return;
+    }
+  }
+
+  // Exact phrase local triggers
+  let msgFx = null;
+  const lower = text.toLowerCase();
+  if (lower === "gg") msgFx = "confetti";
+  if (lower === "goodnight") msgFx = "stars";
+  if (lower === "kairo") {
+    const l = $("kairoLogo");
+    if (l) {
+      l.style.transform = "scale(1.25) rotate(10deg)";
+      setTimeout(() => { l.style.transform = ""; }, 400);
+    }
+  }
+  if (lower === "there is no easter egg") {
+    toast("correct.", 2400);
+  }
+  if (lower === "ping") {
+    text = "ping [latency unavailable]";
+  }
+
+  // "bruh" streak
+  if (lower === "bruh") {
+    EE.bruhStreak++;
+    if (EE.bruhStreak === 10) addSystem("bro has exhausted the vocabulary");
+  } else {
+    EE.bruhStreak = 0;
+  }
+
+  // Duplicate messages check (5 in 30s)
+  const now = Date.now();
+  EE.dupBuffer.push({ text: lower, t: now });
+  EE.dupBuffer = EE.dupBuffer.filter((x) => now - x.t <= 30000);
+  if (EE.dupBuffer.filter((x) => x.text === lower).length === 5) {
+    addSystem("the echo chamber has been located");
+  }
+
+  // Achievements evaluation
+  EE.data.sentCount++;
+  EE.unlock("first_msg", "signal acquired");
+  if (EE.data.sentCount >= 100) EE.unlock("yapper_100", "professional yapper");
+  if (EE.data.sentCount >= 1000) EE.unlock("bandwidth_1000", "bandwidth enthusiast");
+  if (text.length === 1200) EE.unlock("outlook_1200", "outlook email");
+
+  const curHour = new Date().getHours();
+  if (curHour === 3) EE.unlock("sleep_3am", "sleep schedule disconnected");
+
   const id = rnd();
   const replyPayload = replyingTo ? Object.assign({}, replyingTo) : null;
+  const currentDepth = replyPayload && replyPayload.depth ? replyPayload.depth : 0;
 
   r.seen.add(id);
-  const rec = { id, who: me.name, authorId: me.id, av: me.avatar || "", text, mine: true, read: false, time: Date.now(), replyTo: replyPayload, reactions: {} };
+  const rec = {
+    id,
+    who: me.name,
+    authorId: me.id,
+    av: me.avatar || "",
+    avi: me.avatarImg || null,
+    text,
+    mine: true,
+    read: false,
+    time: Date.now(),
+    replyTo: replyPayload,
+    depth: currentDepth,
+    fx: msgFx,
+    reactions: {}
+  };
   r.store.msgs.push(rec);
   if (r.store.msgs.length > 300) r.store.msgs = r.store.msgs.slice(-300);
   persistRoom(r);
@@ -2408,7 +3002,7 @@ async function sendMessage(e) {
   renderSidebar();
 
   try {
-    await post(r, "m", { id, text, replyTo: replyPayload });
+    await post(r, "m", { id, text, replyTo: replyPayload, depth: currentDepth, fx: msgFx });
   } catch (err) {
     addSystem("Failed to deliver message: " + (err && err.message ? err.message : "error"));
   }
@@ -2421,7 +3015,7 @@ $("filePicker").onchange = async (e) => {
   if (!file) return;
   try {
     toast("Compressing photo...");
-    const compressed = await compressImage(file);
+    const compressed = await compressImage(file, 800, 0.6);
     await dispatchMediaMessage(compressed, null);
   } catch (ex) {
     toast("Failed to load photo: " + (ex.message || "error"));
@@ -2432,6 +3026,12 @@ $("filePicker").onchange = async (e) => {
 
 $("searchBox").oninput = (e) => {
   searchQuery = e.target.value;
+  if (searchQuery.trim().toLowerCase() === "channel zero") {
+    EE.data.channelZero = true;
+    EE.unlockFrag("frag_02", "nobody remembers creating channel zero.");
+    EE.save();
+    toast("Channel Zero Discovered", 3000);
+  }
   renderChatLog(true);
 };
 
@@ -2455,6 +3055,7 @@ $("btnDelete").onclick = async () => {
 };
 
 $("themeBtn").onclick = showThemeSettings;
+$("eeSettingsBtn").onclick = showEasterEggSettings;
 $("cloudSyncBtn").onclick = () => {
   if (!currentSessionPassword) return toast("Unlock your vault first.");
   syncVaultToCloud(currentSessionPassword);
@@ -2470,9 +3071,94 @@ $("helpBtn").onclick = showHelp;
 $("profileBtn").onclick = profile;
 $("selfCard").onclick = profile;
 
+// Secret Logo 7-click
+$("kairoLogo").onclick = () => {
+  if (EE.logoCooldown) return;
+  const now = Date.now();
+  EE.logoClicks.push(now);
+  EE.logoClicks = EE.logoClicks.filter((t) => now - t <= 5000);
+  if (EE.logoClicks.length >= 7) {
+    EE.logoCooldown = true;
+    EE.logoClicks = [];
+    const l = $("kairoLogo");
+    l.classList.add("glitchSpin");
+    setTimeout(() => l.classList.remove("glitchSpin"), 700);
+
+    const sub = $("brandSub");
+    const prevText = sub.textContent;
+    const prevClass = sub.className;
+    sub.textContent = "connected · definitely not haunted";
+    sub.className = "brandSub haunted";
+
+    setTimeout(() => {
+      sub.textContent = prevText;
+      sub.className = prevClass;
+      EE.logoCooldown = false;
+    }, 5000);
+  }
+};
+
+// Beta Pill click & Shift+Click
+$("betaPill").onclick = (e) => {
+  if (e.shiftKey) {
+    EE.unlockFrag("frag_01", "the first channel opened before kairo had a name.");
+    const box = el("div", { className: "modal" },
+      el("h2", { textContent: "Classified Patch Notes" }),
+      el("ol", { style: "margin:12px 0 16px 18px" },
+        el("li", { textContent: "taught packets basic manners" }),
+        el("li", { textContent: "removed three ghosts from localStorage" }),
+        el("li", { textContent: "firewall remains unconvinced" }),
+        el("li", { textContent: "kairo is now 4% more circular" })
+      ),
+      el("button", { className: "btn", textContent: "Dismiss", onclick: closeModal })
+    );
+    showModal(box);
+  } else {
+    const box = el("div", { className: "modal" },
+      el("h2", { textContent: "Kairo Release Notes (v1.6.4)" }),
+      el("p", { textContent: "Zero-knowledge chat with encrypted vaults, reactive relays, and WebRTC calls." }),
+      el("ol", { style: "margin:10px 0 16px 18px" },
+        el("li", { textContent: "Custom Studio 4-color palette including dedicated text color picker." }),
+        el("li", { textContent: "Custom picture avatar uploads stored in encrypted vault." }),
+        el("li", { textContent: "Subtle strategy ticker on relay connecting cards (Unbounded font)." }),
+        el("li", { textContent: "Signature Unbounded 'k.' purple tab favicon (theme-adaptive)." })
+      ),
+      el("button", { className: "btn", textContent: "Close", onclick: closeModal })
+    );
+    showModal(box);
+  }
+};
+
 function onKeyDown(e) {
   if (!document.getElementById("rc-root")) return;
+
+  // Resilient Konami Code Detection
+  const activeEl = document.activeElement;
+  const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
+  if (!isInput) {
+    const pressedKey = (e.key || "").toLowerCase();
+    
+    clearTimeout(EE.konamiTimeout);
+    EE.konamiTimeout = setTimeout(() => { EE.konamiIdx = 0; }, 2500);
+
+    if (pressedKey === EE.konamiSeq[EE.konamiIdx]) {
+      EE.konamiIdx++;
+      if (EE.konamiIdx === EE.konamiSeq.length) {
+        EE.konamiIdx = 0;
+        root.classList.add("kairo-classic");
+        toast("Legacy channel unlocked (Press Esc to exit)", 3200);
+      }
+    } else {
+      EE.konamiIdx = pressedKey === "arrowup" ? 1 : 0;
+    }
+  }
+
   if (e.key === "Escape") {
+    if (root.classList.contains("kairo-classic")) {
+      root.classList.remove("kairo-classic");
+      toast("Restored standard channel");
+      return;
+    }
     if ($("lightboxHost").innerHTML) { $("lightboxHost").innerHTML = ""; return; }
     if ($("modalHost").innerHTML && vaultKey) { closeModal(); return; }
     if (replyingTo) { setReply(null); return; }
@@ -2501,6 +3187,7 @@ $("exit").onclick = () => {
   timers.forEach(clearInterval);
   clearTimeout(readyTimer);
   clearTimeout(pingTimer);
+  clearTimeout(EE.konamiTimeout);
   if (es) { es.close(); es = null; }
   const st = document.getElementById("rc-style");
   if (st) st.remove();
