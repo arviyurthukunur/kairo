@@ -4048,4 +4048,260 @@ resubscribe();
       }
     });
   })();
+// =========================================================================
+  // KAIRO UI POLISH: MATCHED '+' BUTTON, TOP PROGRESS LINE & CENTERED BOOT
+  // =========================================================================
+  (() => {
+    // 1. INJECT REFINED STYLES
+    const styleEl = document.createElement("style");
+    styleEl.id = "kairo-ui-refinements";
+    styleEl.textContent = `
+      /* --- FIXED BALANCED BOOT SCREEN --- */
+      #kairo-boot-curtain {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 999999 !important;
+        background: radial-gradient(circle at 50% 50%, #151821 0%, #06070a 100%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        padding: 24px !important;
+        box-sizing: border-box !important;
+        transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      #kairo-boot-curtain.loaded {
+        opacity: 0 !important;
+        transform: scale(1.05) !important;
+        pointer-events: none !important;
+      }
+      .boot-barrier-card {
+        margin: auto !important;
+        width: 100% !important;
+        max-width: 380px !important;
+        padding: 40px !important;
+        box-sizing: border-box !important;
+      }
+
+      /* --- TOP BORDER PROGRESS BAR & PILL --- */
+      #kairo-upload-progress-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 3px;
+        background: transparent;
+        z-index: 2147483647;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      #kairo-upload-progress-container.active {
+        opacity: 1;
+      }
+      #kairo-upload-progress-bar {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #00f2fe, #5865f2);
+        box-shadow: 0 0 10px #00f2fe, 0 0 20px #5865f2;
+        transition: width 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      #kairo-upload-progress-pill {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: rgba(15, 18, 26, 0.92);
+        border: 1px solid rgba(88, 101, 242, 0.4);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 14px rgba(0, 242, 254, 0.3);
+        backdrop-filter: blur(10px);
+        border-radius: 999px;
+        padding: 4px 14px;
+        font-family: var(--font-arc, sans-serif);
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #00f2fe;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        opacity: 0;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 2147483647;
+      }
+      #kairo-upload-progress-pill.active {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* --- MATCHING RECTANGULAR COMPOSER ATTACH BUTTON --- */
+      #kairoAttachBtn {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        border-radius: 10px !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        color: #8e95a2 !important;
+        display: grid !important;
+        place-items: center !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        margin: 0 4px !important;
+        transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      #kairoAttachBtn:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        transform: translateY(-1px) !important;
+      }
+      #kairoAttachBtn:active {
+        transform: scale(0.95) !important;
+      }
+      #kairoAttachBtn svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
+    // 2. CREATE PROGRESS BAR DOM ELEMENTS
+    let progressContainer = document.getElementById("kairo-upload-progress-container");
+    if (!progressContainer) {
+      progressContainer = document.createElement("div");
+      progressContainer.id = "kairo-upload-progress-container";
+      progressContainer.innerHTML = `<div id="kairo-upload-progress-bar"></div>`;
+      document.body.appendChild(progressContainer);
+    }
+    const progressBar = progressContainer.querySelector("#kairo-upload-progress-bar");
+
+    let progressPill = document.getElementById("kairo-upload-progress-pill");
+    if (!progressPill) {
+      progressPill = document.createElement("div");
+      progressPill.id = "kairo-upload-progress-pill";
+      progressPill.innerHTML = `<span>Uploading:</span><b id="kairo-progress-text">0%</b>`;
+      document.body.appendChild(progressPill);
+    }
+    const progressText = progressPill.querySelector("#kairo-progress-text");
+
+    function setUploadProgress(percent) {
+      if (percent > 0 && percent < 100) {
+        progressContainer.classList.add("active");
+        progressPill.classList.add("active");
+        progressBar.style.width = `${percent}%`;
+        progressText.textContent = `${Math.round(percent)}%`;
+      } else {
+        progressBar.style.width = "100%";
+        progressText.textContent = "100%";
+        setTimeout(() => {
+          progressContainer.classList.remove("active");
+          progressPill.classList.remove("active");
+          setTimeout(() => { progressBar.style.width = "0%"; }, 300);
+        }, 600);
+      }
+    }
+
+    // 3. ATTACH MATCHING '+' BUTTON TO COMPOSER
+    function mountComposerBtn() {
+      const composer = document.querySelector("#rc-root .composer");
+      if (!composer || document.getElementById("kairoAttachBtn")) return;
+
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.id = "kairoCloudFileInput";
+      fileInput.style.display = "none";
+      document.body.appendChild(fileInput);
+
+      const attachBtn = document.createElement("button");
+      attachBtn.id = "kairoAttachBtn";
+      attachBtn.type = "button";
+      attachBtn.title = "Attach & Send File Link";
+      attachBtn.innerHTML = `
+        <svg viewBox="0 0 24 24">
+          <path d="M19 11h-6V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/>
+        </svg>
+      `;
+
+      attachBtn.onclick = () => fileInput.click();
+
+      const msgInput = document.getElementById("msg");
+      if (msgInput) {
+        composer.insertBefore(attachBtn, msgInput);
+      } else {
+        composer.prepend(attachBtn);
+      }
+
+      // XHR-based upload with live progress events
+      async function uploadWithProgress(file) {
+        if (!file) return;
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        toast(`Starting upload for "${file.name}" (${sizeMB} MB)...`);
+        setUploadProgress(1);
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "https://file.io/?expires=14d");
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = (e.loaded / e.total) * 100;
+            setUploadProgress(pct);
+          }
+        };
+
+        xhr.onload = () => {
+          setUploadProgress(100);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const res = JSON.parse(xhr.responseText);
+              if (res.success && res.link) {
+                toast("Upload complete! Sending link to chat...");
+                const shareText = `📁 Shared File: ${file.name} (${sizeMB} MB)\n🔗 Download: ${res.link}`;
+                if (msgInput) {
+                  msgInput.value = shareText;
+                  const sendBtn = composer.querySelector(".sendBtn");
+                  if (sendBtn) sendBtn.click();
+                  else toast("Link placed in message bar. Press Enter to send.");
+                }
+              } else {
+                toast("Upload failed: " + (res.message || "File rejected"));
+              }
+            } catch (err) {
+              toast("Upload response parse error.");
+            }
+          } else {
+            toast(`Upload failed (Status ${xhr.status})`);
+          }
+        };
+
+        xhr.onerror = () => {
+          setUploadProgress(0);
+          toast("Network error during file upload.");
+        };
+
+        xhr.send(formData);
+      }
+
+      fileInput.onchange = () => {
+        if (fileInput.files.length) {
+          uploadWithProgress(fileInput.files[0]);
+          fileInput.value = "";
+        }
+      };
+
+      // Drag and drop onto screen
+      window.addEventListener("dragover", (e) => e.preventDefault());
+      window.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (e.dataTransfer && e.dataTransfer.files.length) {
+          uploadWithProgress(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    setInterval(mountComposerBtn, 1000);
+  })();
 })();
