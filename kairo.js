@@ -4202,106 +4202,92 @@ resubscribe();
       }
     }
 
-    // 3. ATTACH MATCHING '+' BUTTON TO COMPOSER
-    function mountComposerBtn() {
-      const composer = document.querySelector("#rc-root .composer");
-      if (!composer || document.getElementById("kairoAttachBtn")) return;
+   // 3. FILE UPLOAD (Gofile) + '+' BUTTON
+const MAX_UPLOAD = 10 * 1024 ** 3; // 10 GB
+let uploading = false;
 
-      const fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.id = "kairoCloudFileInput";
-      fileInput.style.display = "none";
-      document.body.appendChild(fileInput);
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.style.display = "none";
+document.body.appendChild(fileInput);
 
-      const attachBtn = document.createElement("button");
-      attachBtn.id = "kairoAttachBtn";
-      attachBtn.type = "button";
-      attachBtn.title = "Attach & Send File Link";
-      attachBtn.innerHTML = `
-        <svg viewBox="0 0 24 24">
-          <path d="M19 11h-6V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/>
-        </svg>
-      `;
+function xhrUpload(url, file) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("file", file, file.name);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) setUploadProgress((e.loaded / e.total) * 100);
+    };
+    xhr.onload = () => {
+      let j = null;
+      try { j = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status < 300 && j && j.status === "ok" && j.data) resolve(j.data);
+      else reject(new Error((j && j.status) || "HTTP " + xhr.status));
+    };
+    xhr.onerror = () => reject(new Error("network or CORS blocked"));
+    xhr.send(fd);
+  });
+}
 
-      attachBtn.onclick = () => fileInput.click();
+async function uploadBig(file) {
+  if (!file || uploading) return;
+  if (file.size > MAX_UPLOAD) return toast("File is over 10 GB.");
+  const input = document.getElementById("msg");
+  if (!input) return toast("Open a chat first.");
 
-      const msgInput = document.getElementById("msg");
-      if (msgInput) {
-        composer.insertBefore(attachBtn, msgInput);
-      } else {
-        composer.prepend(attachBtn);
-      }
+  uploading = true;
+  const sizeMB = (file.size / 1048576).toFixed(1);
+  toast('Uploading "' + file.name + '" (' + sizeMB + " MB)...", 4000);
+  setUploadProgress(1);
 
-      // XHR-based upload with live progress events
-      async function uploadWithProgress(file) {
-        if (!file) return;
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        toast(`Starting upload for "${file.name}" (${sizeMB} MB)...`);
-        setUploadProgress(1);
+  const urls = ["https://upload.gofile.io/uploadfile"];
+  try {
+    const s = await (await fetch("https://api.gofile.io/servers")).json();
+    const name = s.data.servers[0].name;
+    urls.push("https://" + name + ".gofile.io/uploadfile");
+  } catch {}
 
-        const formData = new FormData();
-        formData.append("file", file);
+  let data = null, lastErr = null;
+  for (const u of urls) {
+    try { data = await xhrUpload(u, file); break; }
+    catch (e) { lastErr = e; console.warn("[Kairo] upload failed via", u, e); }
+  }
+  uploading = false;
+  setUploadProgress(100);
 
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "https://file.io/?expires=14d");
+  if (!data) return toast("Upload failed: " + (lastErr ? lastErr.message : "unknown"), 5000);
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = (e.loaded / e.total) * 100;
-            setUploadProgress(pct);
-          }
-        };
+  const draft = input.value;
+  input.value = "📁 " + file.name + " (" + sizeMB + " MB)\n🔗 " + data.downloadPage;
+  await sendMessage();
+  const again = document.getElementById("msg");
+  if (again) again.value = draft;
+}
 
-        xhr.onload = () => {
-          setUploadProgress(100);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const res = JSON.parse(xhr.responseText);
-              if (res.success && res.link) {
-                toast("Upload complete! Sending link to chat...");
-                const shareText = `📁 Shared File: ${file.name} (${sizeMB} MB)\n🔗 Download: ${res.link}`;
-                if (msgInput) {
-                  msgInput.value = shareText;
-                  const sendBtn = composer.querySelector(".sendBtn");
-                  if (sendBtn) sendBtn.click();
-                  else toast("Link placed in message bar. Press Enter to send.");
-                }
-              } else {
-                toast("Upload failed: " + (res.message || "File rejected"));
-              }
-            } catch (err) {
-              toast("Upload response parse error.");
-            }
-          } else {
-            toast(`Upload failed (Status ${xhr.status})`);
-          }
-        };
+fileInput.onchange = () => {
+  if (fileInput.files.length) uploadBig(fileInput.files[0]);
+  fileInput.value = "";
+};
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => {
+  e.preventDefault();
+  if (e.dataTransfer && e.dataTransfer.files.length) uploadBig(e.dataTransfer.files[0]);
+});
 
-        xhr.onerror = () => {
-          setUploadProgress(0);
-          toast("Network error during file upload.");
-        };
-
-        xhr.send(formData);
-      }
-
-      fileInput.onchange = () => {
-        if (fileInput.files.length) {
-          uploadWithProgress(fileInput.files[0]);
-          fileInput.value = "";
-        }
-      };
-
-      // Drag and drop onto screen
-      window.addEventListener("dragover", (e) => e.preventDefault());
-      window.addEventListener("drop", (e) => {
-        e.preventDefault();
-        if (e.dataTransfer && e.dataTransfer.files.length) {
-          uploadWithProgress(e.dataTransfer.files[0]);
-        }
-      });
-    }
-
-    setInterval(mountComposerBtn, 1000);
-  })();
+function mountComposerBtn() {
+  const composer = document.querySelector("#rc-root .composer");
+  if (!composer || document.getElementById("kairoAttachBtn")) return;
+  const attachBtn = document.createElement("button");
+  attachBtn.id = "kairoAttachBtn";
+  attachBtn.type = "button";
+  attachBtn.title = "Attach & send file link (up to 10 GB)";
+  attachBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 11h-6V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/></svg>';
+  attachBtn.onclick = () => fileInput.click();
+  const msgInput = document.getElementById("msg");
+  if (msgInput) composer.insertBefore(attachBtn, msgInput);
+  else composer.prepend(attachBtn);
+}
+setInterval(mountComposerBtn, 1000);
 })();
