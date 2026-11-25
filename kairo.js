@@ -3205,4 +3205,847 @@ timers.push(setInterval(() => { renderSidebar(); updateTop(); }, 5000));
 renderWelcome();
 promptVaultLogin();
 resubscribe();
+
+// =========================================================================
+  // COMPLETE KAIRO ARCADE OVERHAUL (UNBOUNDED, 3D ZOOM, CRT, 2P & 5S BOOT)
+  // =========================================================================
+  (() => {
+    // 1. INJECT UNBOUNDED FONT
+    if (!document.getElementById("kairo-font-unbounded")) {
+      const fontLink = document.createElement("link");
+      fontLink.id = "kairo-font-unbounded";
+      fontLink.rel = "stylesheet";
+      fontLink.href = "https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&display=swap";
+      document.head.appendChild(fontLink);
+    }
+
+    // 2. STYLES: UNBOUNDED, 3D CABINET ZOOM, CRT SCANLINES & INTERFACE
+    const masterStyle = document.createElement("style");
+    masterStyle.id = "kairo-arcade-style-pack";
+    masterStyle.textContent = `
+      :root {
+        --font-arc: 'Unbounded', system-ui, sans-serif;
+        --arc-neon: #5865f2;
+        --arc-cyan: #00f2fe;
+        --arc-pink: #ff007f;
+      }
+
+      /* --- BALANCED 5-SECOND STARTUP CURTAIN --- */
+      #kairo-boot-curtain {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: radial-gradient(circle at 50% 50%, #151821 0%, #06070a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      #kairo-boot-curtain.loaded {
+        opacity: 0;
+        transform: scale(1.05);
+        pointer-events: none;
+      }
+      .hazard-ribbon {
+        position: absolute;
+        width: 160vw;
+        height: 46px;
+        background: repeating-linear-gradient(-45deg, #facc15, #facc15 20px, #111215 20px, #111215 40px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        font-family: var(--font-arc);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.22em;
+        color: #000;
+        text-transform: uppercase;
+        user-select: none;
+        border-top: 3px solid #000;
+        border-bottom: 3px solid #000;
+        animation: hazardSlide 25s linear infinite;
+      }
+      .hazard-ribbon.top-angle { top: 18%; transform: rotate(-7deg); }
+      .hazard-ribbon.bottom-angle { bottom: 18%; transform: rotate(6deg); }
+      @keyframes hazardSlide {
+        0% { background-position: 0 0; }
+        100% { background-position: 800px 0; }
+      }
+      .boot-barrier-card {
+        position: relative;
+        z-index: 10;
+        background: rgba(15, 18, 26, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 26px;
+        padding: 44px 50px;
+        width: min(90vw, 400px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.85);
+        box-sizing: border-box;
+      }
+      .barrier-logo {
+        width: 60px; height: 60px; border-radius: 18px;
+        background: linear-gradient(135deg, var(--arc-neon), #4752c4);
+        display: grid; place-items: center;
+        font-family: var(--font-arc); font-size: 26px; font-weight: 900; color: #fff;
+        box-shadow: 0 10px 25px rgba(88, 101, 242, 0.45);
+        animation: barrierPulse 2.4s ease-in-out infinite alternate;
+      }
+      @keyframes barrierPulse {
+        from { transform: scale(1); box-shadow: 0 10px 25px rgba(88, 101, 242, 0.4); }
+        to { transform: scale(1.06); box-shadow: 0 14px 35px rgba(88, 101, 242, 0.7); }
+      }
+      .barrier-title {
+        font-family: var(--font-arc); font-size: 1.15rem; font-weight: 800; color: #fff;
+      }
+      .barrier-bar-track {
+        width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px; overflow: hidden; position: relative;
+      }
+      .barrier-bar-fill {
+        position: absolute; top: 0; left: 0; height: 100%; width: 45%;
+        background: linear-gradient(90deg, var(--arc-cyan), var(--arc-neon));
+        border-radius: 999px; animation: barSlide 1.4s infinite cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @keyframes barSlide {
+        0% { left: -45%; width: 45%; }
+        50% { left: 40%; width: 50%; }
+        100% { left: 100%; width: 45%; }
+      }
+
+      /* --- CINEMATIC 3D ARCADE ENTRANCE --- */
+      #kairo-arcade-portal {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483640;
+        background: #020204;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        perspective: 1200px;
+        overflow: hidden;
+        transition: opacity 0.4s ease;
+      }
+      .arcade-room-scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform-style: preserve-3d;
+        transition: transform 1.5s cubic-bezier(0.7, 0, 0.2, 1), filter 1.4s ease;
+      }
+      .arcade-room-scene.zooming {
+        transform: translateZ(920px) translateY(80px);
+        filter: blur(4px);
+      }
+      .cabinet-shell {
+        width: 320px; height: 500px;
+        background: linear-gradient(180deg, #181920 0%, #0d0e12 100%);
+        border-radius: 28px 28px 10px 10px;
+        border: 4px solid #2d303d;
+        box-shadow: 0 0 100px rgba(0, 242, 254, 0.15), 0 40px 120px rgba(0, 0, 0, 0.95);
+        display: flex; flex-direction: column; align-items: center; padding: 20px;
+      }
+      .cabinet-marquee {
+        width: 100%; height: 54px; background: #08090d; border: 2px solid #3d4255;
+        border-radius: 12px; display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-arc); font-size: 0.9rem; font-weight: 900; color: #fff;
+        letter-spacing: 0.15em; text-shadow: 0 0 12px var(--arc-cyan);
+      }
+      .cabinet-screen-bezel {
+        width: 100%; height: 260px; background: #000; margin-top: 16px;
+        border-radius: 16px; border: 4px solid #1f212a; padding: 10px; box-sizing: border-box;
+      }
+      .cabinet-crt-preview {
+        width: 100%; height: 100%; background: #07090e; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+      }
+      .cabinet-crt-preview::after {
+        content: ""; position: absolute; inset: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
+        background-size: 100% 3px; pointer-events: none;
+      }
+      .attract-mode-logo {
+        font-family: var(--font-arc); font-size: 1.3rem; font-weight: 900;
+        color: var(--arc-cyan); text-shadow: 0 0 18px var(--arc-cyan);
+        animation: attractPulse 1.8s ease-in-out infinite alternate;
+      }
+      @keyframes attractPulse {
+        from { transform: scale(0.95); opacity: 0.85; }
+        to { transform: scale(1.05); opacity: 1; text-shadow: 0 0 26px var(--arc-cyan), 0 0 35px var(--arc-neon); }
+      }
+      .cabinet-controls { width: 100%; margin-top: 24px; display: flex; justify-content: space-around; align-items: center; }
+      .cabinet-joystick { width: 22px; height: 22px; background: #ff0055; border-radius: 50%; box-shadow: 0 8px 0 #88002e; }
+      .cabinet-btn-cluster { display: flex; gap: 8px; }
+      .cabinet-btn { width: 18px; height: 18px; border-radius: 50%; }
+
+      /* --- OVERHAULED UNBOUNDED ARCADE MODAL --- */
+      #kairo-arcade-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647 !important;
+        background: rgba(4, 5, 8, 0.92);
+        backdrop-filter: blur(16px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-arc);
+        color: #fff;
+      }
+      .arcade-workstation {
+        background: #0d0f15;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 24px;
+        padding: 24px 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.9), 0 0 40px rgba(88, 101, 242, 0.18);
+        max-width: 95vw;
+        animation: arcAppear 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes arcAppear {
+        from { transform: scale(0.94); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .arcade-nav-header { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+      .arcade-brand-tag {
+        font-family: var(--font-arc); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em;
+      }
+      .arcade-close-btn {
+        background: #181a24; border: 1px solid rgba(255,255,255,0.08); color: #8e95a2;
+        width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 18px;
+        display: grid; place-items: center; transition: all 0.18s ease;
+      }
+      .arcade-close-btn:hover { background: #ef4444; color: #fff; transform: scale(1.08); }
+      .arcade-tab-strip { display: flex; gap: 6px; background: #151720; padding: 4px; border-radius: 12px; }
+      .arcade-tab-btn {
+        background: transparent; border: 0; color: #8e95a2; font-family: var(--font-arc);
+        font-size: 0.7rem; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;
+        transition: all 0.18s ease;
+      }
+      .arcade-tab-btn:hover { color: #fff; transform: translateY(-1px); }
+      .arcade-tab-btn.active { background: var(--arc-neon); color: #fff; box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4); }
+      .arcade-mode-toggle { display: flex; gap: 8px; align-items: center; font-size: 0.68rem; font-weight: 700; }
+      .arcade-mode-btn {
+        background: #1a1c24; border: 1px solid rgba(255,255,255,0.08); color: #8e95a2;
+        font-family: var(--font-arc); font-size: 0.65rem; font-weight: 700; padding: 5px 10px;
+        border-radius: 6px; cursor: pointer; transition: all 0.18s ease;
+      }
+      .arcade-mode-btn.active {
+        border-color: #22c55e; color: #22c55e; background: rgba(34, 197, 94, 0.12);
+      }
+      .arcade-viewport {
+        position: relative; border-radius: 16px; overflow: hidden;
+        border: 2px solid #20232e; box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
+      }
+      .arcade-viewport::after {
+        content: ""; position: absolute; inset: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+        background-size: 100% 3px; pointer-events: none; z-index: 2;
+      }
+      #arcadeCanvas { background: #040508; display: block; }
+      .arcade-status-bar {
+        width: 100%; display: flex; justify-content: space-between; align-items: center;
+        font-family: var(--font-arc); font-size: 0.72rem; color: #8e95a2;
+      }
+      .arcade-status-bar b { color: #fff; }
+      .arcade-key-hints { font-size: 0.62rem; color: #636b7b; }
+    `;
+    document.head.appendChild(masterStyle);
+
+    // 3. MOUNT 5-SECOND STARTUP CURTAIN
+    const appShell = document.querySelector("#rc-root .app") || document.body;
+    if (!document.getElementById("kairo-boot-curtain")) {
+      const curtain = document.createElement("div");
+      curtain.id = "kairo-boot-curtain";
+      curtain.innerHTML = `
+        <div class="hazard-ribbon top-angle">
+          <span>CAUTION // WORKSTATION INITIALIZING</span>
+          <span>RESTRICTED RUNTIME</span>
+        </div>
+        <div class="boot-barrier-card">
+          <div class="barrier-logo">k.</div>
+          <div class="barrier-title">Initializing Kairo</div>
+          <div class="barrier-bar-track"><div class="barrier-bar-fill"></div></div>
+        </div>
+        <div class="hazard-ribbon bottom-angle">
+          <span>ZERO LOGGING ACTIVE</span>
+          <span>STAND CLEAR</span>
+        </div>
+      `;
+      appShell.appendChild(curtain);
+      setTimeout(() => {
+        curtain.classList.add("loaded");
+        setTimeout(() => curtain.remove(), 700);
+      }, 5000);
+    }
+
+    // 4. PERSISTENT SIDEBAR INJECTION
+    function mountSidebarBtn() {
+      const actions = document.querySelector("#rc-root .sideActions");
+      if (actions && !document.getElementById("arcadeSidebarBtn")) {
+        const btn = document.createElement("button");
+        btn.id = "arcadeSidebarBtn";
+        btn.className = "quickAction";
+        btn.style.fontFamily = "var(--font-arc)";
+        btn.innerHTML = `<span class="quickIcon">🕹️</span><span class="quickLabel">Arcade Hub</span>`;
+        btn.onclick = () => window.triggerArcadeCinematic("tetris");
+        actions.appendChild(btn);
+      }
+    }
+    setInterval(mountSidebarBtn, 1000);
+
+    // 5. 3D CABINET ZOOM TRANSITION
+    window.triggerArcadeCinematic = function(game = "tetris") {
+      if (document.getElementById("kairo-arcade-portal")) return;
+
+      const portal = document.createElement("div");
+      portal.id = "kairo-arcade-portal";
+      portal.innerHTML = `
+        <div class="arcade-room-scene">
+          <div class="cabinet-shell">
+            <div class="cabinet-marquee">KAIRO ARCADE</div>
+            <div class="cabinet-screen-bezel">
+              <div class="cabinet-crt-preview">
+                <div class="attract-mode-logo">${game.toUpperCase()}</div>
+              </div>
+            </div>
+            <div class="cabinet-controls">
+              <div class="cabinet-joystick"></div>
+              <div class="cabinet-btn-cluster">
+                <div class="cabinet-btn" style="background:#00f2fe;"></div>
+                <div class="cabinet-btn" style="background:#facc15;"></div>
+                <div class="cabinet-btn" style="background:#a855f7;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(portal);
+
+      const scene = portal.querySelector(".arcade-room-scene");
+      requestAnimationFrame(() => {
+        setTimeout(() => scene.classList.add("zooming"), 60);
+      });
+
+      setTimeout(() => {
+        portal.style.opacity = "0";
+        window.openArcadeModal(game);
+        setTimeout(() => portal.remove(), 400);
+      }, 1400);
+    };
+
+    // 6. MASTER ARCADE MODAL
+    window.openArcadeModal = function(defaultGame = "tetris") {
+      const existing = document.getElementById("kairo-arcade-modal");
+      if (existing) existing.remove();
+
+      let currentGame = defaultGame;
+      let is2P = false;
+      let cleanupGame = null;
+
+      const modal = document.createElement("div");
+      modal.id = "kairo-arcade-modal";
+      modal.innerHTML = `
+        <div class="arcade-workstation">
+          <div class="arcade-nav-header">
+            <div class="arcade-brand-tag">🕹️ KAIRO ARCADE</div>
+            <button id="closeArcadeBtn" class="arcade-close-btn">&times;</button>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+            <div class="arcade-tab-strip">
+              <button class="arcade-tab-btn ${currentGame === 'tetris' ? 'active' : ''}" data-game="tetris">Tetris</button>
+              <button class="arcade-tab-btn ${currentGame === 'snake' ? 'active' : ''}" data-game="snake">Snake</button>
+              <button class="arcade-tab-btn ${currentGame === 'cross' ? 'active' : ''}" data-game="cross">Road Cross</button>
+              <button class="arcade-tab-btn ${currentGame === 'pong' ? 'active' : ''}" data-game="pong">Pong</button>
+            </div>
+
+            <div class="arcade-mode-toggle">
+              <button id="mode1P" class="arcade-mode-btn active">1P Solo</button>
+              <button id="mode2P" class="arcade-mode-btn">2P Versus</button>
+            </div>
+          </div>
+
+          <div class="arcade-viewport">
+            <canvas id="arcadeCanvas" width="400" height="400"></canvas>
+          </div>
+
+          <div class="arcade-status-bar">
+            <div id="arcadeScore">Score: <b>0</b></div>
+            <div id="arcadeHint" class="arcade-key-hints">Arrow Keys to play</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const canvas = modal.querySelector("#arcadeCanvas");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = modal.querySelector("#arcadeScore");
+      const hintEl = modal.querySelector("#arcadeHint");
+
+      modal.querySelectorAll(".arcade-tab-btn").forEach(tab => {
+        tab.onclick = () => {
+          modal.querySelectorAll(".arcade-tab-btn").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          currentGame = tab.getAttribute("data-game");
+          bootGame();
+        };
+      });
+
+      const btn1P = modal.querySelector("#mode1P");
+      const btn2P = modal.querySelector("#mode2P");
+      btn1P.onclick = () => {
+        is2P = false;
+        btn1P.classList.add("active");
+        btn2P.classList.remove("active");
+        bootGame();
+      };
+      btn2P.onclick = () => {
+        is2P = true;
+        btn2P.classList.add("active");
+        btn1P.classList.remove("active");
+        bootGame();
+      };
+
+      function bootGame() {
+        if (cleanupGame) cleanupGame();
+        if (currentGame === "tetris") cleanupGame = playTetris(ctx, canvas, scoreEl, hintEl, is2P);
+        else if (currentGame === "snake") cleanupGame = playSnake(ctx, canvas, scoreEl, hintEl, is2P);
+        else if (currentGame === "cross") cleanupGame = playCross(ctx, canvas, scoreEl, hintEl, is2P);
+        else if (currentGame === "pong") cleanupGame = playPong(ctx, canvas, scoreEl, hintEl, is2P);
+      }
+
+      function exit() {
+        if (cleanupGame) cleanupGame();
+        modal.remove();
+      }
+
+      modal.querySelector("#closeArcadeBtn").onclick = exit;
+      modal.onclick = (e) => { if (e.target === modal) exit(); };
+
+      const onEsc = (e) => {
+        if (e.key === "Escape") {
+          exit();
+          window.removeEventListener("keydown", onEsc);
+        }
+      };
+      window.addEventListener("keydown", onEsc);
+
+      bootGame();
+    };
+
+    // --- GAME 1: TETRIS (SOLO / 2P DUAL PIT) ---
+    function playTetris(ctx, canvas, scoreEl, hintEl, is2P) {
+      canvas.width = is2P ? 440 : 240;
+      canvas.height = 400;
+      const BLOCK = 20, ROWS = 20, COLS = 10;
+      hintEl.textContent = is2P ? "P1: [W,A,S,D] | P2: [Arrows]" : "[←/→] Move | [↑] Rotate | [↓] Drop";
+
+      const SHAPES = [
+        [[1,1,1,1]], [[1,1],[1,1]], [[0,1,0],[1,1,1]],
+        [[1,0,0],[1,1,1]], [[0,0,1],[1,1,1]], [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]]
+      ];
+      const COLORS = ["#00f2fe", "#fee440", "#a855f7", "#f97316", "#3b82f6", "#10b981", "#ef4444"];
+
+      function makePlayer(ox) {
+        return {
+          board: Array.from({length: ROWS}, () => Array(COLS).fill(0)),
+          ox, score: 0, lines: 0,
+          piece: spawnPiece(), over: false, tick: Date.now()
+        };
+      }
+
+      function spawnPiece() {
+        const id = Math.floor(Math.random() * SHAPES.length);
+        return { shape: SHAPES[id], color: COLORS[id], x: 3, y: 0 };
+      }
+
+      const p1 = makePlayer(15);
+      const p2 = is2P ? makePlayer(235) : null;
+
+      function collide(p, ox, oy, shape) {
+        const s = shape || p.piece.shape;
+        for (let r = 0; r < s.length; r++) {
+          for (let c = 0; c < s[r].length; c++) {
+            if (s[r][c]) {
+              const nx = p.piece.x + c + ox;
+              const ny = p.piece.y + r + oy;
+              if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+              if (ny >= 0 && p.board[ny][nx]) return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      function lock(p) {
+        p.piece.shape.forEach((row, r) => {
+          row.forEach((v, c) => {
+            if (v && p.piece.y + r >= 0) p.board[p.piece.y + r][p.piece.x + c] = p.piece.color;
+          });
+        });
+        p.board = p.board.filter(row => row.some(cell => cell === 0));
+        while (p.board.length < ROWS) {
+          p.board.unshift(Array(COLS).fill(0));
+          p.lines++;
+          p.score += 100;
+        }
+        p.piece = spawnPiece();
+        if (collide(p, 0, 0)) p.over = true;
+      }
+
+      function rotate(mat) {
+        return mat[0].map((_, i) => mat.map(row => row[i]).reverse());
+      }
+
+      function update(p) {
+        if (p.over) return;
+        if (Date.now() - p.tick > 480) {
+          if (!collide(p, 0, 1)) p.piece.y++;
+          else lock(p);
+          p.tick = Date.now();
+        }
+      }
+
+      function render(p) {
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.strokeRect(p.ox, 0, COLS * BLOCK, ROWS * BLOCK);
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (p.board[r][c]) {
+              ctx.fillStyle = p.board[r][c];
+              ctx.fillRect(p.ox + c * BLOCK + 1, r * BLOCK + 1, BLOCK - 2, BLOCK - 2);
+            }
+          }
+        }
+        if (p.piece && !p.over) {
+          ctx.fillStyle = p.piece.color;
+          p.piece.shape.forEach((row, r) => {
+            row.forEach((v, c) => {
+              if (v) ctx.fillRect(p.ox + (p.piece.x + c) * BLOCK + 1, (p.piece.y + r) * BLOCK + 1, BLOCK - 2, BLOCK - 2);
+            });
+          });
+        }
+        if (p.over) {
+          ctx.fillStyle = "rgba(239, 68, 68, 0.75)";
+          ctx.fillRect(p.ox, 180, COLS * BLOCK, 36);
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("OUT OF BOUNDS", p.ox + (COLS * BLOCK) / 2, 202);
+        }
+      }
+
+      let anim;
+      function loop() {
+        ctx.fillStyle = "#050609";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        update(p1);
+        render(p1);
+        if (p2) {
+          update(p2);
+          render(p2);
+          scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; P2: <b>${p2.score}</b>`;
+        } else {
+          scoreEl.innerHTML = `Score: <b>${p1.score}</b> &nbsp;|&nbsp; Lines: <b>${p1.lines}</b>`;
+        }
+        anim = requestAnimationFrame(loop);
+      }
+      anim = requestAnimationFrame(loop);
+
+      function onKey(e) {
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code)) e.preventDefault();
+        const l1 = is2P ? "KeyA" : "ArrowLeft";
+        const r1 = is2P ? "KeyD" : "ArrowRight";
+        const d1 = is2P ? "KeyS" : "ArrowDown";
+        const rot1 = is2P ? "KeyW" : "ArrowUp";
+
+        if (e.code === l1 && !collide(p1, -1, 0)) p1.piece.x--;
+        if (e.code === r1 && !collide(p1, 1, 0)) p1.piece.x++;
+        if (e.code === d1 && !collide(p1, 0, 1)) p1.piece.y++;
+        if (e.code === rot1) {
+          const r = rotate(p1.piece.shape);
+          if (!collide(p1, 0, 0, r)) p1.piece.shape = r;
+        }
+
+        if (p2 && !p2.over) {
+          if (e.code === "ArrowLeft" && !collide(p2, -1, 0)) p2.piece.x--;
+          if (e.code === "ArrowRight" && !collide(p2, 1, 0)) p2.piece.x++;
+          if (e.code === "ArrowDown" && !collide(p2, 0, 1)) p2.piece.y++;
+          if (e.code === "ArrowUp") {
+            const r = rotate(p2.piece.shape);
+            if (!collide(p2, 0, 0, r)) p2.piece.shape = r;
+          }
+        }
+      }
+      window.addEventListener("keydown", onKey);
+
+      return () => {
+        cancelAnimationFrame(anim);
+        window.removeEventListener("keydown", onKey);
+      };
+    }
+
+    // --- GAME 2: SNAKE DUEL ---
+    function playSnake(ctx, canvas, scoreEl, hintEl, is2P) {
+      canvas.width = 400; canvas.height = 400;
+      const GRID = 20, SIZE = 20;
+      hintEl.textContent = is2P ? "P1: W,A,S,D (Cyan) | P2: Arrows (Pink)" : "Arrow Keys to guide the snake";
+
+      let p1 = { body: [{x: 4, y: 10}], dir: {x: 1, y: 0}, next: {x: 1, y: 0}, dead: false, score: 0 };
+      let p2 = is2P ? { body: [{x: 16, y: 10}], dir: {x: -1, y: 0}, next: {x: -1, y: 0}, dead: false, score: 0 } : null;
+      let food = { x: 10, y: 10 };
+
+      function step(s) {
+        if (s.dead) return;
+        s.dir = s.next;
+        const head = { x: s.body[0].x + s.dir.x, y: s.body[0].y + s.dir.y };
+        if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID || s.body.some(b => b.x === head.x && b.y === head.y)) {
+          s.dead = true;
+          return;
+        }
+        s.body.unshift(head);
+        if (head.x === food.x && head.y === food.y) {
+          s.score += 15;
+          food = { x: Math.floor(Math.random() * GRID), y: Math.floor(Math.random() * GRID) };
+        } else {
+          s.body.pop();
+        }
+      }
+
+      let tick = Date.now(), anim;
+      function loop() {
+        if (Date.now() - tick > 95) {
+          step(p1);
+          if (p2) {
+            step(p2);
+            if (p1.body.some(b => b.x === p2.body[0].x && b.y === p2.body[0].y)) p2.dead = true;
+            if (p2.body.some(b => b.x === p1.body[0].x && b.y === p1.body[0].y)) p1.dead = true;
+          }
+          tick = Date.now();
+        }
+
+        ctx.fillStyle = "#050609";
+        ctx.fillRect(0, 0, 400, 400);
+
+        ctx.fillStyle = "#22c55e";
+        ctx.fillRect(food.x * SIZE + 2, food.y * SIZE + 2, SIZE - 4, SIZE - 4);
+
+        ctx.fillStyle = p1.dead ? "#475569" : "#00f2fe";
+        p1.body.forEach(b => ctx.fillRect(b.x * SIZE + 1, b.y * SIZE + 1, SIZE - 2, SIZE - 2));
+
+        if (p2) {
+          ctx.fillStyle = p2.dead ? "#475569" : "#ff007f";
+          p2.body.forEach(b => ctx.fillRect(b.x * SIZE + 1, b.y * SIZE + 1, SIZE - 2, SIZE - 2));
+          scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; P2: <b>${p2.score}</b>`;
+        } else {
+          scoreEl.innerHTML = `Score: <b>${p1.score}</b> ${p1.dead ? '(Game Over)' : ''}`;
+        }
+        anim = requestAnimationFrame(loop);
+      }
+      anim = requestAnimationFrame(loop);
+
+      function onKey(e) {
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
+        if (!is2P) {
+          if (e.code === "ArrowUp" && p1.dir.y === 0) p1.next = {x: 0, y: -1};
+          if (e.code === "ArrowDown" && p1.dir.y === 0) p1.next = {x: 0, y: 1};
+          if (e.code === "ArrowLeft" && p1.dir.x === 0) p1.next = {x: -1, y: 0};
+          if (e.code === "ArrowRight" && p1.dir.x === 0) p1.next = {x: 1, y: 0};
+        } else {
+          if (e.code === "KeyW" && p1.dir.y === 0) p1.next = {x: 0, y: -1};
+          if (e.code === "KeyS" && p1.dir.y === 0) p1.next = {x: 0, y: 1};
+          if (e.code === "KeyA" && p1.dir.x === 0) p1.next = {x: -1, y: 0};
+          if (e.code === "KeyD" && p1.dir.x === 0) p1.next = {x: 1, y: 0};
+
+          if (p2) {
+            if (e.code === "ArrowUp" && p2.dir.y === 0) p2.next = {x: 0, y: -1};
+            else if (e.code === "ArrowDown" && p2.dir.y === 0) p2.next = {x: 0, y: 1};
+            else if (e.code === "ArrowLeft" && p2.dir.x === 0) p2.next = {x: -1, y: 0};
+            else if (e.code === "ArrowRight" && p2.dir.x === 0) p2.next = {x: 1, y: 0};
+          }
+        }
+      }
+      window.addEventListener("keydown", onKey);
+
+      return () => {
+        cancelAnimationFrame(anim);
+        window.removeEventListener("keydown", onKey);
+      };
+    }
+
+    // --- GAME 3: ROAD CROSS ---
+    function playCross(ctx, canvas, scoreEl, hintEl, is2P) {
+      canvas.width = 400; canvas.height = 400;
+      hintEl.textContent = is2P ? "P1: W,A,S,D | P2: Arrow Keys" : "Cross safely to the top using Arrow Keys";
+
+      let p1 = { x: 150, y: 360, score: 0, color: "#facc15" };
+      let p2 = is2P ? { x: 230, y: 360, score: 0, color: "#38bdf8" } : null;
+
+      const lanes = [
+        { y: 80, speed: 2.8, w: 45, cars: [20, 180, 320], color: "#ef4444" },
+        { y: 150, speed: -3.4, w: 60, cars: [100, 260], color: "#f97316" },
+        { y: 220, speed: 3.6, w: 50, cars: [40, 220], color: "#a855f7" },
+        { y: 290, speed: -2.8, w: 55, cars: [80, 240], color: "#ec4899" }
+      ];
+
+      let anim;
+      function loop() {
+        ctx.fillStyle = "#07080c";
+        ctx.fillRect(0, 0, 400, 400);
+
+        ctx.fillStyle = "#161922";
+        ctx.fillRect(0, 0, 400, 55);
+        ctx.fillRect(0, 345, 400, 55);
+
+        lanes.forEach(l => {
+          ctx.fillStyle = l.color;
+          l.cars.forEach((cx, i) => {
+            ctx.fillRect(cx, l.y, l.w, 24);
+            l.cars[i] += l.speed;
+            if (l.speed > 0 && l.cars[i] > 400) l.cars[i] = -l.w;
+            if (l.speed < 0 && l.cars[i] < -l.w) l.cars[i] = 400;
+
+            [p1, p2].forEach(p => {
+              if (p && p.x + 18 > cx && p.x < cx + l.w && p.y + 18 > l.y && p.y < l.y + 24) p.y = 360;
+            });
+          });
+        });
+
+        [p1, p2].forEach(p => {
+          if (p && p.y <= 45) {
+            p.score++;
+            p.y = 360;
+          }
+        });
+
+        ctx.fillStyle = p1.color;
+        ctx.fillRect(p1.x, p1.y, 20, 20);
+
+        if (p2) {
+          ctx.fillStyle = p2.color;
+          ctx.fillRect(p2.x, p2.y, 20, 20);
+          scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; P2: <b>${p2.score}</b>`;
+        } else {
+          scoreEl.innerHTML = `Crossings: <b>${p1.score}</b>`;
+        }
+        anim = requestAnimationFrame(loop);
+      }
+      anim = requestAnimationFrame(loop);
+
+      function onKey(e) {
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
+        const step = 35;
+        if (!is2P) {
+          if (e.code === "ArrowUp") p1.y = Math.max(20, p1.y - step);
+          if (e.code === "ArrowDown") p1.y = Math.min(360, p1.y + step);
+          if (e.code === "ArrowLeft") p1.x = Math.max(10, p1.x - step);
+          if (e.code === "ArrowRight") p1.x = Math.min(370, p1.x + step);
+        } else {
+          if (e.code === "KeyW") p1.y = Math.max(20, p1.y - step);
+          if (e.code === "KeyS") p1.y = Math.min(360, p1.y + step);
+          if (e.code === "KeyA") p1.x = Math.max(10, p1.x - step);
+          if (e.code === "KeyD") p1.x = Math.min(370, p1.x + step);
+
+          if (p2) {
+            if (e.code === "ArrowUp") p2.y = Math.max(20, p2.y - step);
+            else if (e.code === "ArrowDown") p2.y = Math.min(360, p2.y + step);
+            else if (e.code === "ArrowLeft") p2.x = Math.max(10, p2.x - step);
+            else if (e.code === "ArrowRight") p2.x = Math.min(370, p2.x + step);
+          }
+        }
+      }
+      window.addEventListener("keydown", onKey);
+
+      return () => {
+        cancelAnimationFrame(anim);
+        window.removeEventListener("keydown", onKey);
+      };
+    }
+
+    // --- GAME 4: PONG ---
+    function playPong(ctx, canvas, scoreEl, hintEl, is2P) {
+      canvas.width = 400; canvas.height = 300;
+      hintEl.textContent = is2P ? "P1: [W / S] | P2: [Up / Down]" : "Use [Up / Down Arrows] to Defend";
+
+      let p1 = { y: 110, score: 0 };
+      let p2 = { y: 110, score: 0 };
+      let ball = { x: 200, y: 150, vx: 3.6, vy: 2 };
+      const keys = {};
+
+      let anim;
+      function loop() {
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        if (ball.y <= 0 || ball.y >= 292) ball.vy *= -1;
+        if (ball.x <= 20 && ball.y >= p1.y && ball.y <= p1.y + 70) ball.vx = Math.abs(ball.vx);
+        if (ball.x >= 372 && ball.y >= p2.y && ball.y <= p2.y + 70) ball.vx = -Math.abs(ball.vx);
+
+        if (ball.x < 0) { p2.score++; ball = { x: 200, y: 150, vx: 3.6, vy: 2 }; }
+        if (ball.x > 400) { p1.score++; ball = { x: 200, y: 150, vx: -3.6, vy: -2 }; }
+
+        if (!is2P) {
+          p2.y += (ball.y - (p2.y + 35)) * 0.11;
+          if (keys["ArrowUp"]) p1.y = Math.max(0, p1.y - 5);
+          if (keys["ArrowDown"]) p1.y = Math.min(230, p1.y + 5);
+        } else {
+          if (keys["KeyW"]) p1.y = Math.max(0, p1.y - 5);
+          if (keys["KeyS"]) p1.y = Math.min(230, p1.y + 5);
+          if (keys["ArrowUp"]) p2.y = Math.max(0, p2.y - 5);
+          if (keys["ArrowDown"]) p2.y = Math.min(230, p2.y + 5);
+        }
+
+        ctx.fillStyle = "#050609";
+        ctx.fillRect(0, 0, 400, 300);
+
+        ctx.fillStyle = "#5865f2";
+        ctx.fillRect(10, p1.y, 10, 70);
+
+        ctx.fillStyle = "#22c55e";
+        ctx.fillRect(380, p2.y, 10, 70);
+
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(ball.x, ball.y, 8, 8);
+
+        scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; ${is2P ? 'P2' : 'BOT'}: <b>${p2.score}</b>`;
+        anim = requestAnimationFrame(loop);
+      }
+      anim = requestAnimationFrame(loop);
+
+      function kd(e) { keys[e.code] = true; }
+      function ku(e) { keys[e.code] = false; }
+      window.addEventListener("keydown", kd);
+      window.addEventListener("keyup", ku);
+
+      return () => {
+        cancelAnimationFrame(anim);
+        window.removeEventListener("keydown", kd);
+        window.removeEventListener("keyup", ku);
+      };
+    }
+
+    // 7. CHAT SLASH COMMANDS
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && document.activeElement && document.activeElement.id === "msg") {
+        const val = document.activeElement.value.trim().toLowerCase();
+        if (["/arcade", "/tetris", "/snake", "/cross", "/pong"].includes(val)) {
+          e.preventDefault();
+          document.activeElement.value = "";
+          const target = val === "/arcade" ? "tetris" : val.replace("/", "");
+          window.triggerArcadeCinematic(target);
+        }
+      }
+    });
+  })();
 })();
