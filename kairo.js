@@ -1,8 +1,15 @@
-// Kairo v1.6.4 (Custom Studio Explicit Text Picker)
+// Kairo v2.1.0 (security update)
 // Paste into your browser console or update kairo.js
 
 (() => {
 "use strict";
+
+// Only run on Kairo's own web page. Old bookmarks just get sent there.
+const APP_URL = "https://arviyurthukunur.github.io/kairo/";
+if (location.origin !== "https://arviyurthukunur.github.io" || !location.pathname.startsWith("/kairo/") || window.top !== window.self) {
+  if (confirm("For your safety, Kairo now only runs on its own page. Open it?")) window.open(APP_URL, "_blank", "noopener,noreferrer");
+  return;
+}
 
 const prev = document.getElementById("rc-root");
 if (prev) prev.remove();
@@ -336,6 +343,7 @@ const style = document.createElement("style");
 style.id = "rc-style";
 style.textContent = CSS;
 (document.head || document.documentElement).appendChild(style);
+let arcade = { open() {}, close() {} };
 const root = document.createElement("div");
 root.id = "rc-root";
 root.innerHTML = MARKUP;
@@ -347,20 +355,14 @@ const MAX_TEXT = 1200;
 const MAX_CHATS = 50;
 const PING_EVERY = 60000;
 const PING_FLOOR = 15000;
-const LS = "roomchat:v2:";
+const LS = "kairo:v3:";
+const MIN_PASS = 16;
+const KDF_ROUNDS = 600000;
+const MAX_FILE = 100 * 1024 * 1024;
 const EMOJIS = ["👍", "❤️", "😂", "🔥", "👀"];
 const origTitle = document.title;
 
-const CLOAK_PRESETS = {
-  kairo: { title: "Kairo", icon: "" },
-  drive: { title: "My Drive - Google Drive", icon: "https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png" },
-  docs: { title: "Google Docs", icon: "https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico" },
-  classroom: { title: "Home - Google Classroom", icon: "https://ssl.gstatic.com/classroom/favicon.png" },
-  canvas: { title: "Dashboard - Canvas", icon: "https://du11hjcvx0uqb.cloudfront.net/dist/images/favicon-e10d657a73.ico" }
-};
-
 let vaultKey = null;
-let currentSessionPassword = "";
 let relayStatusState = "paused";
 let activeRelayPun = "asking the firewall nicely";
 const te = new TextEncoder();
@@ -390,6 +392,9 @@ let audioChunks = [];
 let isRecording = false;
 
 let peerConn = null;
+let callId = "";
+let callPeer = "";
+let earlyCandidates = [];
 let localStream = null;
 let activeCallTopic = null;
 let callState = "idle";
@@ -512,6 +517,12 @@ function el(tag, props, ...kids) {
 function initials(s) {
   return String(s || "?").trim().split(/\s+/).slice(0, 2).map((x) => x[0] || "").join("").toUpperCase() || "?";
 }
+function replay(node, cls) {
+  if (!node) return;
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
+}
 function toast(text, ms) {
   const x = $("toast");
   x.textContent = text;
@@ -539,7 +550,7 @@ function setRelayState(st) {
   }
   if (sub) {
     if (st === "connected") {
-      sub.textContent = "Private Relay (Zero Limits)";
+      sub.textContent = "Connected to relay";
       sub.className = "statSub";
     } else {
       sub.textContent = activeRelayPun;
@@ -598,23 +609,11 @@ function setKairoFavicon(hasUnread) {
   document.head.appendChild(link);
 }
 
-function applyCloak(key) {
-  settings.cloak = key || "kairo";
-  if (settings.cloak === "kairo") {
-    document.title = "Kairo";
-    const totalUnread = Array.from(rooms.values()).reduce((sum, r) => sum + (r.unread || 0), 0);
-    setKairoFavicon(totalUnread > 0);
-    return;
-  }
-  const p = CLOAK_PRESETS[settings.cloak] || CLOAK_PRESETS.kairo;
-  document.title = p.title;
-  document.querySelectorAll("link[rel*='icon']").forEach((e) => e.remove());
-  if (p.icon) {
-    const l = document.createElement("link");
-    l.rel = "icon";
-    l.href = p.icon;
-    document.head.appendChild(l);
-  }
+function applyCloak() {
+  settings.cloak = "kairo";
+  const totalUnread = Array.from(rooms.values()).reduce((sum, r) => sum + (r.unread || 0), 0);
+  document.title = "Kairo";
+  setKairoFavicon(totalUnread > 0);
 }
 
 function playNotifSound() {
@@ -639,13 +638,8 @@ function playNotifSound() {
 
 function updateDocTitle() {
   const totalUnread = Array.from(rooms.values()).reduce((sum, r) => sum + (r.unread || 0), 0);
-  if (settings.cloak === "kairo") {
-    setKairoFavicon(totalUnread > 0);
-    document.title = totalUnread > 0 ? "(" + totalUnread + ") Kairo" : "Kairo";
-    return;
-  }
-  if (!settings.titleAlert) { document.title = origTitle; return; }
-  document.title = totalUnread > 0 ? "(" + totalUnread + ") " + (CLOAK_PRESETS[settings.cloak] || {}).title : (CLOAK_PRESETS[settings.cloak] || {}).title || origTitle;
+  setKairoFavicon(totalUnread > 0);
+  document.title = totalUnread > 0 ? "(" + totalUnread + ") Kairo" : "Kairo";
 }
 
 function toB64(bytes) {
@@ -663,18 +657,32 @@ async function sha256Hex(str) {
   const d = await crypto.subtle.digest("SHA-256", te.encode(str));
   return Array.from(new Uint8Array(d), (x) => x.toString(16).padStart(2, "0")).join("");
 }
-async function deriveKey(room, pw) {
-  const base = await crypto.subtle.importKey("raw", te.encode(pw + "|" + room), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: te.encode("kairo-v2|" + room), iterations: 120000, hash: "SHA-256" },
-    base,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
+function toHex(a) { return Array.from(a, (x) => x.toString(16).padStart(2, "0")).join(""); }
+async function pbkdf2Bits(pw, salt, bits) {
+  const base = await crypto.subtle.importKey("raw", te.encode(pw), "PBKDF2", false, ["deriveBits"]);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: KDF_ROUNDS, hash: "SHA-256" }, base, bits));
 }
-async function topicFor(room, pw) {
-  return "kairo_" + (await sha256Hex("topic|" + room + "|" + pw)).slice(0, 32);
+function aesKey(bytes) {
+  return crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+}
+// One slow derivation gives both the chat key and the channel name, so neither can be guessed quickly.
+async function deriveRoom(room, pw) {
+  const bits = await pbkdf2Bits(pw, te.encode("kairo-v3-room|" + room), 512);
+  return { key: await aesKey(bits.slice(0, 32)), topic: "kairo_" + toHex(bits.slice(32, 48)) };
+}
+function passProblem(pw) {
+  if (pw.length < MIN_PASS) return "Use at least " + MIN_PASS + " characters, such as several random words.";
+  if (new Set(pw.toLowerCase()).size < 7 || /password|123456|qwerty|abcdef|kairo/i.test(pw)) return "That's too easy to guess. Try several random, unrelated words.";
+  return "";
+}
+function randomPass() {
+  const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+  const out = [];
+  while (out.length < 20) {
+    const b = crypto.getRandomValues(new Uint8Array(1))[0];
+    if (b < 248) out.push(chars[b % 31]);
+  }
+  return out.join("").replace(/(.{5})(?=.)/g, "$1-");
 }
 async function seal(key, obj) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -750,60 +758,91 @@ function applyTheme(t) {
   if (settings.cloak === "kairo") updateDocTitle();
 }
 
+let vaultSalt = null;
+let vaultTopic = "";
+let identity = null; // { priv: JWK, pub: base64, id }
+let signKey = null;
+
 async function getCloudVaultTopic(userKey, password) {
-  return "kairo_vlt_" + (await sha256Hex("cloud_vault|" + sanitizeKey(userKey) + "|" + password)).slice(0, 24);
+  const bits = await pbkdf2Bits(password, te.encode("kairo-v3-lookup|" + sanitizeKey(userKey)), 256);
+  return "kairo_" + toHex(bits.slice(0, 16));
+}
+async function vaultKeyFor(password, salt) {
+  return aesKey(await pbkdf2Bits(password, salt, 256));
+}
+async function openVault(password, blob) {
+  const box = JSON.parse(blob);
+  if (box.v !== 3) throw new Error("old vault");
+  const salt = fromB64(box.s);
+  const key = await vaultKeyFor(password, salt);
+  return { key, salt, data: await unseal(key, box.d) };
 }
 
-async function syncVaultToCloud(password) {
-  if (!vaultKey || !me.userKey || !password) return;
+async function syncVaultToCloud() {
+  if (!vaultKey || !vaultTopic) return false;
   try {
-    const topic = await getCloudVaultTopic(me.userKey, password);
     const rawVault = lsGet(LS + "vault_data");
-    if (!rawVault) return;
-    await fetch(SERVER + "/" + topic, {
-      method: "POST",
-      body: rawVault,
-      headers: { "Title": "Vault Backup", "Tags": "lock" }
-    });
+    if (!rawVault) return false;
+    const resp = await fetch(SERVER + "/" + vaultTopic, { method: "POST", body: rawVault });
+    return resp.ok;
   } catch (err) {
     console.warn("[Kairo] Cloud backup failed:", err);
+    return false;
   }
 }
 
-async function fetchVaultFromCloud(userKey, password) {
+// Returns every backup found, newest first, so one junk post can't block a restore.
+async function fetchVaultsFromCloud(userKey, password) {
+  const found = [];
   try {
     const topic = await getCloudVaultTopic(userKey, password);
     const resp = await fetch(SERVER + "/" + topic + "/json?poll=1&since=all");
-    if (!resp.ok) return null;
-    const text = (await resp.text()).trim();
-    if (!text) return null;
-    const lines = text.split("\n").filter(Boolean);
-    for (let i = lines.length - 1; i >= 0; i--) {
-      try {
-        const parsed = JSON.parse(lines[i]);
-        if (parsed.message) return parsed.message;
-      } catch {}
-    }
+    if (!resp.ok) return found;
+    (await resp.text()).split("\n").filter(Boolean).reverse().forEach((line) => {
+      try { const p = JSON.parse(line); if (p.message) found.push(p.message); } catch {}
+    });
   } catch {}
-  return null;
+  return found;
 }
 
 async function saveVault() {
   if (!vaultKey) return;
+  const key = vaultKey, salt = vaultSalt;
   const payload = {
     me,
+    identity,
     settings,
     blocked: Array.from(blockedUsers),
     chats: Array.from(rooms.values(), (r) => r.meta)
   };
   try {
-    const enc = await seal(vaultKey, payload);
+    const enc = JSON.stringify({ v: 3, s: toB64(salt), d: await seal(key, payload) });
+    if (vaultKey !== key) return;
     lsSet(LS + "vault_data", enc);
-    if (currentSessionPassword) {
-      syncVaultToCloud(currentSessionPassword);
-    }
+    syncVaultToCloud();
   } catch {}
 }
+
+// Signing identity: lets others check a message really came from the same sender as before.
+async function idFor(pub) { return (await sha256Hex("id|" + pub)).slice(0, 32); }
+async function createIdentity() {
+  const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+  const pub = toB64(new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey)));
+  return { priv: await crypto.subtle.exportKey("jwk", pair.privateKey), pub, id: await idFor(pub) };
+}
+async function useIdentity(saved) {
+  identity = saved;
+  signKey = await crypto.subtle.importKey("jwk", saved.priv, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  me.id = saved.id;
+}
+async function verifyEnvelope(env) {
+  const pk = await crypto.subtle.importKey("raw", fromB64(env.p), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  const ok = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, pk, fromB64(env.s), te.encode(env.b));
+  if (!ok) return null;
+  const m = JSON.parse(env.b);
+  return m && m.i === (await idFor(env.p)) ? m : null;
+}
+function shortId(id) { return String(id || "").slice(0, 12).replace(/(.{4})(?=.)/g, "$1 "); }
 
 function exportVaultString() {
   EE.unlockFrag("frag_04", "the relay keeps no memories. supposedly.");
@@ -823,6 +862,8 @@ function exportVaultString() {
 function promptImportVault() {
   const raw = prompt("Paste your encrypted vault string here to restore your account:");
   if (!raw || !raw.trim()) return;
+  try { if (JSON.parse(raw.trim()).v !== 3) throw 0; } catch { return toast("That isn't a backup from this version of Kairo."); }
+  if (lsGet(LS + "vault_data") && !confirm("Replace the account saved on this device?")) return;
   lsSet(LS + "vault_data", raw.trim());
   toast("Vault imported. Enter your Master Password to unlock.");
   promptVaultLogin();
@@ -830,8 +871,12 @@ function promptImportVault() {
 
 async function unlockAllSavedRooms() {
   for (const r of rooms.values()) {
+    await hydrate(r);
     if (!r.key && r.meta.pw) {
-      try { r.key = await deriveKey(r.meta.room, r.meta.pw); } catch {}
+      try {
+        const d = await deriveRoom(r.meta.room, r.meta.pw);
+        if (d.topic === r.meta.topic) r.key = d.key;
+      } catch {}
     }
   }
   resubscribe();
@@ -851,7 +896,7 @@ function promptVaultLogin() {
         el("div", { className: "modalBadge", textContent: "k." }),
         el("div", {},
           el("h2", { textContent: "Unlock Kairo Vault" }),
-          el("p", { textContent: "Zero-knowledge session restore" })
+          el("p", { textContent: "Encrypted account restore" })
         )
       ),
       el("p", { textContent: "Enter your User Key and Master Password. If your device was cleared, Kairo will restore your channels automatically." })
@@ -874,6 +919,7 @@ function promptVaultLogin() {
         className: "linkBtn danger",
         textContent: "New Account",
         onclick: () => {
+          if (!confirm("Remove the saved account from this device? Export your vault first if you want to keep it.")) return;
           lsDel(LS + "vault_data");
           lsDel(LS + "last_key");
           rooms.clear();
@@ -899,32 +945,38 @@ function promptVaultLogin() {
       if (!pw) { err.textContent = "Enter your Master Password."; unlockBtn.disabled = false; return; }
 
       err.textContent = "Locating vault snapshot...";
-      let currentVault = lsGet(LS + "vault_data");
-
-      if (!currentVault) {
-        err.textContent = "Fetching backup from Render relay...";
-        currentVault = await fetchVaultFromCloud(uKey, pw);
-        if (currentVault) lsSet(LS + "vault_data", currentVault);
+      const local = lsGet(LS + "vault_data");
+      let candidates = local ? [local] : [];
+      if (!local) {
+        err.textContent = "Fetching backup from the relay...";
+        candidates = await fetchVaultsFromCloud(uKey, pw);
       }
-
-      if (!currentVault) {
+      if (!candidates.length) {
         err.textContent = "No vault found locally or on the relay for @" + uKey;
         unlockBtn.disabled = false;
         return;
       }
 
       try {
-        const k = await deriveKey("kairo-master-vault", pw);
-        const data = await unseal(k, currentVault);
-        vaultKey = k;
-        currentSessionPassword = pw;
+        let opened = null, used = "";
+        for (const c of candidates) {
+          try { opened = await openVault(pw, c); used = c; break; } catch {}
+        }
+        if (!opened) throw new Error("locked");
+        const data = opened.data;
+        if (sanitizeKey((data.me || {}).userKey) !== uKey) throw new Error("wrong user");
+        vaultTopic = await getCloudVaultTopic(uKey, pw);
+        Object.assign(me, data.me);
+        await useIdentity(data.identity);
+        vaultKey = opened.key;
+        vaultSalt = opened.salt;
+        lsSet(LS + "vault_data", used);
         lsSet(LS + "last_key", uKey);
 
-        Object.assign(me, data.me || {});
-        if (!me.userKey) me.userKey = uKey;
         Object.assign(settings, data.settings || {});
+        settings.cloak = "kairo";
         applyTheme(settings.theme);
-        applyCloak(settings.cloak);
+        applyCloak();
         blockedUsers = new Set(data.blocked || []);
         rooms.clear();
         (data.chats || []).forEach((meta) => {
@@ -951,13 +1003,13 @@ function promptVaultLogin() {
           el("p", { textContent: "Persistent encrypted account" })
         )
       ),
-      el("p", { textContent: "Set a unique User Key (lowercase handle) and Master Password. Your vault syncs encrypted snapshots to Render automatically." })
+      el("p", { textContent: "Set a unique User Key (lowercase handle) and Master Password. Encrypted backups are sent to the relay. There is no password reset, so keep your passphrase safe." })
     );
     const keyInp = el("input", { type: "text", placeholder: "Permanent Key (e.g. arvi, user_1)", maxLength: 20 });
     const nameInp = el("input", { type: "text", placeholder: "Display Name (e.g. Arvi)", maxLength: 20 });
     const avInp = el("input", { type: "text", placeholder: "Avatar Initials (e.g. AR)", maxLength: 4 });
     const bioInp = el("input", { type: "text", placeholder: "Status bio (optional)", maxLength: 50 });
-    const pwInp = el("input", { type: "password", placeholder: "Create Master Password (4+ chars)", maxLength: 80 });
+    const pwInp = el("input", { type: "password", placeholder: "Master passphrase (16+ characters)", maxLength: 80 });
     const err = el("p", { className: "err" });
     const createBtn = el("button", { type: "submit", className: "btn", textContent: "Create Encrypted Vault" });
 
@@ -988,11 +1040,16 @@ function promptVaultLogin() {
       const disp = nameInp.value.trim();
       const pw = pwInp.value;
       if (!uKey) { err.textContent = "User Key is required (lowercase letters/numbers)."; return; }
-      if (pw.length < 4) { err.textContent = "Use a Master Password with at least 4 characters."; return; }
+      if (passProblem(pw)) { err.textContent = passProblem(pw); return; }
       createBtn.disabled = true;
       try {
-        vaultKey = await deriveKey("kairo-master-vault", pw);
-        currentSessionPassword = pw;
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const key = await vaultKeyFor(pw, salt);
+        const topic = await getCloudVaultTopic(uKey, pw);
+        await useIdentity(await createIdentity());
+        vaultKey = key;
+        vaultSalt = salt;
+        vaultTopic = topic;
         me.userKey = uKey;
         me.name = disp || uKey;
         me.avatar = avInp.value.trim().slice(0, 4);
@@ -1014,30 +1071,36 @@ function promptVaultLogin() {
 }
 
 function lockVaultSession() {
-  vaultKey = null;
-  currentSessionPassword = "";
-  if (peerConn) endCall();
-  if (es) { es.close(); es = null; esKey = ""; }
-  rooms.forEach((r) => { r.key = null; r.ready = false; });
-  activeTopic = null;
+  arcade.close();
+  if (peerConn || callState !== "idle") endCall();
+  if (isRecording && mediaRecorder) { mediaRecorder.onstop = null; mediaRecorder.stream.getTracks().forEach((t) => t.stop()); isRecording = false; }
+  vaultKey = null; vaultSalt = null; vaultTopic = ""; identity = null; signKey = null;
+  if (es) { es.close(); es = null; }
+  esKey = "";
+  rooms.clear();
+  blockedUsers = new Set();
+  Object.assign(me, { id: rnd(), userKey: "", name: "", avatar: "", avatarImg: null, bio: "", status: "online" });
+  replyingTo = null;
+  closeModal();
+  $("lightboxHost").innerHTML = "";
+  renderWelcome();
   setRelayState("paused");
   setStatus("vault locked");
-  renderWelcome();
   promptVaultLogin();
 }
 
-function isBlocked(name) {
-  return blockedUsers.has(String(name || "").toLowerCase());
+function isBlocked(id) {
+  return blockedUsers.has(String(id || "").toLowerCase());
 }
 function toggleBlockUser(name) {
   const key = String(name || "").trim().toLowerCase();
   if (!key) return;
   if (blockedUsers.has(key)) {
     blockedUsers.delete(key);
-    toast("Unblocked " + name);
+    toast("Unblocked sender");
   } else {
     blockedUsers.add(key);
-    toast("Blocked " + name);
+    toast("Blocked sender");
   }
   saveVault();
   if (activeTopic) renderChatLog(true);
@@ -1072,7 +1135,7 @@ function showThemeSettings() {
   const box = el("form", { className: "modal" });
   box.append(
     el("h2", { textContent: "Themes & Color Studio" }),
-    el("p", { textContent: "Customize your theme, pick custom colors, and set your disguise." }),
+    el("p", { textContent: "Customize your theme and pick custom colors." }),
     el("h3", { textContent: "Color Theme Preset" })
   );
   const themeSel = el("select", {},
@@ -1127,16 +1190,6 @@ function showThemeSettings() {
   accentInput.oninput = previewUpdate;
   textInput.oninput = previewUpdate;
 
-  const cloakSel = el("select", {},
-    el("option", { value: "kairo", textContent: "Default (Kairo Signature k.)" }),
-    el("option", { value: "drive", textContent: "Google Drive" }),
-    el("option", { value: "docs", textContent: "Google Docs" }),
-    el("option", { value: "classroom", textContent: "Google Classroom" }),
-    el("option", { value: "canvas", textContent: "Canvas LMS" })
-  );
-  cloakSel.value = settings.cloak || "kairo";
-  cloakSel.onchange = () => applyCloak(cloakSel.value);
-
   const enterSel = el("select", {},
     el("option", { value: "true", textContent: "Press Enter to Send" }),
     el("option", { value: "false", textContent: "Click Send Button Only" })
@@ -1154,7 +1207,6 @@ function showThemeSettings() {
   box.append(
     themeSel,
     colorStudioDiv,
-    el("h3", { textContent: "Tab Cloaking (Stealth Disguise)" }), cloakSel,
     el("h3", { textContent: "Send Message Keybind" }), enterSel,
     el("h3", { textContent: "Message Sound Effects" }), soundSel,
     el("div", { className: "row" }, saveBtn, cancelBtn)
@@ -1172,7 +1224,6 @@ function showThemeSettings() {
     } else {
       applyTheme(themeSel.value);
     }
-    applyCloak(cloakSel.value);
     settings.sendOnEnter = enterSel.value === "true";
     settings.sound = soundSel.value === "on";
     updateDocTitle();
@@ -1282,13 +1333,13 @@ function showVaultInfoModal() {
       el("div", { className: "modalBadge", textContent: "V" }),
       el("div", {},
         el("h2", { textContent: "Account Vault Architecture" }),
-        el("p", { textContent: "AES-GCM-256 with Zero-Knowledge Local Derivation" })
+        el("p", { textContent: "AES-256-GCM encryption on your device" })
       )
     ),
-    el("p", { textContent: "Your vault is encrypted directly in browser memory using AES-256-GCM. Your Master Password is used with PBKDF2 (120,000 iterations) to derive your private key." }),
+    el("p", { textContent: "Your vault is encrypted directly in browser memory using AES-256-GCM. Your Master Password is used with PBKDF2 (600,000 iterations) and a random salt to make the encryption key." }),
     el("h3", { textContent: "Security Safeguards" }),
     el("ol", {},
-      el("li", { textContent: "Your password is never sent to the Render relay or stored in plaintext." }),
+      el("li", { textContent: "Your master passphrase is not sent to the relay or saved." }),
       el("li", { textContent: "Encrypted snapshots sync to your private cloud topic whenever you save changes." }),
       el("li", { textContent: "Vault Status: " + (vaultKey ? "Unlocked & Active" : "Locked") })
     ),
@@ -1308,7 +1359,7 @@ function showRelayInfoModal() {
         el("p", { textContent: "Server-Sent Events (SSE) + Direct Audio Traversal" })
       )
     ),
-    el("p", { textContent: "Kairo routes encrypted packets through an ephemeral Render relay (" + SERVER.replace("https://", "") + ") without logging conversation metadata or message text." }),
+    el("p", { textContent: "Kairo sends encrypted messages through a relay (" + SERVER.replace("https://", "") + "). The relay can see information such as IP addresses, timing and size." }),
     el("h3", { textContent: "Live Connection Diagnostics" }),
     el("ol", {},
       el("li", { textContent: "Relay State: " + relayStatusState.toUpperCase() }),
@@ -1332,7 +1383,7 @@ function showChannelsInfoModal() {
       el("div", { className: "modalBadge", textContent: "#" }),
       el("div", {},
         el("h2", { textContent: "Channel & Room Status" }),
-        el("p", { textContent: "Zero-Knowledge Per-Room Key Derivation" })
+        el("p", { textContent: "A separate key for each chat" })
       )
     ),
     el("p", { textContent: "Each direct message and group channel operates under its own unique AES-256 session key derived from its room name and secret password." }),
@@ -1350,27 +1401,47 @@ function showChannelsInfoModal() {
   showModal(box);
 }
 
-function persistRoom(r) { lsSet(LS + "t:" + r.meta.topic, JSON.stringify(r.store)); }
-function getDraft(topic) { return lsGet(LS + "draft:" + topic) || ""; }
+// History and drafts are encrypted before they're saved on the device.
+function writeSealed(r, slot, value) {
+  const key = vaultKey, name = LS + slot + r.meta.topic;
+  if (!key || r.gone) return;
+  const copy = JSON.parse(JSON.stringify(value));
+  r.saveQ = (r.saveQ || Promise.resolve()).then(async () => {
+    const enc = await seal(key, copy);
+    if (!r.gone) lsSet(name, enc);
+  }).catch(() => {});
+}
+function persistRoom(r) { writeSealed(r, "t:", r.store); }
+function getDraft(topic) { const r = rooms.get(topic); return (r && r.draft) || ""; }
 function setDraft(topic, val) {
-  if (!val) lsDel(LS + "draft:" + topic);
-  else lsSet(LS + "draft:" + topic, val);
+  const r = rooms.get(topic);
+  if (!r) return;
+  r.draft = val || "";
+  writeSealed(r, "d:", r.draft);
 }
 function makeRoom(meta) {
-  let store = { msgs: [], lastSrv: 0, pinned: null };
-  try { store = Object.assign(store, JSON.parse(lsGet(LS + "t:" + meta.topic) || "{}")); } catch {}
   return {
-    meta, key: null, store,
-    seen: new Set(store.msgs.map((m) => m.id)),
+    meta, key: null, draft: "",
+    store: { msgs: [], lastSrv: 0, pinned: null, nonces: [], floor: 0, keys: {} },
+    seen: new Set(),
     people: new Map(), unread: 0, ready: false, helloSent: false,
     typing: new Map()
   };
 }
+async function hydrate(r) {
+  try { const t = lsGet(LS + "t:" + r.meta.topic); if (t) Object.assign(r.store, await unseal(vaultKey, t)); } catch {}
+  try { const d = lsGet(LS + "d:" + r.meta.topic); if (d) r.draft = await unseal(vaultKey, d); } catch {}
+  r.seen = new Set(r.store.msgs.map((m) => m.id));
+}
 
 async function post(r, kind, extra) {
   if ((kind === "h" || kind === "p") && me.status === "invisible") return;
+  if (!signKey) throw new Error("Vault is locked");
+  const id = identity, sk = signKey;
   const m = Object.assign({
-    i: me.id,
+    r: r.meta.topic,
+    n: rnd(),
+    i: id.id,
     uk: me.userKey || me.name,
     k: kind,
     name: me.name,
@@ -1380,7 +1451,9 @@ async function post(r, kind, extra) {
     st: me.status || "online",
     t: Date.now()
   }, extra || {});
-  const body = await seal(r.key, m);
+  const b = JSON.stringify(m);
+  const sig = toB64(new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, sk, te.encode(b))));
+  const body = await seal(r.key, { b, p: id.pub, s: sig });
   const resp = await fetch(SERVER + "/" + r.meta.topic, { method: "POST", body });
   if (!resp.ok) throw new Error("Relay error " + resp.status);
 }
@@ -1449,9 +1522,10 @@ function renderCallPanel() {
   const peerAv = peer && peer.av ? peer.av : (r ? initials(r.meta.title) : "?");
   const myAv = me.avatar || initials(me.name);
 
+  const fresh = !host.firstChild;
   host.innerHTML = "";
 
-  const panel = el("div", { id: "callPanel", className: "callPanel" });
+  const panel = el("div", { id: "callPanel", className: "callPanel" + (fresh ? " k-drop" : "") });
   if (callState === "ended") panel.classList.add("endedState");
 
   const myAvatarEl = el("div", { className: "callAvatar" });
@@ -1546,7 +1620,6 @@ function renderCallPanel() {
 }
 
 async function initCallPeer(r) {
-  if (peerConn) endCall();
   activeCallTopic = r.meta.topic;
   peerConn = new RTCPeerConnection(rtcConfig);
 
@@ -1563,7 +1636,7 @@ async function initCallPeer(r) {
 
   peerConn.onicecandidate = (e) => {
     if (e.candidate) {
-      post(r, "rtc_candidate", { candidate: e.candidate }).catch(() => {});
+      post(r, "rtc_candidate", { candidate: e.candidate, call: callId }).catch(() => {});
     }
   };
 
@@ -1581,8 +1654,10 @@ async function initCallPeer(r) {
 
 async function startCall() {
   const r = rooms.get(activeTopic);
-  if (!r || !r.key) return;
+  if (!r || !r.key || r.meta.type !== "dm" || callState !== "idle") return;
+  if (!confirm("Start a call? The other person may be able to see your IP address.")) return;
   try {
+    callId = rnd(); callPeer = ""; earlyCandidates = [];
     isCaller = true;
     isMuted = false;
     isDeafened = false;
@@ -1591,7 +1666,7 @@ async function startCall() {
     renderCallPanel();
     const offer = await peerConn.createOffer();
     await peerConn.setLocalDescription(offer);
-    await post(r, "rtc_offer", { sdp: offer });
+    await post(r, "rtc_offer", { sdp: offer, call: callId });
     setTimeout(() => {
       if (callState === "calling") {
         callState = "ringing";
@@ -1606,6 +1681,7 @@ async function startCall() {
 
 let pendingIncomingOffer = null;
 async function promptIncomingCall(r, who, sdp) {
+  arcade.close();
   playNotifSound();
   activeCallTopic = r.meta.topic;
   callState = "incoming";
@@ -1616,15 +1692,18 @@ async function promptIncomingCall(r, who, sdp) {
 async function acceptIncomingCall() {
   const r = rooms.get(activeCallTopic);
   if (!r || !pendingIncomingOffer) return;
+  if (!confirm("Accept the call? The other person may be able to see your IP address.")) return;
   try {
     isCaller = false;
     isMuted = false;
     isDeafened = false;
     await initCallPeer(r);
     await peerConn.setRemoteDescription(new RTCSessionDescription(pendingIncomingOffer));
+    for (const c of earlyCandidates.filter((x) => x.from === callPeer)) { try { await peerConn.addIceCandidate(c.candidate); } catch {} }
+    earlyCandidates = [];
     const answer = await peerConn.createAnswer();
     await peerConn.setLocalDescription(answer);
-    await post(r, "rtc_answer", { sdp: answer });
+    await post(r, "rtc_answer", { sdp: answer, call: callId });
     pendingIncomingOffer = null;
     callState = "connected";
     renderCallPanel();
@@ -1656,11 +1735,12 @@ function toggleDeafen() {
   renderCallPanel();
 }
 
-function endCall(msg) {
-  if (activeCallTopic) {
+function endCall(msg, remote) {
+  if (activeCallTopic && callId && !remote) {
     const r = rooms.get(activeCallTopic);
-    if (r && r.key) post(r, "rtc_hangup", { reason: msg || "Call ended" }).catch(() => {});
+    if (r && r.key) post(r, "rtc_hangup", { call: callId }).catch(() => {});
   }
+  callId = ""; callPeer = ""; earlyCandidates = []; pendingIncomingOffer = null;
   clearInterval(callDurationTimer);
   clearInterval(remoteAudioCheckTimer);
   callStartTime = 0;
@@ -1705,6 +1785,7 @@ function activePeople(r) {
   r.people.forEach((p) => { if (now - p.last < limit && p.st !== "invisible") list.push(p); });
   return list;
 }
+const shownItems = new Set();
 function chatItem(r) {
   const topic = r.meta.topic;
   const locked = !r.key;
@@ -1740,6 +1821,7 @@ function chatItem(r) {
       el("div", { className: "itemName", textContent: (locked ? "🔒 " : "") + r.meta.title }),
       subEl));
   if (r.unread) item.append(el("span", { className: "badge", textContent: String(r.unread) }));
+  if (!shownItems.has(topic)) { shownItems.add(topic); item.classList.add("k-slide"); }
   item.onclick = () => openChat(topic);
   return item;
 }
@@ -1792,6 +1874,7 @@ function updateTop() {
 
   const pinBar = $("pinnedHeader");
   if (r.store.pinned) {
+    if (pinBar.hidden) replay(pinBar, "k-drop");
     pinBar.hidden = false;
     pinBar.innerHTML = "";
     pinBar.append(
@@ -1881,11 +1964,7 @@ function parseInlineMarkdown(text) {
     else if (tk.type === "strike") frag.append(el("s", { textContent: tk.val }));
     else if (tk.type === "inlineCode") frag.append(el("code", { className: "inlineCode", textContent: tk.val }));
     else if (tk.type === "link") {
-      if (tk.val.toLowerCase().match(/\.(gif)(\?.*)?$/i)) {
-        frag.append(el("img", { src: tk.val, className: "chatImg", loading: "lazy", onclick: () => openLightbox(tk.val) }));
-      } else {
-        frag.append(el("a", { href: tk.val, target: "_blank", rel: "noopener noreferrer", className: "chatLink", textContent: tk.val }));
-      }
+      frag.append(el("a", { href: tk.val, target: "_blank", rel: "noopener noreferrer", className: "chatLink", textContent: tk.val }));
     } else {
       frag.append(document.createTextNode(tk.val));
     }
@@ -2006,6 +2085,30 @@ async function pinMessage(r, m) {
   } catch (e) { toast("Couldn't pin: " + (e.message || "error")); }
 }
 
+function fileCard(f) {
+  const pick = el("input", { type: "file", style: "display:none" });
+  pick.onchange = () => { if (pick.files[0]) decryptFile(f, pick.files[0]); pick.value = ""; };
+  return el("div", { className: "audioPill", style: "flex-direction:column;align-items:flex-start" },
+    el("b", { textContent: "🔐 " + f.name + " (" + (f.size / 1048576).toFixed(1) + " MB)" }),
+    el("a", { href: f.url, target: "_blank", rel: "noopener noreferrer", className: "chatLink", style: "color:inherit;font-weight:600", textContent: "1. Download the locked file from Gofile" }),
+    el("button", { type: "button", className: "btn secondary small", textContent: "2. Unlock downloaded file", onclick: () => pick.click() }),
+    pick);
+}
+async function decryptFile(f, blob) {
+  try {
+    if (blob.size > MAX_FILE + 1024) throw new Error("too big");
+    const key = await aesKey(fromB64(f.key));
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(f.iv) }, key, await blob.arrayBuffer());
+    const url = URL.createObjectURL(new Blob([plain], { type: "application/octet-stream" }));
+    const a = el("a", { href: url, download: f.name.replace(/[\\/:*?"<>|\u0000-\u001f\u202a-\u202e\u2066-\u2069]/g, "_") });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast("File unlocked. Only open files from people you trust.", 4000);
+  } catch {
+    toast("That isn't the matching file, or it was changed.", 4000);
+  }
+}
+
 function buildMessage(r, m) {
   const mine = m.mine;
   const who = m.who;
@@ -2017,8 +2120,8 @@ function buildMessage(r, m) {
   if (mine && !m.deleted) {
     const receipt = el("span", {
       className: "receipt",
-      title: m.read ? "Read by peer" : "Delivered",
-      textContent: m.read ? "✓✓" : "✓"
+      title: m.failed ? "Not sent" : m.read ? "Marked as read" : m.sent ? "Sent to relay" : "Sending",
+      textContent: m.failed ? "! not sent" : m.read ? "✓✓" : m.sent ? "✓" : "…"
     });
     meta.append(receipt);
   }
@@ -2081,6 +2184,8 @@ function buildMessage(r, m) {
     );
     bubble.append(audioWrap);
   }
+  if (m.file && !m.deleted) bubble.append(fileCard(m.file));
+  if (!mine && !m.deleted) bubble.append(el("span", { className: "editedTag", textContent: "key " + shortId(m.authorId) }));
   if (m.edited && !m.deleted) bubble.append(el("span", { className: "editedTag", textContent: "(edited)" }));
 
   const actions = el("div", { className: "msgActions" });
@@ -2121,7 +2226,7 @@ function buildMessage(r, m) {
       if (m.text) actions.append(el("button", { type: "button", className: "actBtn", title: "Edit message", textContent: "✎", onclick: () => promptEditMessage(r, m) }));
       actions.append(el("button", { type: "button", className: "actBtn", title: "Delete message", textContent: "🗑", onclick: () => deleteMessage(r, m) }));
     } else {
-      actions.append(el("button", { type: "button", className: "actBtn", title: "Block " + who, textContent: "🚫", onclick: () => toggleBlockUser(who) }));
+      actions.append(el("button", { type: "button", className: "actBtn", title: "Block " + who, textContent: "🚫", onclick: () => toggleBlockUser(m.authorId) }));
     }
   }
 
@@ -2194,18 +2299,33 @@ function renderChatLog(keepScroll) {
   l.innerHTML = "";
   const q = searchQuery.trim().toLowerCase();
   const visible = r.store.msgs.filter((m) => {
-    if (!m.mine && isBlocked(m.who)) return false;
+    if (!m.mine && isBlocked(m.authorId)) return false;
     if (q && !String(m.text || "").toLowerCase().includes(q) && !String(m.who || "").toLowerCase().includes(q)) return false;
     return true;
   });
-  visible.forEach((m) => l.append(buildMessage(r, m)));
+  // The log is redrawn often (for example when a receipt arrives), so remember when each
+  // message first appeared and let a redraw carry its animation on from the same point.
+  const firstDraw = !r.shown;
+  if (firstDraw) r.shown = new Map();
+  const now = Date.now();
+  visible.forEach((m, i) => {
+    const row = buildMessage(r, m);
+    const fromEnd = visible.length - 1 - i;
+    if (!r.shown.has(m.id)) r.shown.set(m.id, firstDraw ? (fromEnd < 10 ? now + (9 - fromEnd) * 35 : 0) : now);
+    const age = now - r.shown.get(m.id);
+    if (age < 340) {
+      row.classList.add("k-in");
+      row.style.animationDelay = -age + "ms";
+    }
+    l.append(row);
+  });
   if (!q) {
     const isDm = r.meta.type === "dm";
     l.append(el("div", {
       className: "system",
       textContent: isDm
-        ? "Direct message with @" + r.meta.title + ". End-to-end encrypted, zero rate limits."
-        : "Group “" + r.meta.title + "”. End-to-end encrypted, zero rate limits."
+        ? "Direct message with @" + r.meta.title + ". Messages are encrypted with your shared passphrase."
+        : "Group “" + r.meta.title + "”. Messages are encrypted with the group passphrase."
     }));
   } else if (!visible.length) {
     l.append(el("div", { className: "system", textContent: "No messages match “" + searchQuery + "”." }));
@@ -2218,6 +2338,7 @@ function renderChatLog(keepScroll) {
 }
 
 function renderWelcome() {
+  replay($("view"), "k-view");
   activeTopic = null;
   replyingTo = null;
   searchQuery = "";
@@ -2254,7 +2375,7 @@ function renderWelcome() {
   const relaySub = el("div", {
     id: "relayStatSub",
     className: "statSub" + (relayStatusState !== "connected" ? " subtle-strategy" : ""),
-    textContent: relayStatusState === "connected" ? "Private Relay (Zero Limits)" : activeRelayPun
+    textContent: relayStatusState === "connected" ? "Connected to relay" : activeRelayPun
   });
 
   // Interactive Info Cards (NO EMOJIS, CLEAN WRAP)
@@ -2336,6 +2457,7 @@ async function toggleVoiceRecording(recBtn) {
 function openChat(id) {
   const r = rooms.get(id);
   if (!r) return;
+  if (activeTopic !== id) { r.shown = null; replay($("view"), "k-view"); }
   if (!r.key) return askUnlock(r);
   activeTopic = id;
   replyingTo = null;
@@ -2417,16 +2539,52 @@ function openChat(id) {
   input.focus();
 }
 
+const MAX_AGE = 7 * 24 * 3600 * 1000;
+function safeData(v, re, max) { return typeof v === "string" && v.length <= max && re.test(v) ? v : null; }
+const IMG_RE = /^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+const AUDIO_RE = /^data:audio\/(webm|ogg|mp4|mpeg|wav)(;codecs=[A-Za-z0-9.,]+)?;base64,[A-Za-z0-9+/=]+$/;
+function safeId(v) { return typeof v === "string" && /^[a-f0-9]{16}$/.test(v) ? v : null; }
+function safeText(v, n) { return typeof v === "string" ? v.slice(0, n) : ""; }
+function safeFile(f) {
+  if (!f || typeof f !== "object") return null;
+  if (typeof f.url !== "string" || !/^https:\/\/gofile\.io\/d\/[A-Za-z0-9_-]+$/.test(f.url)) return null;
+  if (!safeData(f.key, /^[A-Za-z0-9+/=]+$/, 64) || !safeData(f.iv, /^[A-Za-z0-9+/=]+$/, 24)) return null;
+  return { url: f.url, key: f.key, iv: f.iv, name: safeText(f.name, 120) || "file", size: Number(f.size) || 0 };
+}
+function safeReply(q) {
+  return q && safeId(q.id) ? { id: q.id, who: safeText(q.who, 20), text: safeText(q.text, 90), depth: Number(q.depth) || 0 } : null;
+}
+function isReplay(r, m) {
+  const age = Date.now() - m.t;
+  if (typeof m.t !== "number" || !safeId(m.n) || age > MAX_AGE || age < -5 * 60 * 1000 || m.t < r.store.floor) return true;
+  if (String(m.k).startsWith("rtc_") && age > 60000) return true;
+  if (r.store.nonces.some((x) => x[0] === m.n)) return true;
+  r.store.nonces.push([m.n, m.t]);
+  if (r.store.nonces.length > 3000) {
+    r.store.nonces.sort((a, b) => a[1] - b[1]);
+    r.store.floor = r.store.nonces.splice(0, 500)[499][1];
+  }
+  return false;
+}
+
 async function onEvent(ev) {
   const r = rooms.get(ev.topic);
   if (!r || !r.key) return;
-  if (ev.time && ev.time > r.store.lastSrv) { r.store.lastSrv = ev.time; persistRoom(r); }
   let m;
-  try { m = await unseal(r.key, ev.message || ""); } catch { return; }
-  if (!m || !m.i || m.i === me.id) return;
-  const who = String(m.name || "Someone").slice(0, 20);
-  if (isBlocked(who)) return;
+  try { m = await verifyEnvelope(await unseal(r.key, ev.message || "")); } catch { return; }
+  if (!m || m.r !== r.meta.topic || m.i === me.id || !vaultKey || rooms.get(ev.topic) !== r) return;
+  if (isReplay(r, m)) return;
+  if (ev.time && ev.time > r.store.lastSrv) r.store.lastSrv = ev.time;
+  if (m.k !== "typing" && m.k !== "p") persistRoom(r);
+  if (isBlocked(m.i)) return;
+  // Flag a name that shows up with a different signing key than the first one seen.
+  const handle = "@" + (sanitizeKey(m.uk) || "unknown");
+  if (!r.store.keys[handle]) { r.store.keys[handle] = m.i; persistRoom(r); }
+  const changed = r.store.keys[handle] !== m.i || handle === "@" + me.userKey;
+  const who = (changed ? "⚠ " : "") + safeText(String(m.name || "Someone"), 18);
   const isActive = r.meta.topic === activeTopic;
+  m.avi = safeData(m.avi, IMG_RE, 100000);
+  m.st = ["online", "idle", "dnd", "invisible"].includes(m.st) ? m.st : "online";
 
   r.people.set(m.i, {
     name: who,
@@ -2437,24 +2595,25 @@ async function onEvent(ev) {
     last: Date.now()
   });
 
-  if (m.k === "rtc_offer" && m.sdp) {
-    promptIncomingCall(r, who, m.sdp);
-    return;
-  }
-  if (m.k === "rtc_answer" && m.sdp && peerConn && isCaller) {
-    await peerConn.setRemoteDescription(new RTCSessionDescription(m.sdp));
-    callState = "connected";
-    renderCallPanel();
-    startCallDuration();
-    return;
-  }
-  if (m.k === "rtc_candidate" && m.candidate && peerConn) {
-    try { await peerConn.addIceCandidate(new RTCIceCandidate(m.candidate)); } catch {}
-    return;
-  }
-  if (m.k === "rtc_hangup") {
-    toast((m.reason || "Call ended") + " by " + who);
-    endCall(m.reason || "Call ended");
+  if (String(m.k).startsWith("rtc_")) {
+    if (r.meta.type !== "dm" || !safeId(m.call)) return;
+    if (m.k === "rtc_offer" && m.sdp) {
+      if (callState === "idle" && !changed) { callId = m.call; callPeer = m.i; earlyCandidates = []; promptIncomingCall(r, who, m.sdp); }
+      return;
+    }
+    if (m.call !== callId || r.meta.topic !== activeCallTopic) return;
+    if (m.k === "rtc_answer" && m.sdp && peerConn && isCaller && !callPeer && !changed) {
+      callPeer = m.i;
+      await peerConn.setRemoteDescription(new RTCSessionDescription(m.sdp));
+      for (const c of earlyCandidates.filter((x) => x.from === callPeer)) { try { await peerConn.addIceCandidate(c.candidate); } catch {} }
+      earlyCandidates = [];
+    } else if (m.k === "rtc_candidate" && m.candidate) {
+      if (peerConn && peerConn.remoteDescription && m.i === callPeer) { try { await peerConn.addIceCandidate(m.candidate); } catch {} }
+      else if (earlyCandidates.length < 50) earlyCandidates.push({ from: m.i, candidate: m.candidate });
+    } else if (m.k === "rtc_hangup" && (m.i === callPeer || !callPeer)) {
+      toast("Call ended by " + who);
+      endCall("Call ended", true);
+    }
     return;
   }
 
@@ -2480,24 +2639,25 @@ async function onEvent(ev) {
   }
 
   if (m.k === "m") {
-    if (!m.id || r.seen.has(m.id)) return;
+    if (!safeId(m.id) || r.seen.has(m.id)) return;
     r.seen.add(m.id);
     const rec = {
       id: m.id,
       who,
       authorId: m.i,
       av: String(m.av || "").slice(0, 4),
-      avi: m.avi || null,
+      avi: m.avi,
       text: m.text ? String(m.text).slice(0, MAX_TEXT) : "",
-      img: m.img || null,
-      audio: m.audio || null,
+      img: safeData(m.img, IMG_RE, 900000),
+      audio: safeData(m.audio, AUDIO_RE, 3000000),
+      file: safeFile(m.file),
       mine: false,
       read: false,
       seenByMe: isActive,
       time: m.t || Date.now(),
-      replyTo: m.replyTo || null,
-      depth: m.depth || 0,
-      fx: m.fx || null,
+      replyTo: safeReply(m.replyTo),
+      depth: Number(m.depth) || 0,
+      fx: ["confetti", "stars"].includes(m.fx) ? m.fx : null,
       reactions: {}
     };
     r.store.msgs.push(rec);
@@ -2515,11 +2675,13 @@ async function onEvent(ev) {
     return;
   }
   if (m.k === "react" && m.targetId && m.emoji) {
-    applyReaction(r, m.targetId, String(m.emoji).slice(0, 8), who);
+    if (EMOJIS.includes(m.emoji)) applyReaction(r, m.targetId, m.emoji, who);
     return;
   }
   if (m.k === "pin") {
-    r.store.pinned = m.pinPayload || null;
+    const t = m.targetId ? r.store.msgs.find((x) => x.id === m.targetId && !x.deleted) : null;
+    if (m.targetId && !t) return;
+    r.store.pinned = t ? { id: t.id, who: t.who, text: String(t.text || "").slice(0, 80) } : null;
     persistRoom(r);
     if (isActive) updateTop();
     return;
@@ -2560,7 +2722,14 @@ async function onEvent(ev) {
 
 async function resubscribe() {
   const open = Array.from(rooms.values()).filter((r) => r.key);
-  const k = open.length ? open.map((r) => r.meta.topic).join(",") : "kairo_hb_" + (me.userKey || "guest");
+  const k = open.map((r) => r.meta.topic).join(",");
+  if (!open.length) {
+    if (es) { es.close(); es = null; }
+    esKey = "";
+    setRelayState("paused");
+    setStatus(vaultKey ? "no open chats" : "vault locked");
+    return;
+  }
   
   if (k === esKey && es && es.readyState === EventSource.OPEN) {
     return;
@@ -2593,7 +2762,7 @@ async function resubscribe() {
   es.onopen = () => {
     everOpened = true;
     setRelayState("connected");
-    setStatus("connected · zero limits", "ok");
+    setStatus("connected", "ok");
     setDiag("");
     clearTimeout(readyTimer);
     readyTimer = setTimeout(() => {
@@ -2635,6 +2804,7 @@ function modal(title, hint, fields, okText, onOk) {
     const inp = el("input", { type: f.type || "text", placeholder: f.placeholder || "", maxLength: f.max || 60, autocomplete: "off", value: f.value || "" });
     inputs[f.id] = inp;
     box.append(el("h3", { textContent: f.label }), inp);
+    if (f.generate) box.append(el("button", { type: "button", className: "linkBtn", textContent: "Make a strong passphrase", onclick: () => { inp.type = "text"; inp.value = randomPass(); } }));
   });
   const err = el("p", { className: "err" });
   const ok = el("button", { type: "submit", className: "btn", textContent: okText });
@@ -2682,7 +2852,7 @@ function showHelp() {
     ))
   );
   const box = el("div", { className: "modal" },
-    el("h2", { textContent: "Kairo v1.6.4 Guide", style: "margin-bottom:8px" }),
+    el("h2", { textContent: "Kairo v2.1.0 Guide", style: "margin-bottom:8px" }),
     el("ol", {}, ...steps.map((s) => el("li", { textContent: s }))),
     el("h3", { textContent: "Keyboard Shortcuts" }),
     scList,
@@ -2697,7 +2867,7 @@ function profile() {
   const box = el("form", { className: "modal" });
   box.append(
     el("h2", { textContent: "Your Profile & Presence", style: "margin-bottom:6px" }),
-    el("p", { textContent: "Permanent User Key: @" + (me.userKey || me.name) + ". Changes sync to your cloud vault automatically." })
+    el("p", { textContent: "User Key: @" + me.userKey + ". Your safety code: " + shortId(me.id) + ". Friends can compare it with the key shown under your messages, using another way of contacting you." })
   );
 
   const previewAvatar = el("div", { className: "avatar", style: "width:64px;height:64px;margin:12px auto;font-size:20px" });
@@ -2777,7 +2947,7 @@ async function createChat(type, label, pw, icon) {
   checkSecure();
   label = sanitizeKey(label);
   if (!label) throw new Error(type === "dm" ? "Enter their User Key." : "Enter a group ID.");
-  if (pw.length < 4) throw new Error("Use a password with at least 4 characters.");
+  if (passProblem(pw)) throw new Error(passProblem(pw));
   let room, title;
   if (type === "dm") {
     title = label.slice(0, 20);
@@ -2786,10 +2956,12 @@ async function createChat(type, label, pw, icon) {
     title = label.slice(0, 40);
     room = "group|" + label;
   }
-  const topic = await topicFor(room, pw);
+  const derived = await deriveRoom(room, pw);
+  if (!vaultKey) throw new Error("Vault is locked");
+  const topic = derived.topic;
   let r = rooms.get(topic);
   if (!r && rooms.size >= MAX_CHATS) throw new Error("Maximum " + MAX_CHATS + " chats reached. Delete one first.");
-  const key = await deriveKey(room, pw);
+  const key = derived.key;
   if (!r) {
     r = makeRoom({ topic, type, title, room, pw, icon: (icon || "").trim().slice(0, 4) });
     rooms.set(topic, r);
@@ -2814,9 +2986,9 @@ function askUnlock(r) {
     [{ id: "p", label: "Password", type: "password" }], "Unlock",
     async (v) => {
       checkSecure();
-      const topic = await topicFor(r.meta.room, v.p);
-      if (topic !== r.meta.topic) throw new Error("That password doesn't match this chat.");
-      r.key = await deriveKey(r.meta.room, v.p);
+      const d = await deriveRoom(r.meta.room, v.p);
+      if (d.topic !== r.meta.topic) throw new Error("That password doesn't match this chat.");
+      r.key = d.key;
       r.meta.pw = v.p;
       await saveVault();
       resubscribe();
@@ -2828,7 +3000,7 @@ function startAdd() {
   if (!vaultKey) return promptVaultLogin();
   modal("New Direct Message",
     "Enter their lowercase User Key (e.g. bob) and your shared secret.",
-    [{ id: "f", label: "Their User Key (@handle)", max: 20 }, { id: "p", label: "Shared password", type: "password" }], "Start DM",
+    [{ id: "f", label: "Their User Key (@handle)", max: 20 }, { id: "p", label: "Shared passphrase (16+ characters)", type: "password", max: 80, generate: true }], "Start DM",
     (v) => createChat("dm", v.f, v.p));
 }
 function startGroup() {
@@ -2838,9 +3010,15 @@ function startGroup() {
     [
       { id: "f", label: "Group ID", max: 40 },
       { id: "i", label: "Group Avatar Tag (optional)", max: 4 },
-      { id: "p", label: "Group password", type: "password" }
+      { id: "p", label: "Group passphrase (16+ characters)", type: "password", max: 80, generate: true }
     ], "Create / Join",
     (v) => createChat("group", v.f, v.p, v.i));
+}
+
+function markSent(r, rec, ok) {
+  rec.sent = ok; rec.failed = !ok;
+  persistRoom(r);
+  if (r.meta.topic === activeTopic) renderChatLog(true);
 }
 
 async function dispatchMediaMessage(imgBase64, audioBase64) {
@@ -2864,7 +3042,9 @@ async function dispatchMediaMessage(imgBase64, audioBase64) {
 
   try {
     await post(r, "m", { id, text: "", img: imgBase64, audio: audioBase64, replyTo: replyPayload });
+    markSent(r, rec, true);
   } catch (err) {
+    markSent(r, rec, false);
     addSystem("Couldn't send media to relay: " + (err && err.message ? err.message : "network error"));
   }
 }
@@ -2895,6 +3075,14 @@ async function sendMessage(e) {
   if (!input) return;
   let text = input.value.trim().slice(0, MAX_TEXT);
   if (!r || !r.key || !text) return;
+
+  const arcadeCommand = { "/arcade": "", "/tetris": "tetris", "/snake": "snake", "/cross": "cross", "/pong": "pong", "/bricks": "bricks" }[text.toLowerCase()];
+  if (arcadeCommand !== undefined) {
+    input.value = "";
+    setDraft(activeTopic, "");
+    arcade.open(arcadeCommand);
+    return;
+  }
 
   // Slash commands
   if (text.startsWith("/")) {
@@ -3003,7 +3191,9 @@ async function sendMessage(e) {
 
   try {
     await post(r, "m", { id, text, replyTo: replyPayload, depth: currentDepth, fx: msgFx });
+    markSent(r, rec, true);
   } catch (err) {
+    markSent(r, rec, false);
     addSystem("Failed to deliver message: " + (err && err.message ? err.message : "error"));
   }
 }
@@ -3046,9 +3236,10 @@ $("btnDelete").onclick = async () => {
   const r = rooms.get(activeTopic);
   if (!r || !confirm("Remove “" + r.meta.title + "” and its saved history from your Vault?")) return;
   if (r.key) { try { await post(r, "b"); } catch {} }
+  r.gone = true;
   rooms.delete(r.meta.topic);
   lsDel(LS + "t:" + r.meta.topic);
-  lsDel(LS + "draft:" + r.meta.topic);
+  lsDel(LS + "d:" + r.meta.topic);
   await saveVault();
   resubscribe();
   renderWelcome();
@@ -3057,9 +3248,8 @@ $("btnDelete").onclick = async () => {
 $("themeBtn").onclick = showThemeSettings;
 $("eeSettingsBtn").onclick = showEasterEggSettings;
 $("cloudSyncBtn").onclick = () => {
-  if (!currentSessionPassword) return toast("Unlock your vault first.");
-  syncVaultToCloud(currentSessionPassword);
-  toast("Vault backed up to cloud!");
+  if (!vaultKey) return toast("Unlock your vault first.");
+  syncVaultToCloud().then((ok) => toast(ok ? "Backup sent to the relay." : "Backup failed."));
 };
 $("exportVaultBtn").onclick = exportVaultString;
 $("overviewBtn").onclick = renderWelcome;
@@ -3115,8 +3305,8 @@ $("betaPill").onclick = (e) => {
     showModal(box);
   } else {
     const box = el("div", { className: "modal" },
-      el("h2", { textContent: "Kairo Release Notes (v1.6.4)" }),
-      el("p", { textContent: "Zero-knowledge chat with encrypted vaults, reactive relays, and WebRTC calls." }),
+      el("h2", { textContent: "Kairo Release Notes (v2.1.0)" }),
+      el("p", { textContent: "Chat with encrypted messages, files and WebRTC calls." }),
       el("ol", { style: "margin:10px 0 16px 18px" },
         el("li", { textContent: "Custom Studio 4-color palette including dedicated text color picker." }),
         el("li", { textContent: "Custom picture avatar uploads stored in encrypted vault." }),
@@ -3173,16 +3363,88 @@ function onKeyDown(e) {
   if (e.altKey && e.key.toLowerCase() === "n") { e.preventDefault(); startAdd(); }
   if (e.altKey && e.key.toLowerCase() === "g") { e.preventDefault(); startGroup(); }
 }
+
+// ---- app-wide motion ----
+const motionStyle = document.createElement("style");
+motionStyle.textContent = `
+#rc-root{--k-ease:cubic-bezier(.2,.8,.2,1)}
+@keyframes kUp{from{opacity:0;transform:translateY(12px)}}
+@keyframes kFade{from{opacity:0}}
+@keyframes kPop{from{opacity:0;transform:translateY(16px) scale(.96)}}
+@keyframes kDrop{from{opacity:0;transform:translateY(-14px)}}
+@keyframes kLeft{from{opacity:0;transform:translateX(-14px)}}
+@keyframes kRight{from{opacity:0;transform:translateX(16px)}}
+@keyframes kZoom{from{opacity:0;transform:scale(.88)}}
+@keyframes kRipple{to{opacity:0;transform:translate(-50%,-50%) scale(9)}}
+@keyframes kFly{40%{transform:translate(7px,-7px) scale(.9)}41%{opacity:0;transform:translate(-7px,7px)}}
+@keyframes kRing{0%{box-shadow:0 0 0 0 rgba(88,101,242,.55)}100%{box-shadow:0 0 0 16px rgba(88,101,242,0)}}
+@keyframes kFloat{50%{transform:translateY(-8px)}}
+#rc-root .quickAction{animation:kLeft .45s var(--k-ease) backwards}
+#rc-root .quickAction:nth-of-type(2){animation-delay:.03s}#rc-root .quickAction:nth-of-type(3){animation-delay:.06s}#rc-root .quickAction:nth-of-type(4){animation-delay:.09s}#rc-root .quickAction:nth-of-type(5){animation-delay:.12s}#rc-root .quickAction:nth-of-type(6){animation-delay:.15s}#rc-root .quickAction:nth-of-type(7){animation-delay:.18s}#rc-root .quickAction:nth-of-type(n+8){animation-delay:.21s}
+#rc-root .quickAction{transition:background .18s,color .18s,padding-left .2s var(--k-ease)}
+#rc-root .quickAction:hover{padding-left:16px}
+#rc-root .quickIcon{display:inline-block;transition:transform .25s var(--k-ease)}
+#rc-root .quickAction:hover .quickIcon{transform:scale(1.22) rotate(-6deg)}
+#rc-root .k-view{animation:kUp .34s var(--k-ease) backwards}
+#rc-root .message.k-in.theirs{animation:kLeft .34s var(--k-ease) backwards}
+#rc-root .message.k-in.mine{animation:kRight .34s var(--k-ease) backwards}
+#rc-root .item.k-slide{animation:kRight .38s var(--k-ease) backwards}
+#rc-root .item{transition:background .18s,color .18s,transform .18s var(--k-ease)}
+#rc-root .item:hover{transform:translateX(3px)}
+#rc-root .k-drop{animation:kDrop .38s var(--k-ease) backwards}
+#rc-root .modalLayer{animation:kFade .22s ease backwards}
+#rc-root .modalLayer .modal{animation:kPop .36s var(--k-ease) backwards}
+#rc-root .lightbox{animation:kFade .2s ease backwards}
+#rc-root .lightbox img{animation:kZoom .3s var(--k-ease) backwards}
+#rc-root .emojiPicker{animation:kZoom .18s var(--k-ease) backwards}
+#rc-root .emojiPicker button{transition:transform .15s}
+#rc-root .emojiPicker button:hover{transform:scale(1.35)}
+#rc-root .reactPill{transition:transform .15s,background .15s}
+#rc-root .reactPill:hover{transform:translateY(-2px)}
+#rc-root .msgActions button{transition:transform .15s,background .15s}
+#rc-root .msgActions button:hover{transform:translateY(-2px)}
+#rc-root .btn,#rc-root .pillBtn,#rc-root .mediaBtn,#rc-root .sendBtn,#rc-root .iconBtn{transition:transform .16s var(--k-ease),background .16s,box-shadow .2s,filter .16s}
+#rc-root .btn:hover,#rc-root .pillBtn:hover,#rc-root .mediaBtn:hover,#rc-root .sendBtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.28)}
+#rc-root .btn:active,#rc-root .pillBtn:active,#rc-root .mediaBtn:active,#rc-root .sendBtn:active,#rc-root .iconBtn:active{transform:scale(.94)}
+#rc-root .sendBtn.k-fly{animation:kFly .4s var(--k-ease)}
+#rc-root .composer input,#rc-root .composer textarea,#rc-root .modal input,#rc-root .searchInput{transition:border-color .2s,box-shadow .25s}
+#rc-root .composer input:focus,#rc-root .composer textarea:focus,#rc-root .modal input:focus,#rc-root .searchInput:focus{box-shadow:0 0 0 4px rgba(88,101,242,.2)}
+#rc-root .emblemRing{animation:kFloat 5s ease-in-out infinite}
+#rc-root .emblemCore{border-radius:inherit;animation:kRing 2.6s ease-out infinite}
+#rc-root .stageTitle,#rc-root .stageSub,#rc-root .pillRow{animation:kUp .5s var(--k-ease) backwards}
+#rc-root .stageSub{animation-delay:.07s}#rc-root .pillRow{animation-delay:.14s}
+#rc-root .statCard{animation:kPop .5s var(--k-ease) backwards;transition:transform .22s var(--k-ease),box-shadow .22s,border-color .22s}
+#rc-root .statCard:nth-child(1){animation-delay:.2s}#rc-root .statCard:nth-child(2){animation-delay:.27s}#rc-root .statCard:nth-child(3){animation-delay:.34s}
+#rc-root .statCard:hover{transform:translateY(-5px);box-shadow:0 16px 34px rgba(0,0,0,.35);border-color:var(--accent)}
+#rc-root .k-ripple{position:fixed;width:18px;height:18px;border-radius:50%;pointer-events:none;z-index:1000000;background:rgba(150,162,255,.4);transform:translate(-50%,-50%) scale(.4);animation:kRipple .5s ease-out forwards}
+@media(prefers-reduced-motion:reduce){#rc-root *{animation:none!important;transition:none!important}#rc-root .k-ripple{display:none}}
+`;
+root.appendChild(motionStyle);
+root.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest || !e.target.closest("button")) return;
+  const dot = el("span", { className: "k-ripple" });
+  dot.style.left = e.clientX + "px";
+  dot.style.top = e.clientY + "px";
+  root.appendChild(dot);
+  setTimeout(() => dot.remove(), 520);
+}, true);
+root.addEventListener("submit", (e) => {
+  const btn = e.target.querySelector && e.target.querySelector(".sendBtn");
+  if (btn) replay(btn, "k-fly");
+}, true);
+
 window.addEventListener("keydown", onKeyDown);
 root.addEventListener("click", () => {
   root.querySelectorAll(".emojiPicker").forEach((p) => p.remove());
 });
 
 $("exit").onclick = () => {
+  arcade.close();
   document.title = origTitle;
   if (document.body) document.body.style.overflow = origBodyOverflow;
   if (document.documentElement) document.documentElement.style.overflow = origHtmlOverflow;
   if (peerConn) endCall();
+  vaultKey = null; signKey = null; identity = null; rooms.clear();
   window.removeEventListener("keydown", onKeyDown);
   timers.forEach(clearInterval);
   clearTimeout(readyTimer);
@@ -3203,6 +3465,8 @@ pingTimer = setTimeout(pingNext, pingGap());
 timers.push(setInterval(() => { renderSidebar(); updateTop(); }, 5000));
 
 renderWelcome();
+const oldKeys = Object.keys(localStorage).filter((k) => k.startsWith("roomchat:v2:"));
+if (oldKeys.length && confirm("This security update needs a new account and new chats. Delete the OLD version's data on this device, including its unencrypted history? This can't be undone. Press Cancel to keep it for now.")) oldKeys.forEach(lsDel);
 promptVaultLogin();
 resubscribe();
 
@@ -3318,146 +3582,48 @@ resubscribe();
         100% { left: 100%; width: 45%; }
       }
 
-      /* --- CINEMATIC 3D ARCADE ENTRANCE --- */
-      #kairo-arcade-portal {
-        position: fixed;
-        inset: 0;
-        z-index: 2147483640;
-        background: #020204;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        perspective: 1200px;
-        overflow: hidden;
-        transition: opacity 0.4s ease;
-      }
-      .arcade-room-scene {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transform-style: preserve-3d;
-        transition: transform 1.5s cubic-bezier(0.7, 0, 0.2, 1), filter 1.4s ease;
-      }
-      .arcade-room-scene.zooming {
-        transform: translateZ(920px) translateY(80px);
-        filter: blur(4px);
-      }
-      .cabinet-shell {
-        width: 320px; height: 500px;
-        background: linear-gradient(180deg, #181920 0%, #0d0e12 100%);
-        border-radius: 28px 28px 10px 10px;
-        border: 4px solid #2d303d;
-        box-shadow: 0 0 100px rgba(0, 242, 254, 0.15), 0 40px 120px rgba(0, 0, 0, 0.95);
-        display: flex; flex-direction: column; align-items: center; padding: 20px;
-      }
-      .cabinet-marquee {
-        width: 100%; height: 54px; background: #08090d; border: 2px solid #3d4255;
-        border-radius: 12px; display: flex; align-items: center; justify-content: center;
-        font-family: var(--font-arc); font-size: 0.9rem; font-weight: 900; color: #fff;
-        letter-spacing: 0.15em; text-shadow: 0 0 12px var(--arc-cyan);
-      }
-      .cabinet-screen-bezel {
-        width: 100%; height: 260px; background: #000; margin-top: 16px;
-        border-radius: 16px; border: 4px solid #1f212a; padding: 10px; box-sizing: border-box;
-      }
-      .cabinet-crt-preview {
-        width: 100%; height: 100%; background: #07090e; border-radius: 8px;
-        display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
-      }
-      .cabinet-crt-preview::after {
-        content: ""; position: absolute; inset: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
-        background-size: 100% 3px; pointer-events: none;
-      }
-      .attract-mode-logo {
-        font-family: var(--font-arc); font-size: 1.3rem; font-weight: 900;
-        color: var(--arc-cyan); text-shadow: 0 0 18px var(--arc-cyan);
-        animation: attractPulse 1.8s ease-in-out infinite alternate;
-      }
-      @keyframes attractPulse {
-        from { transform: scale(0.95); opacity: 0.85; }
-        to { transform: scale(1.05); opacity: 1; text-shadow: 0 0 26px var(--arc-cyan), 0 0 35px var(--arc-neon); }
-      }
-      .cabinet-controls { width: 100%; margin-top: 24px; display: flex; justify-content: space-around; align-items: center; }
-      .cabinet-joystick { width: 22px; height: 22px; background: #ff0055; border-radius: 50%; box-shadow: 0 8px 0 #88002e; }
-      .cabinet-btn-cluster { display: flex; gap: 8px; }
-      .cabinet-btn { width: 18px; height: 18px; border-radius: 50%; }
-
-      /* --- OVERHAULED UNBOUNDED ARCADE MODAL --- */
-      #kairo-arcade-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 2147483647 !important;
-        background: rgba(4, 5, 8, 0.92);
-        backdrop-filter: blur(16px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: var(--font-arc);
-        color: #fff;
-      }
-      .arcade-workstation {
-        background: #0d0f15;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 24px;
-        padding: 24px 28px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 14px;
-        box-shadow: 0 40px 100px rgba(0,0,0,0.9), 0 0 40px rgba(88, 101, 242, 0.18);
-        max-width: 95vw;
-        animation: arcAppear 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-      @keyframes arcAppear {
-        from { transform: scale(0.94); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-      }
-      .arcade-nav-header { width: 100%; display: flex; justify-content: space-between; align-items: center; }
-      .arcade-brand-tag {
-        font-family: var(--font-arc); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em;
-      }
-      .arcade-close-btn {
-        background: #181a24; border: 1px solid rgba(255,255,255,0.08); color: #8e95a2;
-        width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 18px;
-        display: grid; place-items: center; transition: all 0.18s ease;
-      }
-      .arcade-close-btn:hover { background: #ef4444; color: #fff; transform: scale(1.08); }
-      .arcade-tab-strip { display: flex; gap: 6px; background: #151720; padding: 4px; border-radius: 12px; }
-      .arcade-tab-btn {
-        background: transparent; border: 0; color: #8e95a2; font-family: var(--font-arc);
-        font-size: 0.7rem; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;
-        transition: all 0.18s ease;
-      }
-      .arcade-tab-btn:hover { color: #fff; transform: translateY(-1px); }
-      .arcade-tab-btn.active { background: var(--arc-neon); color: #fff; box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4); }
-      .arcade-mode-toggle { display: flex; gap: 8px; align-items: center; font-size: 0.68rem; font-weight: 700; }
-      .arcade-mode-btn {
-        background: #1a1c24; border: 1px solid rgba(255,255,255,0.08); color: #8e95a2;
-        font-family: var(--font-arc); font-size: 0.65rem; font-weight: 700; padding: 5px 10px;
-        border-radius: 6px; cursor: pointer; transition: all 0.18s ease;
-      }
-      .arcade-mode-btn.active {
-        border-color: #22c55e; color: #22c55e; background: rgba(34, 197, 94, 0.12);
-      }
-      .arcade-viewport {
-        position: relative; border-radius: 16px; overflow: hidden;
-        border: 2px solid #20232e; box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
-      }
-      .arcade-viewport::after {
-        content: ""; position: absolute; inset: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-        background-size: 100% 3px; pointer-events: none; z-index: 2;
-      }
-      #arcadeCanvas { background: #040508; display: block; }
-      .arcade-status-bar {
-        width: 100%; display: flex; justify-content: space-between; align-items: center;
-        font-family: var(--font-arc); font-size: 0.72rem; color: #8e95a2;
-      }
-      .arcade-status-bar b { color: #fff; }
-      .arcade-key-hints { font-size: 0.62rem; color: #636b7b; }
+      /* --- ARCADE --- */
+      #kairo-arcade-modal{position:fixed;inset:0;z-index:2147483647;overflow:auto;display:flex;padding:16px;box-sizing:border-box;outline:none;color:#fff;font-family:var(--font-arc);background:radial-gradient(circle at 20% 0%,#1d1450 0%,transparent 55%),radial-gradient(circle at 90% 100%,#4a0d3b 0%,transparent 55%),rgba(4,5,10,.97);animation:arcPower .45s cubic-bezier(.2,.8,.2,1) both}
+      @keyframes arcPower{0%{opacity:0;clip-path:inset(49% 8% 49% 8%)}55%{opacity:1;clip-path:inset(49% 0 49% 0)}100%{clip-path:inset(0 0 0 0)}}
+      #kairo-arcade-modal *{box-sizing:border-box;margin:0}
+      #kairo-arcade-modal .arc-shell{margin:auto;width:min(980px,100%);display:flex;flex-direction:column;align-items:center;gap:14px}
+      #kairo-arcade-modal .arc-head{width:100%;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+      #kairo-arcade-modal .arc-title{font-weight:900;font-size:clamp(1rem,3.5vw,1.6rem);background:linear-gradient(90deg,#00f2fe,#8f7bff,#ff4d9d,#00f2fe);background-size:300%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:arcShine 6s linear infinite}
+      @keyframes arcShine{to{background-position:300% 0}}
+      #kairo-arcade-modal .arc-tools,#kairo-arcade-modal .arc-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+      #kairo-arcade-modal button{font-family:var(--font-arc);cursor:pointer;color:#fff}
+      #kairo-arcade-modal .arc-chip{font-size:.65rem;font-weight:700;padding:9px 13px;border-radius:10px;background:#171a29;border:1px solid #ffffff22;transition:transform .15s,background .15s,border-color .15s}
+      #kairo-arcade-modal .arc-chip:hover{background:#242943;border-color:#8f7bff;transform:translateY(-2px)}
+      #kairo-arcade-modal .arc-close:hover{background:#ef4444}
+      #kairo-arcade-modal.playing .arc-menu,#kairo-arcade-modal.playing .arc-modes,#kairo-arcade-modal:not(.playing) .arc-play,#kairo-arcade-modal:not(.playing) .arc-tools button:nth-child(-n+2){display:none}
+      #kairo-arcade-modal .arc-modes{display:flex;gap:4px;padding:4px;border-radius:14px;background:#10121d;border:1px solid #ffffff18}
+      #kairo-arcade-modal .arc-mode{font-size:.68rem;font-weight:700;padding:9px 18px;border:0;border-radius:10px;background:transparent;color:#8a91ac;transition:background .2s,color .2s}
+      #kairo-arcade-modal .arc-mode.on{background:#5865f2;color:#fff;box-shadow:0 0 22px #5865f299}
+      #kairo-arcade-modal .arc-menu{width:100%;display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
+      #kairo-arcade-modal .arc-card{width:260px;max-width:100%;text-align:left;display:flex;flex-direction:column;gap:9px;padding:16px;border-radius:20px;background:linear-gradient(160deg,#151829,#0b0d16);border:1px solid #ffffff1c;transition:transform .22s,box-shadow .22s,border-color .22s;animation:arcCard .5s cubic-bezier(.2,.8,.2,1) backwards}
+      @keyframes arcCard{from{opacity:0;transform:translateY(18px)}}
+      #kairo-arcade-modal .arc-card:hover,#kairo-arcade-modal .arc-card:focus-visible{transform:translateY(-6px);border-color:var(--c);box-shadow:0 14px 40px color-mix(in srgb,var(--c) 35%,transparent)}
+      #kairo-arcade-modal .arc-card canvas{width:100%;border-radius:12px;background:#05060b}
+      #kairo-arcade-modal .arc-card b{font-size:.95rem;font-weight:900;color:var(--c)}
+      #kairo-arcade-modal .arc-card span{font-size:.62rem;line-height:1.8;color:#b8bdd4;min-height:34px}
+      #kairo-arcade-modal .arc-card i{font-size:.6rem;font-style:normal;font-weight:700;color:#fff}
+      #kairo-arcade-modal .arc-play{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+      #kairo-arcade-modal .arc-stage{width:100%;display:flex;justify-content:center}
+      #kairo-arcade-modal .arc-frame{position:relative;line-height:0;border-radius:16px;padding:3px;background:linear-gradient(135deg,#00f2fe,#5865f2,#ff4d9d);box-shadow:0 0 50px #5865f255,0 30px 70px #000}
+      #kairo-arcade-modal #arcadeCanvas{display:block;border-radius:13px;background:#05060b}
+      #kairo-arcade-modal .arc-veil{position:absolute;inset:3px;display:none;place-items:center;border-radius:13px;background:rgba(5,6,11,.78);line-height:1.6;padding:10px;overflow:auto}
+      #kairo-arcade-modal .arc-veil.show{display:grid;animation:arcFade .25s ease both}
+      @keyframes arcFade{from{opacity:0}}
+      #kairo-arcade-modal .arc-panel{display:flex;flex-direction:column;gap:12px;text-align:center;align-items:center;animation:arcCard .35s cubic-bezier(.2,.8,.2,1) both}
+      #kairo-arcade-modal .arc-panel h3{font-size:clamp(1.1rem,4vw,1.7rem);font-weight:900;text-shadow:0 0 22px #00f2fe}
+      #kairo-arcade-modal .arc-panel p{font-size:.7rem;color:#d6d9ea}
+      #kairo-arcade-modal .arc-status{font-size:.72rem;font-weight:700;min-height:1.2em;text-align:center}
+      #kairo-arcade-modal .arc-hint{font-size:.58rem;color:#8a91ac;line-height:1.8;text-align:center}
+      #kairo-arcade-modal .arc-touch{display:none;gap:8px;justify-content:center;flex-wrap:wrap;touch-action:none;user-select:none;-webkit-user-select:none}
+      #kairo-arcade-modal .arc-touch button{width:48px;height:48px;border-radius:14px;font-size:1rem;background:#1b1f33;border:1px solid #ffffff2c}
+      #kairo-arcade-modal .arc-touch button:active{background:#5865f2;transform:scale(.94)}
+      @media(pointer:coarse){#kairo-arcade-modal:not(.duo) .arc-touch{display:flex}#kairo-arcade-modal .arc-hint{display:none}#kairo-arcade-modal.duo .arc-hint{display:block}}
+      @media(prefers-reduced-motion:reduce){#kairo-arcade-modal,#kairo-arcade-modal *{animation:none!important;transition:none!important}}
     `;
     document.head.appendChild(masterStyle);
 
@@ -3477,7 +3643,7 @@ resubscribe();
           <div class="barrier-bar-track"><div class="barrier-bar-fill"></div></div>
         </div>
         <div class="hazard-ribbon bottom-angle">
-          <span>ZERO LOGGING ACTIVE</span>
+          <span>KAIRO</span>
           <span>STAND CLEAR</span>
         </div>
       `;
@@ -3485,568 +3651,972 @@ resubscribe();
       setTimeout(() => {
         curtain.classList.add("loaded");
         setTimeout(() => curtain.remove(), 700);
-      }, 5000);
+      }, 2200);
     }
 
-    // 4. PERSISTENT SIDEBAR INJECTION
+    // 4. ARCADE ENGINE
+    const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const FONT = "'Unbounded', system-ui, sans-serif";
+    const BEST_KEY = "kairo:arcade:best";
+    const MUTE_KEY = "kairo:arcade:muted";
+    let best = {};
+    try { best = JSON.parse(lsGet(BEST_KEY)) || {}; } catch {}
+    let muted = lsGet(MUTE_KEY) === "1";
+    let audio = null;
+    let overlay = null;
+
+    function beep(freq, dur, type, vol, slide) {
+      if (muted) return;
+      try {
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        if (audio.state === "suspended") audio.resume();
+        const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
+        o.type = type || "square";
+        o.frequency.setValueAtTime(freq, t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
+        g.gain.setValueAtTime(vol || 0.04, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(audio.destination);
+        o.start(t); o.stop(t + dur);
+      } catch {}
+    }
+    const SFX = {
+      move: () => beep(220, 0.04, "square", 0.018),
+      turn: () => beep(330, 0.05, "triangle", 0.04),
+      hit: () => beep(440, 0.06, "square", 0.035),
+      wall: () => beep(260, 0.05, "square", 0.025),
+      eat: () => beep(520, 0.12, "triangle", 0.07, 1.9),
+      clear: () => { beep(520, 0.1, "square", 0.04); setTimeout(() => beep(780, 0.14, "square", 0.04), 80); },
+      big: () => [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.14, "square", 0.045), i * 70)),
+      lose: () => beep(300, 0.5, "sawtooth", 0.05, 0.25),
+      tick: () => beep(600, 0.07, "square", 0.03),
+      go: () => beep(1000, 0.16, "square", 0.035)
+    };
+
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    function box(c, x, y, w, h, r, fill) {
+      c.beginPath();
+      if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
+      if (fill) { c.fillStyle = fill; c.fill(); }
+    }
+    function glow(c, color, blur) { c.shadowColor = color; c.shadowBlur = blur; }
+    function label(c, str, x, y, size, color, align) {
+      c.font = "800 " + size + "px " + FONT;
+      c.fillStyle = color || "#fff";
+      c.textAlign = align || "center";
+      c.textBaseline = "middle";
+      c.fillText(str, x, y);
+    }
+    function backdrop(c, w, h, t, tint) {
+      c.fillStyle = "#05060b";
+      c.fillRect(0, 0, w, h);
+      c.strokeStyle = tint || "rgba(88,101,242,0.10)";
+      c.lineWidth = 1;
+      const off = reduceMotion() ? 0 : (t * 12) % 40;
+      c.beginPath();
+      for (let x = 0; x <= w; x += 40) { c.moveTo(x + 0.5, 0); c.lineTo(x + 0.5, h); }
+      for (let y = off; y <= h; y += 40) { c.moveTo(0, y); c.lineTo(w, y); }
+      c.stroke();
+    }
+
+    function makeFx() {
+      let parts = [], words = [], shake = 0;
+      return {
+        burst(x, y, color, n, power) {
+          if (reduceMotion()) n = Math.min(n || 10, 3);
+          for (let i = 0; i < (n || 10); i++) {
+            const a = rand(0, Math.PI * 2), s = rand(30, power || 190);
+            parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.35, 0.8), max: 0.8, color, size: rand(2, 5) });
+          }
+          if (parts.length > 500) parts = parts.slice(-500);
+        },
+        text(x, y, str, color) { words.push({ x, y, str, color: color || "#fff", life: 1 }); },
+        shake(m) { if (!reduceMotion()) shake = Math.max(shake, m); },
+        update(dt) {
+          parts.forEach((p) => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 220 * dt; p.life -= dt; });
+          parts = parts.filter((p) => p.life > 0);
+          words.forEach((w) => { w.y -= 34 * dt; w.life -= dt; });
+          words = words.filter((w) => w.life > 0);
+          shake = Math.max(0, shake - 40 * dt);
+        },
+        offset() { return shake ? [rand(-shake, shake), rand(-shake, shake)] : [0, 0]; },
+        draw(c) {
+          parts.forEach((p) => {
+            c.globalAlpha = Math.min(1, p.life / 0.5);
+            c.fillStyle = p.color;
+            c.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+          });
+          words.forEach((w) => { c.globalAlpha = Math.min(1, w.life * 2); label(c, w.str, w.x, w.y, 15, w.color); });
+          c.globalAlpha = 1;
+        }
+      };
+    }
+
+    // ---------- TETRIS: 7-bag, ghost, hold, next, hard drop, levels, 2P garbage ----------
+    function gameTetris(io) {
+      const CELL = 24, COLS = 10, ROWS = 20, PANEL = 400;
+      const SHAPES = {
+        I: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], O: [[1, 1], [1, 1]],
+        T: [[0, 1, 0], [1, 1, 1], [0, 0, 0]], J: [[1, 0, 0], [1, 1, 1], [0, 0, 0]], L: [[0, 0, 1], [1, 1, 1], [0, 0, 0]],
+        S: [[0, 1, 1], [1, 1, 0], [0, 0, 0]], Z: [[1, 1, 0], [0, 1, 1], [0, 0, 0]]
+      };
+      const COLOR = { I: "#00e5ff", O: "#ffe44d", T: "#b565ff", J: "#4d7cff", L: "#ff9a2e", S: "#2ee88a", Z: "#ff4d6d", X: "#59607a" };
+      const players = Array.from({ length: io.two ? 2 : 1 }, (_, i) => {
+        const p = { i, ox: i * PANEL + 80, board: Array.from({ length: ROWS }, () => Array(COLS).fill("")), bag: [], queue: [], hold: "", held: false, score: 0, lines: 0, level: 1, combo: 0, over: false, fall: 0, lockT: 0, resets: 0, das: 0, arr: 0, soft: 0, clearing: null, garbage: 0 };
+        for (let k = 0; k < 4; k++) p.queue.push(draw1(p));
+        spawn(p);
+        return p;
+      });
+      let t = 0;
+      function draw1(p) {
+        if (!p.bag.length) p.bag = "IOTJLSZ".split("").sort(() => Math.random() - 0.5);
+        return p.bag.pop();
+      }
+      function make(type) { return { type, m: SHAPES[type].map((r) => r.slice()), x: type === "O" ? 4 : 3, y: type === "I" ? -1 : 0 }; }
+      function spawn(p, type) {
+        p.piece = make(type || p.queue.shift());
+        if (!type) p.queue.push(draw1(p));
+        p.fall = 0; p.lockT = 0; p.resets = 0;
+        if (hits(p, p.piece.m, p.piece.x, p.piece.y)) { p.over = true; SFX.lose(); io.fx.shake(10); }
+      }
+      function hits(p, m, x, y) {
+        return m.some((row, r) => row.some((v, c) => v && (x + c < 0 || x + c >= COLS || y + r >= ROWS || (y + r >= 0 && p.board[y + r][x + c]))));
+      }
+      function nudged(p) { if (p.resets < 15) { p.lockT = 0; p.resets++; } }
+      function move(p, dx) {
+        if (!hits(p, p.piece.m, p.piece.x + dx, p.piece.y)) { p.piece.x += dx; nudged(p); SFX.move(); }
+      }
+      function rotate(p, dir) {
+        const m = p.piece.m, n = m.length;
+        const turned = m.map((row, r) => row.map((_, c) => dir > 0 ? m[n - 1 - c][r] : m[c][n - 1 - r]));
+        for (const [kx, ky] of [[0, 0], [-1, 0], [1, 0], [0, -1], [-2, 0], [2, 0], [-1, -1], [1, -1]]) {
+          if (!hits(p, turned, p.piece.x + kx, p.piece.y + ky)) {
+            p.piece.m = turned; p.piece.x += kx; p.piece.y += ky; nudged(p); SFX.turn(); return;
+          }
+        }
+      }
+      function ghostY(p) { let y = p.piece.y; while (!hits(p, p.piece.m, p.piece.x, y + 1)) y++; return y; }
+      function lock(p) {
+        let above = false;
+        p.piece.m.forEach((row, r) => row.forEach((v, c) => {
+          if (!v) return;
+          if (p.piece.y + r < 0) above = true; else p.board[p.piece.y + r][p.piece.x + c] = p.piece.type;
+        }));
+        p.held = false;
+        if (above) { p.over = true; SFX.lose(); return; }
+        const full = [];
+        p.board.forEach((row, r) => { if (row.every(Boolean)) full.push(r); });
+        if (full.length) {
+          p.clearing = { rows: full, t: 0 };
+          full.forEach((r) => { for (let c = 0; c < COLS; c += 1) io.fx.burst(p.ox + c * CELL + 12, r * CELL + 12, COLOR[p.board[r][c]], 3, 160); });
+          if (full.length >= 4) { SFX.big(); io.fx.shake(9); io.fx.text(p.ox + 120, full[0] * CELL, "TETRIS!", "#00e5ff"); } else SFX.clear();
+        } else { p.combo = 0; addGarbage(p); spawn(p); }
+      }
+      function finishClear(p) {
+        const n = p.clearing.rows.length;
+        p.board = p.board.filter((_, r) => !p.clearing.rows.includes(r));
+        while (p.board.length < ROWS) p.board.unshift(Array(COLS).fill(""));
+        p.clearing = null;
+        p.combo++;
+        const points = [0, 100, 300, 500, 800][n] * p.level + (p.combo - 1) * 50 * p.level;
+        p.score += points;
+        io.fx.text(p.ox + 120, 200, "+" + points, "#fff");
+        if (p.combo > 1) io.fx.text(p.ox + 120, 224, "COMBO x" + p.combo, "#ffe44d");
+        p.lines += n;
+        const lvl = 1 + Math.floor(p.lines / 10);
+        if (lvl > p.level) { p.level = lvl; io.fx.text(p.ox + 120, 150, "LEVEL " + lvl, "#2ee88a"); }
+        const other = players[1 - p.i];
+        if (other) other.garbage += [0, 0, 1, 2, 4][n];
+        spawn(p);
+      }
+      function addGarbage(p) {
+        if (!p.garbage) return;
+        const gap = Math.floor(Math.random() * COLS);
+        for (let k = 0; k < p.garbage; k++) {
+          if (p.board.shift().some(Boolean)) p.over = true;
+          p.board.push(Array.from({ length: COLS }, (_, c) => c === gap ? "" : "X"));
+        }
+        p.garbage = 0; io.fx.shake(6);
+      }
+      function press(i, a) {
+        const p = players[i];
+        if (!p || p.over || p.clearing) return;
+        if (a === "left" || a === "right") { move(p, a === "left" ? -1 : 1); p.das = 0; p.arr = 0; }
+        else if (a === "up") rotate(p, 1);
+        else if (a === "ccw") rotate(p, -1);
+        else if (a === "a") {
+          const y = ghostY(p); p.score += (y - p.piece.y) * 2; p.piece.y = y;
+          io.fx.burst(p.ox + (p.piece.x + p.piece.m.length / 2) * CELL, (y + p.piece.m.length - 1) * CELL, COLOR[p.piece.type], 10, 120);
+          io.fx.shake(3); SFX.wall(); lock(p);
+        } else if (a === "b" && !p.held) {
+          const cur = p.piece.type, next = p.hold;
+          p.hold = cur; p.held = true; spawn(p, next || undefined); SFX.turn();
+        }
+      }
+      function update(dt) {
+        t += dt;
+        players.forEach((p) => {
+          if (p.over) return;
+          if (p.clearing) { p.clearing.t += dt; if (p.clearing.t > 0.22) finishClear(p); return; }
+          const dir = (io.down(p.i, "right") ? 1 : 0) - (io.down(p.i, "left") ? 1 : 0);
+          if (dir) {
+            p.das += dt;
+            if (p.das > 0.17) { p.arr += dt; if (p.arr > 0.05) { p.arr = 0; move(p, dir); } }
+          } else p.das = 0;
+          const soft = io.down(p.i, "down");
+          const gravity = Math.max(0.06, 0.8 * Math.pow(0.85, p.level - 1));
+          p.fall += dt;
+          const grounded = hits(p, p.piece.m, p.piece.x, p.piece.y + 1);
+          if (grounded) { p.lockT += dt; if (p.lockT > 0.45) lock(p); }
+          else if (p.fall > (soft ? Math.min(0.04, gravity) : gravity)) { p.piece.y++; p.fall = 0; if (soft) p.score++; }
+        });
+      }
+      function cell(c, x, y, size, color) {
+        box(c, x + 1, y + 1, size - 2, size - 2, size / 5, color);
+        c.fillStyle = "rgba(255,255,255,0.28)"; c.fillRect(x + 4, y + 3, size - 8, Math.max(2, size / 7));
+      }
+      function mini(c, type, x, y) {
+        if (!type) return;
+        const m = SHAPES[type].filter((r) => r.some(Boolean));
+        const s = 14, w = m[0].length * s;
+        m.forEach((row, r) => row.forEach((v, col) => { if (v) cell(c, x - w / 2 + col * s, y + r * s, s, COLOR[type]); }));
+      }
+      function draw(c) {
+        backdrop(c, api.w, api.h, t);
+        players.forEach((p) => {
+          const left = p.i * PANEL;
+          box(c, p.ox, 0, COLS * CELL, ROWS * CELL, 6, "rgba(2,3,8,0.85)");
+          c.strokeStyle = "rgba(255,255,255,0.05)"; c.beginPath();
+          for (let x = 1; x < COLS; x++) { c.moveTo(p.ox + x * CELL, 0); c.lineTo(p.ox + x * CELL, ROWS * CELL); }
+          for (let y = 1; y < ROWS; y++) { c.moveTo(p.ox, y * CELL); c.lineTo(p.ox + COLS * CELL, y * CELL); }
+          c.stroke();
+          p.board.forEach((row, r) => row.forEach((v, col) => { if (v) cell(c, p.ox + col * CELL, r * CELL, CELL, COLOR[v]); }));
+          if (p.clearing) {
+            c.fillStyle = "rgba(255,255,255," + (1 - p.clearing.t / 0.22) + ")";
+            p.clearing.rows.forEach((r) => c.fillRect(p.ox, r * CELL, COLS * CELL, CELL));
+          } else if (!p.over) {
+            const gy = ghostY(p);
+            p.piece.m.forEach((row, r) => row.forEach((v, col) => {
+              if (!v) return;
+              const x = p.ox + (p.piece.x + col) * CELL;
+              c.strokeStyle = COLOR[p.piece.type]; c.globalAlpha = 0.45;
+              box(c, x + 3, (gy + r) * CELL + 3, CELL - 6, CELL - 6, 4); c.stroke(); c.globalAlpha = 1;
+              glow(c, COLOR[p.piece.type], 12); cell(c, x, (p.piece.y + r) * CELL, CELL, COLOR[p.piece.type]); c.shadowBlur = 0;
+            }));
+          }
+          label(c, "HOLD", left + 40, 18, 10, "#8a91ac");
+          c.globalAlpha = p.held ? 0.35 : 1; mini(c, p.hold, left + 40, 36); c.globalAlpha = 1;
+          label(c, "SCORE", left + 40, 110, 9, "#8a91ac"); label(c, String(p.score), left + 40, 128, 12);
+          label(c, "LINES", left + 40, 165, 9, "#8a91ac"); label(c, String(p.lines), left + 40, 183, 14);
+          label(c, "LEVEL", left + 40, 220, 9, "#8a91ac"); label(c, String(p.level), left + 40, 238, 14);
+          if (io.two) label(c, "P" + (p.i + 1), left + 40, 450, 18, p.i ? "#ff4d9d" : "#00e5ff");
+          if (p.garbage) label(c, "+" + p.garbage + " ⚠", left + 40, 290, 12, "#ff4d6d");
+          label(c, "NEXT", left + 360, 18, 10, "#8a91ac");
+          p.queue.slice(0, 3).forEach((q, k) => mini(c, q, left + 360, 38 + k * 56));
+          if (p.over) { box(c, p.ox, 215, 240, 50, 8, "rgba(255,50,80,0.88)"); label(c, "TOPPED OUT", p.ox + 120, 241, 14); }
+        });
+      }
+      const api = {
+        w: io.two ? PANEL * 2 : PANEL, h: ROWS * CELL, update, draw, press,
+        hint: io.two ? "P1: A D move · W turn · S soft · F drop · G hold    P2: arrows · Enter drop · / hold" : "← → move · ↑/X turn · Z turn back · ↓ soft · Space drop · C hold",
+        status: () => io.two ? "Clear 2 or more lines to send junk to your rival" : "Score " + players[0].score,
+        result() {
+          if (!players.some((p) => p.over)) return null;
+          if (!io.two) return { title: "GAME OVER", score: players[0].score, sub: players[0].lines + " lines" };
+          const [a, b] = players;
+          const win = a.over && b.over ? 0 : (a.over ? 2 : 1);
+          return { title: win ? "PLAYER " + win + " WINS" : "DRAW", sub: a.score + " – " + b.score };
+        }
+      };
+      return api;
+    }
+
+    // ---------- SNAKE: smooth movement, bonus food, speed-up, wrap-around ----------
+    function gameSnake(io) {
+      const N = 24, S = 20;
+      const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+      const mk = (i, x, y, d) => ({ i, body: [{ x, y }, { x: x - d[0], y }, { x: x - 2 * d[0], y }], prev: null, dir: d, queue: [], grow: 0, dead: false, score: 0, c: i ? ["#ff4d9d", "#8b2bff"] : ["#00f2fe", "#2ee88a"] });
+      const snakes = [mk(0, 6, io.two ? 8 : 12, [1, 0])];
+      if (io.two) snakes.push(mk(1, 17, 15, [-1, 0]));
+      let t = 0, acc = 0, eaten = 0, step = 0.13, bonus = null;
+      let food = place();
+      function place() {
+        let f;
+        do { f = { x: Math.floor(rand(0, N)), y: Math.floor(rand(0, N)) }; }
+        while (snakes.some((s) => s.body.some((b) => b.x === f.x && b.y === f.y)) || (bonus && bonus.x === f.x && bonus.y === f.y));
+        return f;
+      }
+      function press(i, a) {
+        const s = snakes[i], d = DIR[a];
+        if (!s || !d || s.queue.length > 2) return;
+        const last = s.queue.length ? s.queue[s.queue.length - 1] : s.dir;
+        if (d[0] + last[0] === 0 && d[1] + last[1] === 0) return;
+        if (d[0] === last[0] && d[1] === last[1]) return;
+        s.queue.push(d);
+      }
+      function tick() {
+        const alive = snakes.filter((s) => !s.dead);
+        const moves = alive.map((s) => {
+          if (s.queue.length) s.dir = s.queue.shift();
+          return { s, head: { x: (s.body[0].x + s.dir[0] + N) % N, y: (s.body[0].y + s.dir[1] + N) % N } };
+        });
+        moves.forEach(({ s, head }) => {
+          s.prev = s.body.map((b) => ({ x: b.x, y: b.y }));
+          s.body.unshift(head);
+          let ate = 0;
+          if (head.x === food.x && head.y === food.y) {
+            ate = 10; eaten++; s.grow += 1; io.fx.burst(food.x * S + 10, food.y * S + 10, "#ff4d6d", 18);
+            SFX.eat(); step = Math.max(0.065, step - 0.0025); food = place();
+            if (eaten % 5 === 0) { const b = place(); bonus = { x: b.x, y: b.y, life: 6 }; }
+          } else if (bonus && head.x === bonus.x && head.y === bonus.y) {
+            ate = 20 + Math.ceil(bonus.life) * 5; s.grow += 3; io.fx.burst(head.x * S + 10, head.y * S + 10, "#ffe44d", 34, 260); SFX.big(); io.fx.shake(5); bonus = null;
+          }
+          if (ate) { s.score += ate; io.fx.text(head.x * S + 10, head.y * S, "+" + ate, "#ffe44d"); }
+          if (s.grow > 0) s.grow--; else s.body.pop();
+        });
+        const dying = moves.filter(({ s, head }) => snakes.some((o) => o.body.some((b, k) => !(o === s && k === 0) && b.x === head.x && b.y === head.y)));
+        dying.forEach(({ s, head }) => { s.dead = true; io.fx.burst(head.x * S + 10, head.y * S + 10, s.c[0], 40, 240); io.fx.shake(10); SFX.lose(); });
+      }
+      function update(dt) {
+        t += dt; acc += dt;
+        if (bonus) { bonus.life -= dt; if (bonus.life <= 0) bonus = null; }
+        while (acc >= step && !api.result()) { acc -= step; tick(); }
+      }
+      function draw(c) {
+        backdrop(c, api.w, api.h, 0, "rgba(46,232,138,0.07)");
+        const pulse = 1 + Math.sin(t * 6) * 0.12;
+        glow(c, "#ff4d6d", 18); c.fillStyle = "#ff4d6d"; c.beginPath(); c.arc(food.x * S + 10, food.y * S + 10, 7 * pulse, 0, 7); c.fill();
+        if (bonus) {
+          glow(c, "#ffe44d", 22); c.fillStyle = "#ffe44d"; c.beginPath(); c.arc(bonus.x * S + 10, bonus.y * S + 10, 9 * pulse, 0, 7); c.fill();
+          c.strokeStyle = "#ffe44d"; c.lineWidth = 2; c.beginPath(); c.arc(bonus.x * S + 10, bonus.y * S + 10, 14, -1.57, -1.57 + 6.283 * (bonus.life / 6)); c.stroke();
+        }
+        c.shadowBlur = 0;
+        const f = api.result() ? 1 : clamp(acc / step, 0, 1);
+        snakes.forEach((s) => {
+          const pts = s.body.map((b, k) => {
+            const from = s.prev && !s.dead ? (s.prev[k] || s.prev[s.prev.length - 1]) : b;
+            const wrapped = Math.abs(b.x - from.x) > 1 || Math.abs(b.y - from.y) > 1;
+            const q = wrapped ? b : { x: from.x + (b.x - from.x) * f, y: from.y + (b.y - from.y) * f };
+            return { x: q.x * S + 10, y: q.y * S + 10 };
+          });
+          for (let k = pts.length - 1; k >= 0; k--) {
+            const q = pts[k], size = 18 - 7 * (k / pts.length);
+            if (k === 0) glow(c, s.c[0], 16);
+            box(c, q.x - size / 2, q.y - size / 2, size, size, size / 2.4, s.dead ? "#4b5568" : s.c[k % 6 < 3 ? 0 : 1]);
+            c.shadowBlur = 0;
+          }
+          const h = pts[0];
+          c.fillStyle = "#05060b";
+          [-1, 1].forEach((side) => { c.beginPath(); c.arc(h.x + s.dir[0] * 3 + s.dir[1] * 4 * side, h.y + s.dir[1] * 3 + s.dir[0] * 4 * side, 2.2, 0, 7); c.fill(); });
+        });
+      }
+      const api = {
+        w: N * S, h: N * S, update, draw, press,
+        hint: io.two ? "P1: W A S D (blue)    P2: arrow keys (pink)" : "Arrows or W A S D · walls wrap around · grab gold food fast",
+        status: () => io.two ? "P1 " + snakes[0].score + "  ·  P2 " + snakes[1].score : "Score " + snakes[0].score,
+        result() {
+          if (!snakes.some((s) => s.dead)) return null;
+          if (!io.two) return { title: "GAME OVER", score: snakes[0].score, sub: "Length " + snakes[0].body.length };
+          const [a, b] = snakes;
+          const win = a.dead && b.dead ? 0 : (a.dead ? 2 : 1);
+          return { title: win ? "PLAYER " + win + " WINS" : "DRAW", sub: a.score + " – " + b.score };
+        }
+      };
+      return api;
+    }
+
+    // ---------- ROAD CROSS: endless road and river, coins, split-screen race ----------
+    function gameCross(io) {
+      const C = 40, COLS = 9, VIEW = 12, W = C * COLS, GAP = 16, SPAN = W + 240;
+      const seed = Math.floor(rand(1, 1e9));
+      const lanes = [];
+      let rs = seed;
+      const rnd2 = () => { rs = (rs * 16807) % 2147483647; return rs / 2147483647; };
+      function lane(n) {
+        while (lanes.length <= n) {
+          const k = lanes.length, hard = Math.min(1, k / 90);
+          const prev = lanes[k - 1], two = lanes[k - 2];
+          let type = "grass";
+          if (k > 2) {
+            const roll = rnd2();
+            type = roll < 0.24 ? "grass" : (roll < 0.74 ? "road" : "river");
+            if (type === "river" && prev.type === "river" && two && two.type === "river") type = "grass";
+          }
+          const L = { type, items: [], trees: [], coin: -1, speed: 0 };
+          const dir = prev && prev.speed > 0 ? -1 : 1;
+          if (type === "grass") {
+            if (k > 2) for (let i = 0; i < 3; i++) { const x = Math.floor(rnd2() * COLS); if (x !== 4 && rnd2() < 0.65) L.trees.push(x); }
+          } else if (type === "road") {
+            L.speed = dir * (50 + rnd2() * 55 + hard * 70);
+            const count = 2 + (rnd2() < hard ? 1 : 0), w = rnd2() < 0.25 ? 82 : 52;
+            const color = ["#ff4d6d", "#ff9a2e", "#b565ff", "#4d7cff", "#ffe44d"][Math.floor(rnd2() * 5)];
+            for (let i = 0; i < count; i++) L.items.push({ at: i * (SPAN / count) + rnd2() * 40, w, color });
+          } else {
+            L.speed = dir * (32 + rnd2() * 30 + hard * 24);
+            for (let i = 0; i < 5; i++) L.items.push({ at: i * (SPAN / 5) + rnd2() * 12, w: 100 - Math.floor(hard * 20) });
+          }
+          if (k > 3 && type !== "river" && rnd2() < 0.18) { const x = Math.floor(rnd2() * COLS); if (!L.trees.includes(x)) L.coin = x; }
+          lanes.push(L);
+        }
+        return lanes[n];
+      }
+      const itemX = (L, it, t) => ((((it.at + L.speed * t) % SPAN) + SPAN) % SPAN) - 120;
+      const players = Array.from({ length: io.two ? 2 : 1 }, (_, i) => ({ i, x: 4 * C, row: 0, from: null, hop: 1, cam: 0, top: 0, coins: 0, got: new Set(), dead: false, facing: 1, queued: null, color: i ? "#ff4d9d" : "#ffe44d" }));
+      let t = 0;
+      const offsetX = (p) => p.i * (W + GAP);
+      const screenY = (p, row) => (VIEW - 3 - (row - p.cam)) * C;
+      const score = (p) => p.top * 10 + p.coins * 25;
+      function die(p, why) {
+        p.dead = true; p.why = why;
+        io.fx.burst(offsetX(p) + p.x + 20, screenY(p, p.row) + 20, why === "water" ? "#4dd8ff" : p.color, 36, 230);
+        io.fx.shake(10); SFX.lose();
+      }
+      function press(i, a) {
+        const p = players[i];
+        if (!p || p.dead) return;
+        if (p.hop < 1) { p.queued = a; return; }
+        let row = p.row, x = p.x;
+        if (a === "up") row++; else if (a === "down") row--; else if (a === "left") x -= C; else if (a === "right") x += C; else return;
+        if (row < 0 || row < Math.floor(p.cam) - 2 || x < -4 || x > W - C + 4) return;
+        const L = lane(row);
+        if (L.type !== "river") x = Math.round(x / C) * C;
+        if (L.type === "grass" && L.trees.includes(Math.round(x / C))) return;
+        p.from = { x: p.x, row: p.row }; p.x = clamp(x, 0, W - C); p.row = row; p.hop = 0;
+        SFX.move();
+      }
+      function update(dt) {
+        t += dt;
+        players.forEach((p) => {
+          if (p.dead) return;
+          if (p.hop < 1) {
+            p.hop = Math.min(1, p.hop + dt / 0.11);
+            if (p.hop === 1) {
+              if (p.row > p.top) p.top = p.row;
+              if (p.queued) { const q = p.queued; p.queued = null; press(p.i, q); }
+            }
+          }
+          p.cam += (Math.max(0, p.row - 1) - p.cam) * Math.min(1, dt * 7);
+          const L = lane(p.row);
+          if (p.hop < 0.7) return;
+          const mid = p.x + C / 2;
+          if (L.type === "road") {
+            if (L.items.some((it) => { const x = itemX(L, it, t); return p.x + 32 > x && p.x + 8 < x + it.w; })) die(p, "car");
+          } else if (L.type === "river") {
+            const on = L.items.some((it) => { const x = itemX(L, it, t); return mid > x - 6 && mid < x + it.w + 6; });
+            if (!on && p.hop === 1) die(p, "water");
+            else if (on) { p.x += L.speed * dt; if (p.x < -20 || p.x > W - 20) die(p, "water"); }
+          }
+          const col = Math.round(p.x / C);
+          if (L.coin === col && !p.got.has(p.row)) { p.got.add(p.row); p.coins++; SFX.eat(); io.fx.text(offsetX(p) + p.x + 20, screenY(p, p.row), "+25", "#ffe44d"); }
+        });
+      }
+      function draw(c) {
+        c.fillStyle = "#05060b"; c.fillRect(0, 0, api.w, api.h);
+        players.forEach((p) => {
+          c.save(); c.translate(offsetX(p), 0); c.beginPath(); c.rect(0, 0, W, VIEW * C); c.clip();
+          const first = Math.floor(p.cam) - 3;
+          for (let n = first; n < first + VIEW + 4; n++) {
+            const L = n < 0 ? { type: "grass", items: [], trees: [], coin: -1 } : lane(n), y = screenY(p, n);
+            c.fillStyle = L.type === "grass" ? (n % 2 ? "#123524" : "#15402b") : (L.type === "road" ? "#1b1e29" : "#0a3556");
+            c.fillRect(0, y, W, C);
+            if (L.type === "road") {
+              c.fillStyle = "rgba(255,255,255,0.16)";
+              for (let x = 6; x < W; x += 40) c.fillRect(x, y + C - 1, 18, 2);
+              L.items.forEach((it) => {
+                const x = itemX(L, it, t);
+                box(c, x, y + 8, it.w, 24, 8, it.color);
+                box(c, x + it.w * 0.28, y + 12, it.w * 0.4, 16, 5, "rgba(5,6,11,0.55)");
+                const nose = L.speed > 0 ? x + it.w - 4 : x + 1;
+                glow(c, "#fff6c2", 12); c.fillStyle = "#fff6c2"; c.fillRect(nose, y + 11, 3, 5); c.fillRect(nose, y + 24, 3, 5); c.shadowBlur = 0;
+              });
+            } else if (L.type === "river") {
+              c.strokeStyle = "rgba(120,220,255,0.25)"; c.beginPath();
+              for (let x = 0; x <= W; x += 8) c.lineTo(x, y + 6 + Math.sin(x / 18 + t * 3 + n) * 3);
+              c.stroke();
+              L.items.forEach((it) => {
+                const x = itemX(L, it, t);
+                box(c, x, y + 6, it.w, 28, 14, "#8a5a33");
+                c.fillStyle = "rgba(0,0,0,0.22)"; for (let k = 16; k < it.w - 10; k += 22) c.fillRect(x + k, y + 14, 10, 3);
+              });
+            }
+            L.trees.forEach((tx) => {
+              box(c, tx * C + 17, y + 22, 6, 12, 2, "#6b4326");
+              c.fillStyle = "#2ee88a"; c.beginPath(); c.arc(tx * C + 20, y + 17, 12, 0, 7); c.fill();
+              c.fillStyle = "rgba(255,255,255,0.18)"; c.beginPath(); c.arc(tx * C + 16, y + 13, 4, 0, 7); c.fill();
+            });
+            if (L.coin >= 0 && !p.got.has(n)) {
+              glow(c, "#ffe44d", 14); c.fillStyle = "#ffe44d"; c.beginPath();
+              c.ellipse(L.coin * C + 20, y + 20, Math.abs(Math.cos(t * 3 + n)) * 7 + 2, 9, 0, 0, 7); c.fill(); c.shadowBlur = 0;
+            }
+          }
+          if (!p.dead) {
+            const e = p.hop, fx = p.from && e < 1 ? p.from.x + (p.x - p.from.x) * e : p.x;
+            const fr = p.from && e < 1 ? p.from.row + (p.row - p.from.row) * e : p.row;
+            const lift = Math.sin(e * Math.PI) * 12, y = screenY(p, fr);
+            c.fillStyle = "rgba(0,0,0,0.35)"; c.beginPath(); c.ellipse(fx + 20, y + 33, 13, 5, 0, 0, 7); c.fill();
+            glow(c, p.color, 14); box(c, fx + 8, y + 7 - lift, 24, 24, 8, p.color); c.shadowBlur = 0;
+            c.fillStyle = "#05060b"; c.fillRect(fx + 13, y + 13 - lift, 4, 5); c.fillRect(fx + 23, y + 13 - lift, 4, 5);
+          }
+          box(c, 8, 8, 120, 26, 13, "rgba(5,6,11,0.75)");
+          label(c, (io.two ? "P" + (p.i + 1) + "  " : "") + score(p), 68, 22, 12, p.color);
+          if (p.dead) { box(c, 40, 215, W - 80, 52, 12, "rgba(255,50,80,0.9)"); label(c, p.why === "water" ? "SPLASH!" : "SPLAT!", W / 2, 242, 18); }
+          c.restore();
+        });
+      }
+      const api = {
+        w: io.two ? W * 2 + GAP : W, h: VIEW * C, update, draw, press,
+        hint: io.two ? "Race! P1: W A S D    P2: arrow keys" : "Arrows or W A S D · ride the logs · collect coins",
+        status: () => io.two ? "Highest score wins" : "Furthest row " + players[0].top,
+        result() {
+          if (!players.every((p) => p.dead)) return null;
+          if (!io.two) return { title: "GAME OVER", score: score(players[0]), sub: players[0].top + " rows · " + players[0].coins + " coins" };
+          const a = score(players[0]), b = score(players[1]);
+          return { title: a === b ? "DRAW" : "PLAYER " + (a > b ? 1 : 2) + " WINS", sub: a + " – " + b };
+        }
+      };
+      return api;
+    }
+
+    // ---------- PONG: angled shots, rallies speed up, trail, beatable bot ----------
+    function gamePong(io) {
+      const W = 640, H = 400, PH = 76, WIN = 7;
+      const pads = [{ x: 22, y: H / 2 - PH / 2, score: 0, c: "#00f2fe", flash: 0 }, { x: W - 34, y: H / 2 - PH / 2, score: 0, c: "#ff4d9d", flash: 0 }];
+      let t = 0, rally = 0, bestRally = 0, trail = [], wait = 0.6, aim = 0, ball = serve(Math.random() < 0.5 ? 1 : -1);
+      function serve(dir) { rally = 0; wait = 0.7; trail = []; aim = rand(-30, 30); return { x: W / 2, y: H / 2, vx: dir * 310, vy: rand(-150, 150) }; }
+      function update(dt) {
+        t += dt;
+        pads.forEach((p, i) => {
+          p.flash = Math.max(0, p.flash - dt * 4);
+          if (i === 1 && !io.two) {
+            const target = ball.vx > 0 ? ball.y + aim : H / 2;
+            p.y += clamp(target - (p.y + PH / 2), -255 * dt, 255 * dt);
+          } else {
+            const d = (io.down(i, "down") ? 1 : 0) - (io.down(i, "up") ? 1 : 0);
+            p.y += d * 410 * dt;
+          }
+          p.y = clamp(p.y, 0, H - PH);
+        });
+        if (wait > 0) { wait -= dt; return; }
+        const px = ball.x;
+        ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+        if (ball.y < 7 || ball.y > H - 7) { ball.y = clamp(ball.y, 7, H - 7); ball.vy *= -1; SFX.wall(); io.fx.burst(ball.x, ball.y, "#fff", 5, 90); }
+        pads.forEach((p, i) => {
+          const face = i ? p.x - 7 : p.x + 12 + 7;
+          const crossed = i ? (px <= face && ball.x >= face) : (px >= face && ball.x <= face);
+          if (crossed && ball.y > p.y - 8 && ball.y < p.y + PH + 8) {
+            const off = clamp((ball.y - (p.y + PH / 2)) / (PH / 2), -1, 1);
+            rally++; bestRally = Math.max(bestRally, rally);
+            const speed = Math.min(720, 330 + rally * 24), ang = off * 1.0;
+            ball.vx = (i ? -1 : 1) * Math.cos(ang) * speed; ball.vy = Math.sin(ang) * speed; ball.x = face;
+            p.flash = 1; SFX.hit(); io.fx.burst(ball.x, ball.y, p.c, 14, 200); io.fx.shake(Math.min(7, 1 + rally / 3));
+            aim = rand(-46, 46);
+            if (rally % 5 === 0) io.fx.text(W / 2, 80, rally + " HIT RALLY!", "#ffe44d");
+          }
+        });
+        if (ball.x < -12 || ball.x > W + 12) {
+          const w = ball.x < 0 ? 1 : 0;
+          pads[w].score++; io.fx.burst(clamp(ball.x, 6, W - 6), ball.y, pads[w].c, 40, 280); io.fx.shake(10); SFX.clear();
+          ball = serve(w ? -1 : 1);
+        }
+        trail.push({ x: ball.x, y: ball.y }); if (trail.length > 14) trail.shift();
+      }
+      function draw(c) {
+        backdrop(c, W, H, 0);
+        c.setLineDash([8, 10]); c.strokeStyle = "rgba(255,255,255,0.2)"; c.beginPath(); c.moveTo(W / 2, 0); c.lineTo(W / 2, H); c.stroke(); c.setLineDash([]);
+        c.beginPath(); c.arc(W / 2, H / 2, 54, 0, 7); c.stroke();
+        c.globalAlpha = 0.22; label(c, String(pads[0].score), W / 2 - 90, 70, 64, pads[0].c); label(c, String(pads[1].score), W / 2 + 90, 70, 64, pads[1].c); c.globalAlpha = 1;
+        pads.forEach((p) => { glow(c, p.c, 14 + p.flash * 24); box(c, p.x - p.flash * 2, p.y, 12 + p.flash * 4, PH, 6, p.flash > 0.5 ? "#fff" : p.c); c.shadowBlur = 0; });
+        trail.forEach((q, k) => { c.globalAlpha = k / trail.length * 0.45; c.fillStyle = "#9fb4ff"; c.beginPath(); c.arc(q.x, q.y, 7 * k / trail.length, 0, 7); c.fill(); });
+        c.globalAlpha = 1; glow(c, "#fff", 18); c.fillStyle = "#fff"; c.beginPath(); c.arc(ball.x, ball.y, 7, 0, 7); c.fill(); c.shadowBlur = 0;
+      }
+      const api = {
+        w: W, h: H, update, draw, press: () => {},
+        hint: io.two ? "P1: W / S    P2: ↑ / ↓    first to 7" : "↑ / ↓ or W / S · hit with the paddle edge for sharp angles",
+        status: () => "Rally " + rally + "  ·  best " + bestRally,
+        result() {
+          const w = pads.findIndex((p) => p.score >= WIN);
+          if (w < 0) return null;
+          const sub = pads[0].score + " – " + pads[1].score + " · best rally " + bestRally;
+          if (io.two) return { title: "PLAYER " + (w + 1) + " WINS", sub };
+          return { title: w === 0 ? "YOU WIN!" : "BOT WINS", sub, score: pads[0].score * 100 + bestRally * 10 - pads[1].score * 20 };
+        }
+      };
+      return api;
+    }
+
+    // ---------- BRICK BREAKER: levels, power-ups, 2P co-op ----------
+    function gameBricks(io) {
+      const W = 480, H = 520, COLS = 8, BW = 54, BH = 20;
+      const POW = { W: ["#2ee88a", "WIDE"], M: ["#ffe44d", "MULTIBALL"], S: ["#4dd8ff", "SLOW"], L: ["#ff4d9d", "+1 LIFE"] };
+      const n = io.two ? 2 : 1;
+      const pads = Array.from({ length: n }, (_, i) => ({ i, x: n === 2 ? 70 + i * 250 : 195, w: n === 2 ? 76 : 90, wide: 0, c: i ? "#ff4d9d" : "#00f2fe" }));
+      let t = 0, level = 1, lives = 3, points = 0, combo = 0, bricks = [], balls = [], drops = [], slow = 0;
+      function build() {
+        bricks = [];
+        for (let r = 0; r < Math.min(8, 3 + level); r++) for (let c = 0; c < COLS; c++) {
+          if (level % 3 === 2 && (r + c) % 2 && r > 1) continue;
+          if (level % 3 === 0 && (c === 3 || c === 4) && r % 3 === 1) continue;
+          const hp = r < Math.min(3, level - 1) ? 2 : 1;
+          bricks.push({ x: 10 + c * (BW + 4), y: 54 + r * (BH + 5), hp, color: ["#ff4d6d", "#ff9a2e", "#ffe44d", "#2ee88a", "#00e5ff", "#4d7cff", "#b565ff", "#ff4d9d"][r % 8] });
+        }
+      }
+      function newBall() { balls = [{ x: 0, y: H - 52, vx: 0, vy: 0, stuck: 0, trail: [] }]; combo = 0; }
+      function width(p) { return p.wide > 0 ? p.w * 1.55 : p.w; }
+      function launch(b) { const a = rand(-0.6, 0.6), s = 300 + level * 18; b.vx = Math.sin(a) * s; b.vy = -Math.cos(a) * s; b.stuck = null; SFX.go(); }
+      build(); newBall();
+      function press(i, a) { if (a === "a" || a === "up") balls.filter((b) => b.stuck !== null && b.stuck === i % n).forEach(launch); }
+      function update(dt) {
+        t += dt; slow = Math.max(0, slow - dt);
+        pads.forEach((p) => {
+          p.wide = Math.max(0, p.wide - dt);
+          const d = (io.down(p.i, "right") ? 1 : 0) - (io.down(p.i, "left") ? 1 : 0);
+          p.x = clamp(p.x + d * 470 * dt, 0, W - width(p));
+        });
+        const k = slow > 0 ? 0.65 : 1;
+        balls.forEach((b) => {
+          if (b.stuck !== null) { const p = pads[b.stuck]; b.x = p.x + width(p) / 2; b.y = H - 40; return; }
+          b.trail.push({ x: b.x, y: b.y }); if (b.trail.length > 10) b.trail.shift();
+          const steps = 3;
+          for (let s = 0; s < steps; s++) {
+            const ox = b.x, oy = b.y;
+            b.x += b.vx * dt * k / steps; b.y += b.vy * dt * k / steps;
+            if (b.x < 7 || b.x > W - 7) { b.x = clamp(b.x, 7, W - 7); b.vx *= -1; SFX.wall(); }
+            if (b.y < 7) { b.y = 7; b.vy = Math.abs(b.vy); SFX.wall(); }
+            if (b.vy > 0 && oy <= H - 37 && b.y >= H - 37) {
+              const p = pads.find((q) => b.x > q.x - 7 && b.x < q.x + width(q) + 7);
+              if (p) {
+                const off = clamp((b.x - (p.x + width(p) / 2)) / (width(p) / 2), -1, 1);
+                const sp = Math.hypot(b.vx, b.vy); b.vx = Math.sin(off * 1.05) * sp; b.vy = -Math.cos(off * 1.05) * sp; b.y = H - 37;
+                combo = 0; SFX.hit(); io.fx.burst(b.x, H - 34, p.c, 6, 110);
+              }
+            }
+            const br = bricks.find((q) => b.x + 6 > q.x && b.x - 6 < q.x + BW && b.y + 6 > q.y && b.y - 6 < q.y + BH);
+            if (br) {
+              if (ox + 6 <= br.x || ox - 6 >= br.x + BW) b.vx *= -1; else b.vy *= -1;
+              b.x = ox; b.y = oy; br.hp--; combo++;
+              const gain = 10 * Math.min(10, combo); points += gain; SFX.turn(); io.fx.burst(b.x, b.y, br.color, br.hp ? 6 : 16, 180);
+              if (!br.hp) {
+                bricks = bricks.filter((q) => q !== br); io.fx.text(br.x + BW / 2, br.y, "+" + gain, br.color);
+                if (Math.random() < 0.15) { const keys = lives < 5 && Math.random() < 0.12 ? ["L"] : ["W", "M", "S"]; drops.push({ x: br.x + BW / 2, y: br.y, k: keys[Math.floor(Math.random() * keys.length)] }); }
+              }
+              break;
+            }
+          }
+        });
+        balls = balls.filter((b) => b.y < H + 12);
+        if (!balls.length) { lives--; io.fx.shake(10); SFX.lose(); drops = []; if (lives > 0) newBall(); }
+        drops.forEach((d) => {
+          d.y += 120 * dt;
+          const p = pads.find((q) => d.y > H - 38 && d.y < H - 16 && d.x > q.x - 12 && d.x < q.x + width(q) + 12);
+          if (!p) return;
+          d.gone = true; SFX.big(); io.fx.text(d.x, H - 70, POW[d.k][1], POW[d.k][0]);
+          if (d.k === "W") p.wide = 12;
+          if (d.k === "S") slow = 8;
+          if (d.k === "L") lives++;
+          if (d.k === "M") {
+            const src = balls.find((b) => b.stuck === null);
+            if (src && balls.length < 7) [-0.45, 0.45].forEach((a) => balls.push({ x: src.x, y: src.y, vx: src.vx * Math.cos(a) - src.vy * Math.sin(a), vy: src.vx * Math.sin(a) + src.vy * Math.cos(a), stuck: null, trail: [] }));
+          }
+        });
+        drops = drops.filter((d) => !d.gone && d.y < H + 20);
+        // Stop near-horizontal loops.
+        balls.forEach((b) => { if (b.stuck === null && Math.abs(b.vy) < 90) b.vy = b.vy < 0 ? -90 : 90; });
+        if (!bricks.length) { level++; drops = []; build(); newBall(); io.fx.text(W / 2, 270, "LEVEL " + level, "#2ee88a"); io.fx.burst(W / 2, 270, "#2ee88a", 60, 300); SFX.big(); }
+      }
+      function draw(c) {
+        backdrop(c, W, H, t, "rgba(181,101,255,0.09)");
+        bricks.forEach((b) => {
+          box(c, b.x, b.y, BW, BH, 5, b.color);
+          c.fillStyle = "rgba(255,255,255,0.3)"; c.fillRect(b.x + 5, b.y + 3, BW - 10, 3);
+          if (b.hp > 1) { c.strokeStyle = "#fff"; c.lineWidth = 2; box(c, b.x + 2, b.y + 2, BW - 4, BH - 4, 4); c.stroke(); c.lineWidth = 1; }
+        });
+        drops.forEach((d) => { glow(c, POW[d.k][0], 14); box(c, d.x - 12, d.y - 9, 24, 18, 9, POW[d.k][0]); c.shadowBlur = 0; label(c, d.k, d.x, d.y + 1, 10, "#05060b"); });
+        pads.forEach((p) => { glow(c, p.c, 16); box(c, p.x, H - 30, width(p), 12, 6, p.c); c.shadowBlur = 0; });
+        balls.forEach((b) => {
+          b.trail.forEach((q, i) => { c.globalAlpha = i / b.trail.length * 0.4; c.fillStyle = "#b9a4ff"; c.beginPath(); c.arc(q.x, q.y, 6 * i / b.trail.length, 0, 7); c.fill(); });
+          c.globalAlpha = 1; glow(c, "#fff", 14); c.fillStyle = "#fff"; c.beginPath(); c.arc(b.x, b.y, 6.5, 0, 7); c.fill(); c.shadowBlur = 0;
+        });
+        label(c, "LEVEL " + level, 12, 24, 12, "#fff", "left");
+        label(c, String(points), W / 2, 24, 16);
+        label(c, "♥".repeat(Math.max(0, lives)), W - 12, 25, 13, "#ff4d6d", "right");
+        if (balls.some((b) => b.stuck !== null)) label(c, io.two ? "P1: F to launch" : "SPACE or ↑ to launch", W / 2, H - 90, 11, "#aab0c8");
+      }
+      const api = {
+        w: W, h: H, update, draw, press,
+        hint: io.two ? "Co-op: P1 A / D, F launch    P2 ← / →" : "← → or A D to move · Space to launch · catch the power-ups",
+        status: () => "Level " + level + "  ·  lives " + lives,
+        result: () => lives > 0 ? null : { title: "GAME OVER", score: points, sub: "Reached level " + level }
+      };
+      return api;
+    }
+
+    const GAMES = {
+      tetris: { name: "Tetris", icon: "▦", color: "#b565ff", make: gameTetris, blurb: "Stack, hold and clear. In 2P, send junk to your rival.", two: "Versus" },
+      snake: { name: "Snake", icon: "≋", color: "#2ee88a", make: gameSnake, blurb: "Smooth, fast and hungry. Catch gold food before it fades.", two: "Duel" },
+      cross: { name: "Road Cross", icon: "⇈", color: "#ffe44d", make: gameCross, blurb: "An endless world of traffic, rivers, logs and coins.", two: "Race" },
+      pong: { name: "Pong", icon: "◍", color: "#00f2fe", make: gamePong, blurb: "Angle your shots. Every hit gets faster.", two: "Versus" },
+      bricks: { name: "Brick Breaker", icon: "▤", color: "#ff4d9d", make: gameBricks, blurb: "Smash through levels and grab power-ups.", two: "Co-op" }
+    };
+
+    // 5. CABINET SHELL, MENU AND GAME LOOP
+    function openArcade(startGame) {
+      if (overlay) return;
+      if (document.activeElement) document.activeElement.blur();
+      let two = false, current = null, game = null, fx = null, raf = 0, last = 0, acc = 0;
+      let mode = "menu", count = 0, countShown = 0, previews = [];
+      const keys = new Set(), touchHeld = new Set();
+
+      overlay = el("div", { id: "kairo-arcade-modal", tabIndex: -1 });
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-label", "Kairo Arcade");
+      const title = el("div", { className: "arc-title", textContent: "KAIRO ARCADE" });
+      const backBtn = el("button", { type: "button", className: "arc-chip", textContent: "← Games", onclick: showMenu });
+      const pauseBtn = el("button", { type: "button", className: "arc-chip", textContent: "Pause", onclick: togglePause });
+      const muteBtn = el("button", { type: "button", className: "arc-chip", onclick: toggleMute });
+      const closeBtn = el("button", { type: "button", className: "arc-chip arc-close", textContent: "✕", title: "Close arcade", onclick: closeArcade });
+      const one = el("button", { type: "button", className: "arc-mode", textContent: "1 Player", onclick: () => setTwo(false) });
+      const duo = el("button", { type: "button", className: "arc-mode", textContent: "2 Players", onclick: () => setTwo(true) });
+      const modes = el("div", { className: "arc-modes" }, one, duo);
+      const menu = el("div", { className: "arc-menu" });
+      const canvas = el("canvas", { id: "arcadeCanvas" });
+      const veil = el("div", { className: "arc-veil" });
+      const frame = el("div", { className: "arc-frame" }, canvas, veil);
+      const stage = el("div", { className: "arc-stage" }, frame);
+      const statusEl = el("div", { className: "arc-status" });
+      const hintEl = el("div", { className: "arc-hint" });
+      const touch = el("div", { className: "arc-touch" });
+      [["left", "◀"], ["up", "▲"], ["down", "▼"], ["right", "▶"], ["a", "A"], ["b", "B"]].forEach(([action, face]) => {
+        const b = el("button", { type: "button", textContent: face });
+        b.setAttribute("aria-label", action);
+        b.addEventListener("pointerdown", (e) => { e.preventDefault(); touchHeld.add(action); if (mode === "play") game.press(0, action); });
+        ["pointerup", "pointercancel", "pointerleave"].forEach((n) => b.addEventListener(n, () => touchHeld.delete(action)));
+        touch.append(b);
+      });
+      const play = el("div", { className: "arc-play" }, stage, statusEl, hintEl, touch);
+      const shell = el("div", { className: "arc-shell" },
+        el("div", { className: "arc-head" }, title, el("div", { className: "arc-tools" }, backBtn, pauseBtn, muteBtn, closeBtn)),
+        modes, menu, play);
+      overlay.append(shell);
+      document.body.appendChild(overlay);
+
+      const binds = () => two ? [
+        { left: ["KeyA"], right: ["KeyD"], up: ["KeyW"], down: ["KeyS"], a: ["KeyF"], b: ["KeyG"], ccw: ["KeyQ"] },
+        { left: ["ArrowLeft"], right: ["ArrowRight"], up: ["ArrowUp"], down: ["ArrowDown"], a: ["Enter"], b: ["ShiftRight", "Slash"], ccw: ["Period"] }
+      ] : [{ left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"], up: ["ArrowUp", "KeyW", "KeyX"], down: ["ArrowDown", "KeyS"], a: ["Space"], b: ["KeyC", "ShiftLeft", "ShiftRight"], ccw: ["KeyZ"] }];
+      const io = {
+        get two() { return two; },
+        down: (p, a) => { const m = binds()[p]; return (!!m && (m[a] || []).some((k) => keys.has(k))) || (p === 0 && touchHeld.has(a)); }
+      };
+
+      function toggleMute() { muted = !muted; lsSet(MUTE_KEY, muted ? "1" : "0"); paintMute(); SFX.tick(); }
+      function paintMute() { muteBtn.textContent = muted ? "Sound: off" : "Sound: on"; }
+      function setTwo(v) { two = v; one.classList.toggle("on", !v); duo.classList.toggle("on", v); overlay.classList.toggle("duo", v); renderMenu(); }
+
+      function renderMenu() {
+        menu.innerHTML = "";
+        previews = [];
+        Object.entries(GAMES).forEach(([id, g], i) => {
+          const pv = el("canvas", { width: 220, height: 110 });
+          const card = el("button", { type: "button", className: "arc-card", onclick: () => start(id) },
+            pv,
+            el("b", { textContent: g.name }),
+            el("span", { textContent: g.blurb }),
+            el("i", { textContent: two ? "2P " + g.two : (best[id] ? "Best " + best[id] : "No high score yet") }));
+          card.style.setProperty("--c", g.color);
+          card.style.animationDelay = i * 60 + "ms";
+          menu.append(card);
+          previews.push({ id, ctx: pv.getContext("2d") });
+        });
+      }
+      // Small animated picture on each menu card.
+      function drawPreview(p, t) {
+        const c = p.ctx, col = GAMES[p.id].color;
+        c.clearRect(0, 0, 220, 110);
+        glow(c, col, 10); c.fillStyle = col;
+        if (p.id === "tetris") {
+          [[0, 5], [1, 5], [2, 5], [2, 4], [4, 5], [5, 5], [6, 5], [7, 5], [6, 4], [8, 5], [9, 5]].forEach(([x, y]) => c.fillRect(30 + x * 16, y * 16 + 8, 14, 14));
+          const y = Math.floor((t * 4) % 4);
+          [[3, 0], [3, 1], [3, 2], [4, 2]].forEach(([x, dy]) => c.fillRect(30 + x * 16, (y + dy) * 16 - 8, 14, 14));
+        } else if (p.id === "snake") {
+          for (let i = 0; i < 14; i++) box(c, 30 + i * 10, 55 + Math.sin(t * 4 + i * 0.55) * 18, 13, 13, 6, col);
+          c.fillStyle = "#ff4d6d"; c.beginPath(); c.arc(194, 55 + Math.sin(t * 2) * 10, 7, 0, 7); c.fill();
+        } else if (p.id === "cross") {
+          for (let i = 0; i < 3; i++) box(c, ((t * (50 + i * 22) + i * 90) % 280) - 50, 18 + i * 30, 46, 18, 6, ["#ff4d6d", "#4d7cff", "#ff9a2e"][i]);
+          box(c, 101, 84 - Math.abs(Math.sin(t * 4)) * 12, 18, 18, 6, col);
+        } else if (p.id === "pong") {
+          const x = 34 + Math.abs(((t * 100) % 300) - 150), y = 22 + Math.abs(((t * 63) % 132) - 66);
+          box(c, 18, y - 18, 8, 36, 4, col); box(c, 194, y - 18, 8, 36, 4, "#ff4d9d");
+          c.fillStyle = "#fff"; c.beginPath(); c.arc(x, y, 6, 0, 7); c.fill();
+        } else {
+          for (let i = 0; i < 18; i++) box(c, 27 + (i % 6) * 28, 12 + Math.floor(i / 6) * 14, 24, 10, 3, ["#ff4d9d", "#ffe44d", "#00e5ff"][Math.floor(i / 6)]);
+          const x = 40 + Math.abs(((t * 90) % 280) - 140);
+          box(c, x - 22, 96, 44, 8, 4, col); c.fillStyle = "#fff"; c.beginPath(); c.arc(x + 4, 62 + Math.abs(((t * 60) % 56) - 28), 5, 0, 7); c.fill();
+        }
+        c.shadowBlur = 0;
+      }
+
+      function showMenu() {
+        mode = "menu"; game = null; current = null;
+        title.textContent = "KAIRO ARCADE";
+        overlay.classList.remove("playing");
+        renderMenu();
+      }
+      function start(id) {
+        current = id;
+        fx = makeFx();
+        io.fx = fx;
+        game = GAMES[id].make(io);
+        title.textContent = GAMES[id].name.toUpperCase();
+        overlay.classList.add("playing");
+        hintEl.textContent = game.hint;
+        veil.className = "arc-veil";
+        veil.innerHTML = "";
+        pauseBtn.textContent = "Pause";
+        mode = "count"; count = 2.1; countShown = 0; acc = 0;
+        keys.clear(); touchHeld.clear();
+        if (document.activeElement) document.activeElement.blur();
+        overlay.focus();
+        resize();
+      }
+      function resize() {
+        if (!game) return;
+        const maxW = Math.max(200, stage.clientWidth || window.innerWidth - 40);
+        const reserved = window.matchMedia("(pointer: coarse)").matches ? 290 : 190;
+        const maxH = Math.max(200, window.innerHeight - reserved);
+        const s = Math.min(maxW / game.w, maxH / game.h, 1.6);
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.style.width = Math.floor(game.w * s) + "px";
+        canvas.style.height = Math.floor(game.h * s) + "px";
+        canvas.width = Math.floor(game.w * s * dpr);
+        canvas.height = Math.floor(game.h * s * dpr);
+        game.scale = s * dpr;
+      }
+      function card(heading, lines, buttons) {
+        veil.innerHTML = "";
+        const panel = el("div", { className: "arc-panel" }, el("h3", { textContent: heading }));
+        lines.forEach((line) => line && panel.append(el("p", { textContent: line })));
+        panel.append(el("div", { className: "arc-row" }, ...buttons.map(([text, fn]) => el("button", { type: "button", className: "arc-chip", textContent: text, onclick: fn }))));
+        veil.append(panel);
+        veil.className = "arc-veil show";
+      }
+      function togglePause() {
+        if (mode === "paused") { mode = "play"; veil.className = "arc-veil"; veil.innerHTML = ""; pauseBtn.textContent = "Pause"; overlay.focus(); }
+        else if (mode === "play" || mode === "count") {
+          mode = "paused"; keys.clear(); pauseBtn.textContent = "Resume";
+          card("PAUSED", ["Press P to carry on"], [["Resume", togglePause], ["Restart", () => start(current)], ["Games", showMenu]]);
+        }
+      }
+      function finish(result) {
+        mode = "over";
+        let record = "";
+        if (!two && typeof result.score === "number") {
+          if (result.score > (best[current] || 0)) { best[current] = result.score; lsSet(BEST_KEY, JSON.stringify(best)); record = "★ New high score!"; SFX.big(); }
+        }
+        const over = veil;
+        setTimeout(() => {
+          if (mode !== "over" || veil !== over) return;
+          card(result.title, [typeof result.score === "number" && !two ? "Score " + result.score : "", result.sub, record || (!two && best[current] ? "Best " + best[current] : "")], [["Play again", () => start(current)], ["Games", showMenu]]);
+        }, 650);
+      }
+
+      function loop(now) {
+        raf = requestAnimationFrame(loop);
+        const dt = Math.min(0.05, (now - last) / 1000 || 0);
+        last = now;
+        if (mode === "menu") { previews.forEach((p) => drawPreview(p, reduceMotion() ? 1 : now / 1000)); return; }
+        if (!game) return;
+        if (mode === "count") {
+          count -= dt;
+          const n = Math.ceil(count / 0.7);
+          if (n !== countShown && n > 0) { countShown = n; SFX.tick(); }
+          if (count <= 0) { mode = "play"; SFX.go(); fx.text(game.w / 2, game.h / 2, "GO!", "#2ee88a"); }
+        }
+        // Fixed 60 steps a second, so games run at the same speed on every screen.
+        if (mode !== "paused") {
+          acc += dt;
+          while (acc >= 1 / 60) {
+            acc -= 1 / 60;
+            if (mode === "play") { game.update(1 / 60); const r = game.result(); if (r) finish(r); }
+            fx.update(1 / 60);
+          }
+        }
+        const c = canvas.getContext("2d");
+        c.setTransform(game.scale, 0, 0, game.scale, 0, 0);
+        const [sx, sy] = fx.offset();
+        c.save(); c.translate(sx, sy);
+        game.draw(c);
+        fx.draw(c);
+        c.restore();
+        if (mode === "count") {
+          c.fillStyle = "rgba(5,6,11,0.55)"; c.fillRect(0, 0, game.w, game.h);
+          const part = (count % 0.7) / 0.7;
+          glow(c, "#00f2fe", 30); label(c, String(Math.max(1, countShown)), game.w / 2, game.h / 2, 60 + part * 24); c.shadowBlur = 0;
+        }
+        statusEl.textContent = game.status();
+      }
+
+      // While the arcade is open, keys go to the game and never to the chat behind it.
+      function onDown(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        e.stopPropagation();
+        if (e.code === "Tab") return;
+        if (e.code === "Escape") { e.preventDefault(); if (mode === "menu") closeArcade(); else showMenu(); return; }
+        if (mode === "menu") return;
+        if (e.target && e.target.tagName === "BUTTON" && (e.code === "Enter" || e.code === "Space")) return;
+        e.preventDefault();
+        keys.add(e.code);
+        if (e.repeat) return;
+        if (e.code === "KeyM") return toggleMute();
+        if (e.code === "KeyP") return togglePause();
+        if (mode === "over" && (e.code === "KeyR" || e.code === "Enter")) return start(current);
+        if (mode === "play") {
+          binds().forEach((map, p) => Object.keys(map).forEach((a) => { if (map[a].includes(e.code)) game.press(p, a); }));
+        }
+      }
+      function onUp(e) { keys.delete(e.code); e.stopPropagation(); }
+      function onHide() { keys.clear(); touchHeld.clear(); if (mode === "play" || mode === "count") togglePause(); }
+      function onVisibility() { if (document.hidden) onHide(); }
+      window.addEventListener("keydown", onDown, true);
+      window.addEventListener("keyup", onUp, true);
+      window.addEventListener("resize", resize);
+      window.addEventListener("blur", onHide);
+      document.addEventListener("visibilitychange", onVisibility);
+
+      overlay.cleanup = () => {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("keydown", onDown, true);
+        window.removeEventListener("keyup", onUp, true);
+        window.removeEventListener("resize", resize);
+        window.removeEventListener("blur", onHide);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
+
+      paintMute();
+      setTwo(false);
+      overlay.focus();
+      raf = requestAnimationFrame(loop);
+      if (startGame && GAMES[startGame]) start(startGame);
+    }
+    function closeArcade() {
+      if (!overlay) return;
+      overlay.cleanup();
+      overlay.remove();
+      overlay = null;
+    }
+    arcade = { open: openArcade, close: closeArcade };
+
+    // 6. SIDEBAR BUTTON
     function mountSidebarBtn() {
       const actions = document.querySelector("#rc-root .sideActions");
       if (actions && !document.getElementById("arcadeSidebarBtn")) {
-        const btn = document.createElement("button");
-        btn.id = "arcadeSidebarBtn";
-        btn.className = "quickAction";
-        btn.style.fontFamily = "var(--font-arc)";
-        btn.innerHTML = `<span class="quickIcon">🕹️</span><span class="quickLabel">Arcade Hub</span>`;
-        btn.onclick = () => window.triggerArcadeCinematic("tetris");
+        const btn = el("button", { id: "arcadeSidebarBtn", type: "button", className: "quickAction", onclick: () => openArcade() },
+          el("span", { className: "quickIcon", textContent: "🕹️" }), el("span", { className: "quickLabel", textContent: "Arcade Hub" }));
         actions.appendChild(btn);
       }
     }
-    setInterval(mountSidebarBtn, 1000);
-
-    // 5. 3D CABINET ZOOM TRANSITION
-    window.triggerArcadeCinematic = function(game = "tetris") {
-      if (document.getElementById("kairo-arcade-portal")) return;
-
-      const portal = document.createElement("div");
-      portal.id = "kairo-arcade-portal";
-      portal.innerHTML = `
-        <div class="arcade-room-scene">
-          <div class="cabinet-shell">
-            <div class="cabinet-marquee">KAIRO ARCADE</div>
-            <div class="cabinet-screen-bezel">
-              <div class="cabinet-crt-preview">
-                <div class="attract-mode-logo">${game.toUpperCase()}</div>
-              </div>
-            </div>
-            <div class="cabinet-controls">
-              <div class="cabinet-joystick"></div>
-              <div class="cabinet-btn-cluster">
-                <div class="cabinet-btn" style="background:#00f2fe;"></div>
-                <div class="cabinet-btn" style="background:#facc15;"></div>
-                <div class="cabinet-btn" style="background:#a855f7;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(portal);
-
-      const scene = portal.querySelector(".arcade-room-scene");
-      requestAnimationFrame(() => {
-        setTimeout(() => scene.classList.add("zooming"), 60);
-      });
-
-      setTimeout(() => {
-        portal.style.opacity = "0";
-        window.openArcadeModal(game);
-        setTimeout(() => portal.remove(), 400);
-      }, 1400);
-    };
-
-    // 6. MASTER ARCADE MODAL
-    window.openArcadeModal = function(defaultGame = "tetris") {
-      const existing = document.getElementById("kairo-arcade-modal");
-      if (existing) existing.remove();
-
-      let currentGame = defaultGame;
-      let is2P = false;
-      let cleanupGame = null;
-
-      const modal = document.createElement("div");
-      modal.id = "kairo-arcade-modal";
-      modal.innerHTML = `
-        <div class="arcade-workstation">
-          <div class="arcade-nav-header">
-            <div class="arcade-brand-tag">🕹️ KAIRO ARCADE</div>
-            <button id="closeArcadeBtn" class="arcade-close-btn">&times;</button>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-            <div class="arcade-tab-strip">
-              <button class="arcade-tab-btn ${currentGame === 'tetris' ? 'active' : ''}" data-game="tetris">Tetris</button>
-              <button class="arcade-tab-btn ${currentGame === 'snake' ? 'active' : ''}" data-game="snake">Snake</button>
-              <button class="arcade-tab-btn ${currentGame === 'cross' ? 'active' : ''}" data-game="cross">Road Cross</button>
-              <button class="arcade-tab-btn ${currentGame === 'pong' ? 'active' : ''}" data-game="pong">Pong</button>
-            </div>
-
-            <div class="arcade-mode-toggle">
-              <button id="mode1P" class="arcade-mode-btn active">1P Solo</button>
-              <button id="mode2P" class="arcade-mode-btn">2P Versus</button>
-            </div>
-          </div>
-
-          <div class="arcade-viewport">
-            <canvas id="arcadeCanvas" width="400" height="400"></canvas>
-          </div>
-
-          <div class="arcade-status-bar">
-            <div id="arcadeScore">Score: <b>0</b></div>
-            <div id="arcadeHint" class="arcade-key-hints">Arrow Keys to play</div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-
-      const canvas = modal.querySelector("#arcadeCanvas");
-      const ctx = canvas.getContext("2d");
-      const scoreEl = modal.querySelector("#arcadeScore");
-      const hintEl = modal.querySelector("#arcadeHint");
-
-      modal.querySelectorAll(".arcade-tab-btn").forEach(tab => {
-        tab.onclick = () => {
-          modal.querySelectorAll(".arcade-tab-btn").forEach(t => t.classList.remove("active"));
-          tab.classList.add("active");
-          currentGame = tab.getAttribute("data-game");
-          bootGame();
-        };
-      });
-
-      const btn1P = modal.querySelector("#mode1P");
-      const btn2P = modal.querySelector("#mode2P");
-      btn1P.onclick = () => {
-        is2P = false;
-        btn1P.classList.add("active");
-        btn2P.classList.remove("active");
-        bootGame();
-      };
-      btn2P.onclick = () => {
-        is2P = true;
-        btn2P.classList.add("active");
-        btn1P.classList.remove("active");
-        bootGame();
-      };
-
-      function bootGame() {
-        if (cleanupGame) cleanupGame();
-        if (currentGame === "tetris") cleanupGame = playTetris(ctx, canvas, scoreEl, hintEl, is2P);
-        else if (currentGame === "snake") cleanupGame = playSnake(ctx, canvas, scoreEl, hintEl, is2P);
-        else if (currentGame === "cross") cleanupGame = playCross(ctx, canvas, scoreEl, hintEl, is2P);
-        else if (currentGame === "pong") cleanupGame = playPong(ctx, canvas, scoreEl, hintEl, is2P);
-      }
-
-      function exit() {
-        if (cleanupGame) cleanupGame();
-        modal.remove();
-      }
-
-      modal.querySelector("#closeArcadeBtn").onclick = exit;
-      modal.onclick = (e) => { if (e.target === modal) exit(); };
-
-      const onEsc = (e) => {
-        if (e.key === "Escape") {
-          exit();
-          window.removeEventListener("keydown", onEsc);
-        }
-      };
-      window.addEventListener("keydown", onEsc);
-
-      bootGame();
-    };
-
-    // --- GAME 1: TETRIS (SOLO / 2P DUAL PIT) ---
-    function playTetris(ctx, canvas, scoreEl, hintEl, is2P) {
-      canvas.width = is2P ? 440 : 240;
-      canvas.height = 400;
-      const BLOCK = 20, ROWS = 20, COLS = 10;
-      hintEl.textContent = is2P ? "P1: [W,A,S,D] | P2: [Arrows]" : "[←/→] Move | [↑] Rotate | [↓] Drop";
-
-      const SHAPES = [
-        [[1,1,1,1]], [[1,1],[1,1]], [[0,1,0],[1,1,1]],
-        [[1,0,0],[1,1,1]], [[0,0,1],[1,1,1]], [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]]
-      ];
-      const COLORS = ["#00f2fe", "#fee440", "#a855f7", "#f97316", "#3b82f6", "#10b981", "#ef4444"];
-
-      function makePlayer(ox) {
-        return {
-          board: Array.from({length: ROWS}, () => Array(COLS).fill(0)),
-          ox, score: 0, lines: 0,
-          piece: spawnPiece(), over: false, tick: Date.now()
-        };
-      }
-
-      function spawnPiece() {
-        const id = Math.floor(Math.random() * SHAPES.length);
-        return { shape: SHAPES[id], color: COLORS[id], x: 3, y: 0 };
-      }
-
-      const p1 = makePlayer(15);
-      const p2 = is2P ? makePlayer(235) : null;
-
-      function collide(p, ox, oy, shape) {
-        const s = shape || p.piece.shape;
-        for (let r = 0; r < s.length; r++) {
-          for (let c = 0; c < s[r].length; c++) {
-            if (s[r][c]) {
-              const nx = p.piece.x + c + ox;
-              const ny = p.piece.y + r + oy;
-              if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
-              if (ny >= 0 && p.board[ny][nx]) return true;
-            }
-          }
-        }
-        return false;
-      }
-
-      function lock(p) {
-        p.piece.shape.forEach((row, r) => {
-          row.forEach((v, c) => {
-            if (v && p.piece.y + r >= 0) p.board[p.piece.y + r][p.piece.x + c] = p.piece.color;
-          });
-        });
-        p.board = p.board.filter(row => row.some(cell => cell === 0));
-        while (p.board.length < ROWS) {
-          p.board.unshift(Array(COLS).fill(0));
-          p.lines++;
-          p.score += 100;
-        }
-        p.piece = spawnPiece();
-        if (collide(p, 0, 0)) p.over = true;
-      }
-
-      function rotate(mat) {
-        return mat[0].map((_, i) => mat.map(row => row[i]).reverse());
-      }
-
-      function update(p) {
-        if (p.over) return;
-        if (Date.now() - p.tick > 480) {
-          if (!collide(p, 0, 1)) p.piece.y++;
-          else lock(p);
-          p.tick = Date.now();
-        }
-      }
-
-      function render(p) {
-        ctx.strokeStyle = "rgba(255,255,255,0.08)";
-        ctx.strokeRect(p.ox, 0, COLS * BLOCK, ROWS * BLOCK);
-
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            if (p.board[r][c]) {
-              ctx.fillStyle = p.board[r][c];
-              ctx.fillRect(p.ox + c * BLOCK + 1, r * BLOCK + 1, BLOCK - 2, BLOCK - 2);
-            }
-          }
-        }
-        if (p.piece && !p.over) {
-          ctx.fillStyle = p.piece.color;
-          p.piece.shape.forEach((row, r) => {
-            row.forEach((v, c) => {
-              if (v) ctx.fillRect(p.ox + (p.piece.x + c) * BLOCK + 1, (p.piece.y + r) * BLOCK + 1, BLOCK - 2, BLOCK - 2);
-            });
-          });
-        }
-        if (p.over) {
-          ctx.fillStyle = "rgba(239, 68, 68, 0.75)";
-          ctx.fillRect(p.ox, 180, COLS * BLOCK, 36);
-          ctx.fillStyle = "#fff";
-          ctx.font = "bold 10px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText("OUT OF BOUNDS", p.ox + (COLS * BLOCK) / 2, 202);
-        }
-      }
-
-      let anim;
-      function loop() {
-        ctx.fillStyle = "#050609";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        update(p1);
-        render(p1);
-        if (p2) {
-          update(p2);
-          render(p2);
-          scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; P2: <b>${p2.score}</b>`;
-        } else {
-          scoreEl.innerHTML = `Score: <b>${p1.score}</b> &nbsp;|&nbsp; Lines: <b>${p1.lines}</b>`;
-        }
-        anim = requestAnimationFrame(loop);
-      }
-      anim = requestAnimationFrame(loop);
-
-      function onKey(e) {
-        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code)) e.preventDefault();
-        const l1 = is2P ? "KeyA" : "ArrowLeft";
-        const r1 = is2P ? "KeyD" : "ArrowRight";
-        const d1 = is2P ? "KeyS" : "ArrowDown";
-        const rot1 = is2P ? "KeyW" : "ArrowUp";
-
-        if (e.code === l1 && !collide(p1, -1, 0)) p1.piece.x--;
-        if (e.code === r1 && !collide(p1, 1, 0)) p1.piece.x++;
-        if (e.code === d1 && !collide(p1, 0, 1)) p1.piece.y++;
-        if (e.code === rot1) {
-          const r = rotate(p1.piece.shape);
-          if (!collide(p1, 0, 0, r)) p1.piece.shape = r;
-        }
-
-        if (p2 && !p2.over) {
-          if (e.code === "ArrowLeft" && !collide(p2, -1, 0)) p2.piece.x--;
-          if (e.code === "ArrowRight" && !collide(p2, 1, 0)) p2.piece.x++;
-          if (e.code === "ArrowDown" && !collide(p2, 0, 1)) p2.piece.y++;
-          if (e.code === "ArrowUp") {
-            const r = rotate(p2.piece.shape);
-            if (!collide(p2, 0, 0, r)) p2.piece.shape = r;
-          }
-        }
-      }
-      window.addEventListener("keydown", onKey);
-
-      return () => {
-        cancelAnimationFrame(anim);
-        window.removeEventListener("keydown", onKey);
-      };
-    }
-
-    // --- GAME 2: SNAKE DUEL ---
-    function playSnake(ctx, canvas, scoreEl, hintEl, is2P) {
-      canvas.width = 400; canvas.height = 400;
-      const GRID = 20, SIZE = 20;
-      hintEl.textContent = is2P ? "P1: W,A,S,D (Cyan) | P2: Arrows (Pink)" : "Arrow Keys to guide the snake";
-
-      let p1 = { body: [{x: 4, y: 10}], dir: {x: 1, y: 0}, next: {x: 1, y: 0}, dead: false, score: 0 };
-      let p2 = is2P ? { body: [{x: 16, y: 10}], dir: {x: -1, y: 0}, next: {x: -1, y: 0}, dead: false, score: 0 } : null;
-      let food = { x: 10, y: 10 };
-
-      function step(s) {
-        if (s.dead) return;
-        s.dir = s.next;
-        const head = { x: s.body[0].x + s.dir.x, y: s.body[0].y + s.dir.y };
-        if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID || s.body.some(b => b.x === head.x && b.y === head.y)) {
-          s.dead = true;
-          return;
-        }
-        s.body.unshift(head);
-        if (head.x === food.x && head.y === food.y) {
-          s.score += 15;
-          food = { x: Math.floor(Math.random() * GRID), y: Math.floor(Math.random() * GRID) };
-        } else {
-          s.body.pop();
-        }
-      }
-
-      let tick = Date.now(), anim;
-      function loop() {
-        if (Date.now() - tick > 95) {
-          step(p1);
-          if (p2) {
-            step(p2);
-            if (p1.body.some(b => b.x === p2.body[0].x && b.y === p2.body[0].y)) p2.dead = true;
-            if (p2.body.some(b => b.x === p1.body[0].x && b.y === p1.body[0].y)) p1.dead = true;
-          }
-          tick = Date.now();
-        }
-
-        ctx.fillStyle = "#050609";
-        ctx.fillRect(0, 0, 400, 400);
-
-        ctx.fillStyle = "#22c55e";
-        ctx.fillRect(food.x * SIZE + 2, food.y * SIZE + 2, SIZE - 4, SIZE - 4);
-
-        ctx.fillStyle = p1.dead ? "#475569" : "#00f2fe";
-        p1.body.forEach(b => ctx.fillRect(b.x * SIZE + 1, b.y * SIZE + 1, SIZE - 2, SIZE - 2));
-
-        if (p2) {
-          ctx.fillStyle = p2.dead ? "#475569" : "#ff007f";
-          p2.body.forEach(b => ctx.fillRect(b.x * SIZE + 1, b.y * SIZE + 1, SIZE - 2, SIZE - 2));
-          scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; P2: <b>${p2.score}</b>`;
-        } else {
-          scoreEl.innerHTML = `Score: <b>${p1.score}</b> ${p1.dead ? '(Game Over)' : ''}`;
-        }
-        anim = requestAnimationFrame(loop);
-      }
-      anim = requestAnimationFrame(loop);
-
-      function onKey(e) {
-        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
-        if (!is2P) {
-          if (e.code === "ArrowUp" && p1.dir.y === 0) p1.next = {x: 0, y: -1};
-          if (e.code === "ArrowDown" && p1.dir.y === 0) p1.next = {x: 0, y: 1};
-          if (e.code === "ArrowLeft" && p1.dir.x === 0) p1.next = {x: -1, y: 0};
-          if (e.code === "ArrowRight" && p1.dir.x === 0) p1.next = {x: 1, y: 0};
-        } else {
-          if (e.code === "KeyW" && p1.dir.y === 0) p1.next = {x: 0, y: -1};
-          if (e.code === "KeyS" && p1.dir.y === 0) p1.next = {x: 0, y: 1};
-          if (e.code === "KeyA" && p1.dir.x === 0) p1.next = {x: -1, y: 0};
-          if (e.code === "KeyD" && p1.dir.x === 0) p1.next = {x: 1, y: 0};
-
-          if (p2) {
-            if (e.code === "ArrowUp" && p2.dir.y === 0) p2.next = {x: 0, y: -1};
-            else if (e.code === "ArrowDown" && p2.dir.y === 0) p2.next = {x: 0, y: 1};
-            else if (e.code === "ArrowLeft" && p2.dir.x === 0) p2.next = {x: -1, y: 0};
-            else if (e.code === "ArrowRight" && p2.dir.x === 0) p2.next = {x: 1, y: 0};
-          }
-        }
-      }
-      window.addEventListener("keydown", onKey);
-
-      return () => {
-        cancelAnimationFrame(anim);
-        window.removeEventListener("keydown", onKey);
-      };
-    }
-
-    // --- GAME 3: ROAD CROSS ---
-    function playCross(ctx, canvas, scoreEl, hintEl, is2P) {
-      canvas.width = 400; canvas.height = 400;
-      hintEl.textContent = is2P ? "P1: W,A,S,D | P2: Arrow Keys" : "Cross safely to the top using Arrow Keys";
-
-      let p1 = { x: 150, y: 360, score: 0, color: "#facc15" };
-      let p2 = is2P ? { x: 230, y: 360, score: 0, color: "#38bdf8" } : null;
-
-      const lanes = [
-        { y: 80, speed: 2.8, w: 45, cars: [20, 180, 320], color: "#ef4444" },
-        { y: 150, speed: -3.4, w: 60, cars: [100, 260], color: "#f97316" },
-        { y: 220, speed: 3.6, w: 50, cars: [40, 220], color: "#a855f7" },
-        { y: 290, speed: -2.8, w: 55, cars: [80, 240], color: "#ec4899" }
-      ];
-
-      let anim;
-      function loop() {
-        ctx.fillStyle = "#07080c";
-        ctx.fillRect(0, 0, 400, 400);
-
-        ctx.fillStyle = "#161922";
-        ctx.fillRect(0, 0, 400, 55);
-        ctx.fillRect(0, 345, 400, 55);
-
-        lanes.forEach(l => {
-          ctx.fillStyle = l.color;
-          l.cars.forEach((cx, i) => {
-            ctx.fillRect(cx, l.y, l.w, 24);
-            l.cars[i] += l.speed;
-            if (l.speed > 0 && l.cars[i] > 400) l.cars[i] = -l.w;
-            if (l.speed < 0 && l.cars[i] < -l.w) l.cars[i] = 400;
-
-            [p1, p2].forEach(p => {
-              if (p && p.x + 18 > cx && p.x < cx + l.w && p.y + 18 > l.y && p.y < l.y + 24) p.y = 360;
-            });
-          });
-        });
-
-        [p1, p2].forEach(p => {
-          if (p && p.y <= 45) {
-            p.score++;
-            p.y = 360;
-          }
-        });
-
-        ctx.fillStyle = p1.color;
-        ctx.fillRect(p1.x, p1.y, 20, 20);
-
-        if (p2) {
-          ctx.fillStyle = p2.color;
-          ctx.fillRect(p2.x, p2.y, 20, 20);
-          scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; P2: <b>${p2.score}</b>`;
-        } else {
-          scoreEl.innerHTML = `Crossings: <b>${p1.score}</b>`;
-        }
-        anim = requestAnimationFrame(loop);
-      }
-      anim = requestAnimationFrame(loop);
-
-      function onKey(e) {
-        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
-        const step = 35;
-        if (!is2P) {
-          if (e.code === "ArrowUp") p1.y = Math.max(20, p1.y - step);
-          if (e.code === "ArrowDown") p1.y = Math.min(360, p1.y + step);
-          if (e.code === "ArrowLeft") p1.x = Math.max(10, p1.x - step);
-          if (e.code === "ArrowRight") p1.x = Math.min(370, p1.x + step);
-        } else {
-          if (e.code === "KeyW") p1.y = Math.max(20, p1.y - step);
-          if (e.code === "KeyS") p1.y = Math.min(360, p1.y + step);
-          if (e.code === "KeyA") p1.x = Math.max(10, p1.x - step);
-          if (e.code === "KeyD") p1.x = Math.min(370, p1.x + step);
-
-          if (p2) {
-            if (e.code === "ArrowUp") p2.y = Math.max(20, p2.y - step);
-            else if (e.code === "ArrowDown") p2.y = Math.min(360, p2.y + step);
-            else if (e.code === "ArrowLeft") p2.x = Math.max(10, p2.x - step);
-            else if (e.code === "ArrowRight") p2.x = Math.min(370, p2.x + step);
-          }
-        }
-      }
-      window.addEventListener("keydown", onKey);
-
-      return () => {
-        cancelAnimationFrame(anim);
-        window.removeEventListener("keydown", onKey);
-      };
-    }
-
-    // --- GAME 4: PONG ---
-    function playPong(ctx, canvas, scoreEl, hintEl, is2P) {
-      canvas.width = 400; canvas.height = 300;
-      hintEl.textContent = is2P ? "P1: [W / S] | P2: [Up / Down]" : "Use [Up / Down Arrows] to Defend";
-
-      let p1 = { y: 110, score: 0 };
-      let p2 = { y: 110, score: 0 };
-      let ball = { x: 200, y: 150, vx: 3.6, vy: 2 };
-      const keys = {};
-
-      let anim;
-      function loop() {
-        ball.x += ball.vx;
-        ball.y += ball.vy;
-
-        if (ball.y <= 0 || ball.y >= 292) ball.vy *= -1;
-        if (ball.x <= 20 && ball.y >= p1.y && ball.y <= p1.y + 70) ball.vx = Math.abs(ball.vx);
-        if (ball.x >= 372 && ball.y >= p2.y && ball.y <= p2.y + 70) ball.vx = -Math.abs(ball.vx);
-
-        if (ball.x < 0) { p2.score++; ball = { x: 200, y: 150, vx: 3.6, vy: 2 }; }
-        if (ball.x > 400) { p1.score++; ball = { x: 200, y: 150, vx: -3.6, vy: -2 }; }
-
-        if (!is2P) {
-          p2.y += (ball.y - (p2.y + 35)) * 0.11;
-          if (keys["ArrowUp"]) p1.y = Math.max(0, p1.y - 5);
-          if (keys["ArrowDown"]) p1.y = Math.min(230, p1.y + 5);
-        } else {
-          if (keys["KeyW"]) p1.y = Math.max(0, p1.y - 5);
-          if (keys["KeyS"]) p1.y = Math.min(230, p1.y + 5);
-          if (keys["ArrowUp"]) p2.y = Math.max(0, p2.y - 5);
-          if (keys["ArrowDown"]) p2.y = Math.min(230, p2.y + 5);
-        }
-
-        ctx.fillStyle = "#050609";
-        ctx.fillRect(0, 0, 400, 300);
-
-        ctx.fillStyle = "#5865f2";
-        ctx.fillRect(10, p1.y, 10, 70);
-
-        ctx.fillStyle = "#22c55e";
-        ctx.fillRect(380, p2.y, 10, 70);
-
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(ball.x, ball.y, 8, 8);
-
-        scoreEl.innerHTML = `P1: <b>${p1.score}</b> &nbsp;|&nbsp; ${is2P ? 'P2' : 'BOT'}: <b>${p2.score}</b>`;
-        anim = requestAnimationFrame(loop);
-      }
-      anim = requestAnimationFrame(loop);
-
-      function kd(e) { keys[e.code] = true; }
-      function ku(e) { keys[e.code] = false; }
-      window.addEventListener("keydown", kd);
-      window.addEventListener("keyup", ku);
-
-      return () => {
-        cancelAnimationFrame(anim);
-        window.removeEventListener("keydown", kd);
-        window.removeEventListener("keyup", ku);
-      };
-    }
-
-    // 7. CHAT SLASH COMMANDS
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && document.activeElement && document.activeElement.id === "msg") {
-        const val = document.activeElement.value.trim().toLowerCase();
-        if (["/arcade", "/tetris", "/snake", "/cross", "/pong"].includes(val)) {
-          e.preventDefault();
-          document.activeElement.value = "";
-          const target = val === "/arcade" ? "tetris" : val.replace("/", "");
-          window.triggerArcadeCinematic(target);
-        }
-      }
-    });
+    mountSidebarBtn();
+    timers.push(setInterval(mountSidebarBtn, 1000));
   })();
 // =========================================================================
   // KAIRO UI POLISH: MATCHED '+' BUTTON, TOP PROGRESS LINE & CENTERED BOOT
@@ -4202,14 +4772,13 @@ resubscribe();
       }
     }
 
-   // 3. FILE UPLOAD (Gofile) + '+' BUTTON
-const MAX_UPLOAD = 10 * 1024 ** 3; // 10 GB
+// 3. ENCRYPTED FILE SHARING + '+' BUTTON
 let uploading = false;
 
 const fileInput = document.createElement("input");
 fileInput.type = "file";
 fileInput.style.display = "none";
-document.body.appendChild(fileInput);
+root.appendChild(fileInput);
 
 function xhrUpload(url, file) {
   return new Promise((resolve, reject) => {
@@ -4231,49 +4800,66 @@ function xhrUpload(url, file) {
   });
 }
 
+// The file is encrypted here, so Gofile only receives a locked copy with a random name.
 async function uploadBig(file) {
-  if (!file || uploading) return;
-  if (file.size > MAX_UPLOAD) return toast("File is over 10 GB.");
-  const input = document.getElementById("msg");
-  if (!input) return toast("Open a chat first.");
+  if (!file) return;
+  if (uploading) return toast("Wait for the current upload to finish.");
+  if (file.size > MAX_FILE) return toast("Files can be up to 100 MB.");
+  const topic = activeTopic, r = rooms.get(topic), session = vaultKey;
+  if (!r || !r.key || !session) return toast("Open a chat first.");
+  if (!confirm('Send "' + file.name + '" to ' + r.meta.title + "?\n\nIt will be encrypted before upload. Gofile can still see its size and your IP address. Anyone who can read this chat can unlock it.")) return;
+  const stillOpen = () => vaultKey === session && rooms.get(topic) === r && !!r.key && root.isConnected;
 
   uploading = true;
-  const sizeMB = (file.size / 1048576).toFixed(1);
-  toast('Uploading "' + file.name + '" (' + sizeMB + " MB)...", 4000);
-  setUploadProgress(1);
-
-  const urls = ["https://upload.gofile.io/uploadfile"];
   try {
-    const s = await (await fetch("https://api.gofile.io/servers")).json();
-    const name = s.data.servers[0].name;
-    urls.push("https://" + name + ".gofile.io/uploadfile");
-  } catch {}
+    toast("Encrypting file...", 4000);
+    const raw = crypto.getRandomValues(new Uint8Array(32));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const locked = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await aesKey(raw), await file.arrayBuffer());
+    if (!stillOpen()) throw new Error("the chat was closed or locked");
+    const blob = new File([locked], rnd() + ".kairo", { type: "application/octet-stream" });
+    setUploadProgress(1);
 
-  let data = null, lastErr = null;
-  for (const u of urls) {
-    try { data = await xhrUpload(u, file); break; }
-    catch (e) { lastErr = e; console.warn("[Kairo] upload failed via", u, e); }
+    const urls = ["https://upload.gofile.io/uploadfile"];
+    let data = null, lastErr = null;
+    for (const u of urls) {
+      try { data = await xhrUpload(u, blob); break; }
+      catch (e) { lastErr = e; }
+    }
+    if (!data) throw lastErr || new Error("upload failed");
+    if (!stillOpen()) throw new Error("the chat was closed or locked");
+    const info = safeFile({ url: data.downloadPage, key: toB64(raw), iv: toB64(iv), name: file.name, size: file.size });
+    if (!info) throw new Error("Gofile returned an unexpected link");
+    await sendFileMessage(r, info);
+  } catch (e) {
+    toast("File not sent: " + (e && e.message ? e.message : "unknown error"), 5000);
+  } finally {
+    uploading = false;
+    setUploadProgress(100);
   }
-  uploading = false;
-  setUploadProgress(100);
-
-  if (!data) return toast("Upload failed: " + (lastErr ? lastErr.message : "unknown"), 5000);
-
-  const draft = input.value;
-  input.value = "📁 " + file.name + " (" + sizeMB + " MB)\n🔗 " + data.downloadPage;
-  await sendMessage();
-  const again = document.getElementById("msg");
-  if (again) again.value = draft;
+}
+// Sends to the chat the upload started in, without touching anything you're typing.
+async function sendFileMessage(r, info) {
+  const id = rnd();
+  const rec = { id, who: me.name, authorId: me.id, text: "", file: info, mine: true, read: false, time: Date.now(), reactions: {} };
+  r.seen.add(id);
+  r.store.msgs.push(rec);
+  persistRoom(r);
+  if (r.meta.topic === activeTopic) renderChatLog(true);
+  try { await post(r, "m", { id, text: "", file: info }); markSent(r, rec, true); }
+  catch (e) { markSent(r, rec, false); throw e; }
 }
 
 fileInput.onchange = () => {
   if (fileInput.files.length) uploadBig(fileInput.files[0]);
   fileInput.value = "";
 };
-window.addEventListener("dragover", (e) => e.preventDefault());
-window.addEventListener("drop", (e) => {
+const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files");
+root.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+root.addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
   e.preventDefault();
-  if (e.dataTransfer && e.dataTransfer.files.length) uploadBig(e.dataTransfer.files[0]);
+  uploadBig(e.dataTransfer.files[0]);
 });
 
 function mountComposerBtn() {
@@ -4282,13 +4868,13 @@ function mountComposerBtn() {
   const attachBtn = document.createElement("button");
   attachBtn.id = "kairoAttachBtn";
   attachBtn.type = "button";
-  attachBtn.title = "Attach & send file link (up to 10 GB)";
+  attachBtn.title = "Send an encrypted file (up to 100 MB)";
   attachBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 11h-6V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/></svg>';
   attachBtn.onclick = () => fileInput.click();
   const msgInput = document.getElementById("msg");
   if (msgInput) composer.insertBefore(attachBtn, msgInput);
   else composer.prepend(attachBtn);
 }
-setInterval(mountComposerBtn, 1000);
+timers.push(setInterval(mountComposerBtn, 1000));
 })();
 })();
